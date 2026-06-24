@@ -9,36 +9,38 @@
     ./hardware-configuration.nix
   ];
 
-  services.xserver.videoDrivers = ["nvidia"];
+  # 1. MAKE SURE BOTH DRIVERS ARE ALLOWED (Crucial for on-the-go mode)
+  services.xserver.videoDrivers = ["amdgpu" "nvidia"];
 
   hardware.nvidia = {
     modesetting.enable = true;
-
-    powerManagement.enable = false;
-
+    powerManagement.enable = true;
     powerManagement.finegrained = false;
 
     open = false;
-
     nvidiaSettings = true;
-
     package = config.boot.kernelPackages.nvidiaPackages.stable;
   };
 
+  # 3. KEEP THIS AS YOUR DEFAULT (AMD primary, Nvidia offload)
+  # Swap the defaults so your laptop safely boots when you're away from your desk.
   hardware.nvidia.prime = {
-    sync.enable = true;
-
+    offload = {
+      enable = true;
+      enableOffloadCmd = true;
+    };
     nvidiaBusId = "PCI:1:0:0";
     amdgpuBusId = "PCI:6:0:0";
   };
 
+  # 4. USE SPECIALISATION FOR THE DESK DOCK
   specialisation = {
-    on-the-go.configuration = {
-      system.nixos.tags = ["on-the-go"];
-      hardware.nvidia = {
-        prime.offload.enable = lib.mkForce true;
-        prime.offload.enableOffloadCmd = lib.mkForce true;
-        prime.sync.enable = lib.mkForce false;
+    docked.configuration = {
+      system.nixos.tags = ["docked"];
+      hardware.nvidia.prime = {
+        sync.enable = lib.mkForce true;
+        offload.enable = lib.mkForce false;
+        offload.enableOffloadCmd = lib.mkForce false;
       };
     };
   };
@@ -47,6 +49,8 @@
   boot.loader.efi.canTouchEfiVariables = true;
 
   boot.kernelPackages = pkgs.linuxPackages_latest;
+
+  boot.kernelParams = ["nvidia_drm.fbdev=1"];
 
   networking.hostName = "nixos";
 
@@ -61,7 +65,8 @@
   #services.xserver.displayManager.gdm.enable = true;
   #services.xserver.desktopManager.gnome.enable = true;
   services.displayManager.ly.enable = true;
-
+  programs.niri.enable = true;
+  services.xserver.windowManager.oxwm.enable = true;
   services.xserver.xkb = {
     layout = "us";
     variant = "";
@@ -88,6 +93,8 @@
       vis
       git
       foot
+      alacritty
+      fuzzel
       neovim
       gcc
       lua-language-server
@@ -101,6 +108,8 @@
       thunar
       rofi
       swaybg
+      swaylock
+      telegram-desktop
     ];
   };
 
@@ -114,13 +123,6 @@
     dedicatedServer.openFirewall = true; # Open ports in the firewall for Source Dedicated Server
   };
 
-  programs.hyprland = {
-    enable = true;
-    xwayland.enable = true;
-    package = inputs.hyprland.packages.${pkgs.system}.hyprland;
-    portalPackage = inputs.hyprland.packages.${pkgs.system}.xdg-desktop-portal-hyprland;
-  };
-
   nix.settings = {
     experimental-features = ["nix-command" "flakes"];
     download-buffer-size = 268435456;
@@ -130,6 +132,12 @@
   };
 
   nixpkgs.config.allowUnfree = true;
+
+  hardware.bluetooth.enable = true;
+
+  services.power-profiles-daemon.enable = true;
+
+  services.upower.enable = true;
 
   environment.systemPackages = with pkgs; [
     inputs.zen-browser.packages."${pkgs.system}".default
