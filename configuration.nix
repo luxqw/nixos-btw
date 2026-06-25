@@ -9,21 +9,18 @@
     ./hardware-configuration.nix
   ];
 
-  # 1. MAKE SURE BOTH DRIVERS ARE ALLOWED (Crucial for on-the-go mode)
   services.xserver.videoDrivers = ["amdgpu" "nvidia"];
 
   hardware.nvidia = {
     modesetting.enable = true;
     powerManagement.enable = true;
-    powerManagement.finegrained = false;
+    powerManagement.finegrained = true;
 
     open = false;
     nvidiaSettings = true;
     package = config.boot.kernelPackages.nvidiaPackages.stable;
   };
 
-  # 3. KEEP THIS AS YOUR DEFAULT (AMD primary, Nvidia offload)
-  # Swap the defaults so your laptop safely boots when you're away from your desk.
   hardware.nvidia.prime = {
     offload = {
       enable = true;
@@ -33,14 +30,16 @@
     amdgpuBusId = "PCI:6:0:0";
   };
 
-  # 4. USE SPECIALISATION FOR THE DESK DOCK
   specialisation = {
     docked.configuration = {
       system.nixos.tags = ["docked"];
-      hardware.nvidia.prime = {
-        sync.enable = lib.mkForce true;
-        offload.enable = lib.mkForce false;
-        offload.enableOffloadCmd = lib.mkForce false;
+      hardware.nvidia = {
+        prime = {
+          sync.enable = lib.mkForce true;
+          offload.enable = lib.mkForce false;
+          offload.enableOffloadCmd = lib.mkForce false;
+        };
+        powerManagement.finegrained = lib.mkForce false;
       };
     };
   };
@@ -66,7 +65,6 @@
   #services.xserver.desktopManager.gnome.enable = true;
   services.displayManager.ly.enable = true;
   programs.niri.enable = true;
-  services.xserver.windowManager.oxwm.enable = true;
   services.xserver.xkb = {
     layout = "us";
     variant = "";
@@ -113,14 +111,12 @@
     ];
   };
 
-  programs.firefox.enable = true;
-
-  programs.gamemode.enable = true; # for performance modesetting
+  programs.gamemode.enable = true;
 
   programs.steam = {
-    enable = true; # install steam
-    remotePlay.openFirewall = true; # Open ports in the firewall for Steam Remote Play
-    dedicatedServer.openFirewall = true; # Open ports in the firewall for Source Dedicated Server
+    enable = true;
+    remotePlay.openFirewall = true;
+    dedicatedServer.openFirewall = true;
   };
 
   nix.settings = {
@@ -139,8 +135,10 @@
 
   services.upower.enable = true;
 
+  virtualisation.docker.enable = true;
+
   environment.systemPackages = with pkgs; [
-    inputs.zen-browser.packages."${pkgs.system}".default
+    inputs.zen-browser.packages."${pkgs.stdenv.hostPlatform.system}".default
     protonup-qt
     ntfs3g
   ];

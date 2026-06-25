@@ -34,20 +34,18 @@
         ./configuration.nix
         ./hardware-configuration.nix
 
-        # claude-code overlay + system package
         ({pkgs, ...}: {
           nixpkgs.overlays = [claude-code.overlays.default];
           environment.systemPackages = [pkgs.claude-code];
         })
 
-        # Home Manager as a NixOS module
         home-manager.nixosModules.home-manager
         {
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
           home-manager.backupFileExtension = "backup";
           home-manager.extraSpecialArgs = {inherit inputs;};
-          home-manager.users.lux = import ./home.nix; # <-- change "lux" to your username
+          home-manager.users.lux = import ./home.nix;
         }
       ];
     };
