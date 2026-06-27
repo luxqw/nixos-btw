@@ -50,6 +50,9 @@
       edit = "nvim /etc/nixos/";
       rebuild = "sudo nixos-rebuild switch --flake /etc/nixos#nixos";
       rebuild-hypr = "sudo nixos-rebuild switch --flake /etc/nixos/hyprland#nixos-hypr";
+      vpn-up = "sudo wg-quick up wg0";
+      vpn-down = "sudo wg-quick down wg0";
+      vpn = "ip link show wg0 &>/dev/null && sudo wg-quick down wg0 || sudo wg-quick up wg0";
     };
   };
 

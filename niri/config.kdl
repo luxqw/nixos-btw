@@ -79,9 +79,7 @@ hotkey-overlay {
 animations {}
 
 debug {
-    // niri defaults to AMD (renderD128); force NVIDIA render node for docked mode
     render-drm-device "/dev/dri/renderD129"
-    // direct scanout causes artifacts with NVIDIA Wayland
     disable-direct-scanout
 }
 
@@ -109,10 +107,6 @@ binds {
     Mod+Shift+Slash { show-hotkey-overlay; }
     Mod+D { spawn-sh "noctalia-shell ipc call launcher toggle"; }
     Mod+Return { spawn "foot"; }
-
-    // WireGuard — имя интерфейса = имя .conf файла в /etc/nixos/wireguard/
-    Mod+Ctrl+V { spawn-sh "ip link show wg0 &>/dev/null && sudo wg-quick down wg0 || sudo wg-quick up wg0"; }
-
     Super+Alt+L { spawn "swaylock"; }
     Super+Alt+S allow-when-locked=true hotkey-overlay-title=null { spawn-sh "pkill orca || exec orca"; }
 

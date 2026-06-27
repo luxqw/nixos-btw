@@ -9,7 +9,6 @@
     ./hardware-configuration.nix
   ];
 
-  # GPU
   services.xserver.videoDrivers = ["amdgpu" "nvidia"];
 
   hardware.graphics = {
@@ -35,8 +34,6 @@
     amdgpuBusId = "PCI:6:0:0";
   };
 
-  # Boot into docked mode by default (external monitor setup)
-  # At boot menu select the untagged entry to run without external monitor
   specialisation = {
     docked.configuration = {
       system.nixos.tags = ["docked"];
@@ -55,28 +52,23 @@
     };
   };
 
-  # Boot
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
   boot.kernelPackages = pkgs.linuxPackages_latest;
   boot.kernelParams = ["nvidia_drm.fbdev=1"];
   boot.kernelModules = ["xt_TPROXY" "xt_socket" "xt_mark" "iptable_mangle" "nf_tproxy_ipv4"];
 
-  # Network
   networking.hostName = "nixos";
   networking.networkmanager.enable = true;
 
-  # Locale
   time.timeZone = "Europe/Belgrade";
   i18n.defaultLocale = "en_US.UTF-8";
 
-  # Display
   services.xserver.enable = true;
   services.displayManager.ly.enable = true;
   programs.niri.enable = true;
   services.xserver.xkb.layout = "us";
 
-  # Nix store maintenance
   nix.gc = {
     automatic = true;
     dates = "weekly";
@@ -91,7 +83,6 @@
     extra-trusted-public-keys = ["hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="];
   };
 
-  # Audio
   security.rtkit.enable = true;
   services.pipewire = {
     enable = true;
@@ -100,34 +91,26 @@
     pulse.enable = true;
   };
 
-  # Printing & input
   services.printing.enable = true;
   services.libinput.enable = true;
 
-  # Proxy
   services.v2raya.enable = true;
   services.v2raya.cliPackage = pkgs.xray;
 
-  # Hardware
   hardware.bluetooth.enable = true;
   services.power-profiles-daemon.enable = true;
   services.upower.enable = true;
 
-  # Virtualisation
   virtualisation.docker.enable = true;
 
-  # WireGuard client — конфиги кладём в /etc/nixos/wireguard/ (gitignored)
-  # wg-quick ищет конфиги в /etc/wireguard/, поэтому делаем симлинк
   systemd.tmpfiles.rules = [
     "L /etc/wireguard - - - - /etc/nixos/wireguard"
   ];
 
-  # wg-quick без sudo пароля
   security.sudo.extraConfig = ''
     lux ALL=(root) NOPASSWD: /run/current-system/sw/bin/wg-quick
   '';
 
-  # Gaming
   programs.gamemode.enable = true;
   programs.steam = {
     enable = true;
