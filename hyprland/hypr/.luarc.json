@@ -1,0 +1,10 @@
+{
+  "workspace": {
+    "library": [
+      "/home/lux/.config/hypr"
+    ]
+  },
+  "diagnostics": {
+    "globals": ["hl"]
+  }
+}
