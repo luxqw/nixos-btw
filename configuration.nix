@@ -116,6 +116,17 @@
   # Virtualisation
   virtualisation.docker.enable = true;
 
+  # WireGuard client — конфиги кладём в /etc/nixos/wireguard/ (gitignored)
+  # wg-quick ищет конфиги в /etc/wireguard/, поэтому делаем симлинк
+  systemd.tmpfiles.rules = [
+    "L /etc/wireguard - - - - /etc/nixos/wireguard"
+  ];
+
+  # wg-quick без sudo пароля
+  security.sudo.extraConfig = ''
+    lux ALL=(root) NOPASSWD: /run/current-system/sw/bin/wg-quick
+  '';
+
   # Gaming
   programs.gamemode.enable = true;
   programs.steam = {
@@ -146,7 +157,6 @@
       rofi
       telegram-desktop
       xwayland-satellite
-      wireguard-tools
     ];
   };
 
@@ -154,6 +164,7 @@
     inputs.zen-browser.packages."${pkgs.stdenv.hostPlatform.system}".default
     protonup-qt
     ntfs3g
+    wireguard-tools
   ];
 
   fileSystems."/run/media/gamedisk" = {
