@@ -1,0 +1,230 @@
+-- MONITORS
+hl.monitor({
+    output   = "DP-2",
+    mode     = "3440x1440@164.999",
+    position = "0x0",
+    scale    = "1",
+})
+
+hl.monitor({
+    output   = "eDP-1",
+    mode     = "2560x1600@165",
+    position = "3440x0",
+    scale    = "1.5",
+})
+
+-- WORKSPACE RULES (1-8 on ultrawide, 9 on laptop)
+for w = 1, 8 do
+    hl.workspace_rule({ workspace = tostring(w), monitor = "DP-2" })
+end
+hl.workspace_rule({ workspace = "9", monitor = "eDP-1" })
+
+-- ENVIRONMENT
+hl.env("XCURSOR_SIZE", "24")
+hl.env("XCURSOR_THEME", "Adwaita")
+hl.env("XDG_SESSION_TYPE", "wayland")
+hl.env("QT_QPA_PLATFORM", "wayland")
+hl.env("MOZ_ENABLE_WAYLAND", "1")
+-- NVIDIA (docked mode - PRIME sync)
+hl.env("GBM_BACKEND", "nvidia-drm")
+hl.env("__GLX_VENDOR_LIBRARY_NAME", "nvidia")
+hl.env("LIBVA_DRIVER_NAME", "nvidia")
+hl.env("NVD_BACKEND", "direct")
+
+-- PROGRAMS
+local terminal    = "foot"
+local fileManager = "thunar"
+local menu        = "rofi -show drun"
+
+-- AUTOSTART
+hl.on("hyprland.start", function()
+    hl.exec_cmd("hyprpaper")
+    hl.exec_cmd("hypridle")
+    hl.exec_cmd("mako")
+end)
+
+-- LOOK AND FEEL
+hl.config({
+    general = {
+        gaps_in          = 0,
+        gaps_out         = 0,
+        border_size      = 0,
+        col = {
+            active_border   = { colors = { "rgba(33ccffee)", "rgba(00ff99ee)" }, angle = 45 },
+            inactive_border = "rgba(595959aa)",
+        },
+        resize_on_border = false,
+        allow_tearing    = false,
+        layout           = "master",
+    },
+
+    cursor = {
+        enable_hyprcursor   = false,
+        no_hardware_cursors = true,
+    },
+
+    decoration = {
+        rounding         = 10,
+        rounding_power   = 0,
+        active_opacity   = 1.0,
+        inactive_opacity = 1.0,
+        blur = {
+            enabled  = true,
+            size     = 3,
+            passes   = 1,
+            vibrancy = 0.1696,
+        },
+    },
+
+    animations = { enabled = true },
+})
+
+-- CURVES
+hl.curve("easeOutQuint", { type = "bezier", points = { { 0.23, 1 }, { 0.32, 1 } } })
+hl.curve("almostLinear", { type = "bezier", points = { { 0.5, 0.5 }, { 0.75, 1 } } })
+hl.curve("quick",        { type = "bezier", points = { { 0.15, 0 }, { 0.1, 1 } } })
+hl.curve("linear",       { type = "bezier", points = { { 0, 0 }, { 1, 1 } } })
+hl.curve("easy",         { type = "spring", mass = 1, stiffness = 71.2633, dampening = 15.8273644 })
+
+-- ANIMATIONS
+hl.animation({ leaf = "global",        enabled = true, speed = 10,   bezier = "default" })
+hl.animation({ leaf = "border",        enabled = true, speed = 5.39, bezier = "easeOutQuint" })
+hl.animation({ leaf = "windows",       enabled = true, speed = 4.79, spring = "easy" })
+hl.animation({ leaf = "windowsIn",     enabled = true, speed = 4.1,  spring = "easy",       style = "popin 87%" })
+hl.animation({ leaf = "windowsOut",    enabled = true, speed = 1.49, bezier = "linear",     style = "popin 87%" })
+hl.animation({ leaf = "fadeIn",        enabled = true, speed = 1.73, bezier = "almostLinear" })
+hl.animation({ leaf = "fadeOut",       enabled = true, speed = 1.46, bezier = "almostLinear" })
+hl.animation({ leaf = "fade",          enabled = true, speed = 3.03, bezier = "quick" })
+hl.animation({ leaf = "layers",        enabled = true, speed = 3.81, bezier = "easeOutQuint" })
+hl.animation({ leaf = "layersIn",      enabled = true, speed = 4,    bezier = "easeOutQuint", style = "fade" })
+hl.animation({ leaf = "layersOut",     enabled = true, speed = 1.5,  bezier = "linear",       style = "fade" })
+hl.animation({ leaf = "fadeLayersIn",  enabled = true, speed = 1.79, bezier = "almostLinear" })
+hl.animation({ leaf = "fadeLayersOut", enabled = true, speed = 1.39, bezier = "almostLinear" })
+-- slide выглядит лучше чем fade на ультраwide
+hl.animation({ leaf = "workspaces",    enabled = true, speed = 0.8,  bezier = "easeOutQuint", style = "slide" })
+hl.animation({ leaf = "workspacesIn",  enabled = true, speed = 0.8,  bezier = "easeOutQuint", style = "slide" })
+hl.animation({ leaf = "workspacesOut", enabled = true, speed = 0.8,  bezier = "easeOutQuint", style = "slide" })
+hl.animation({ leaf = "zoomFactor",    enabled = true, speed = 7,    bezier = "quick" })
+
+-- LAYOUTS
+hl.config({
+    master = {
+        new_status = "master",
+        mfact      = 0.55,
+    },
+    dwindle = {
+        preserve_split = true,
+    },
+    scrolling = {
+        fullscreen_on_one_column = true,
+    },
+    misc = {
+        force_default_wallpaper = 0,
+        disable_hyprland_logo   = true,
+    },
+})
+
+-- INPUT
+hl.config({
+    input = {
+        kb_layout  = "us,ru",
+        kb_options = "grp:win_space_toggle",
+        repeat_rate  = 35,
+        repeat_delay = 200,
+        follow_mouse = 1,
+        sensitivity  = 0,
+        touchpad = {
+            natural_scroll = true,
+        },
+    },
+})
+
+hl.gesture({ fingers = 3, direction = "horizontal", action = "workspace" })
+
+-- KEYBINDINGS
+local mod = "SUPER"
+
+-- Apps
+hl.bind(mod .. " + Return",    hl.dsp.exec_cmd(terminal))
+hl.bind(mod .. " + E",         hl.dsp.exec_cmd(fileManager))
+hl.bind(mod .. " + D",         hl.dsp.exec_cmd(menu))
+
+-- Windows
+hl.bind(mod .. " + Q",         hl.dsp.window.close())
+hl.bind(mod .. " + F",         hl.dsp.window.float({ action = "toggle" }))
+hl.bind(mod .. " + P",         hl.dsp.window.pseudo())
+hl.bind(mod .. " + SHIFT + E", hl.dsp.exec_cmd("hyprctl dispatch exit"))
+
+-- Lock
+hl.bind(mod .. " + ALT + L",   hl.dsp.exec_cmd("hyprlock"))
+
+-- Screenshots via hyprshot
+-- Super+S       → регион в буфер обмена
+-- Super+Shift+S → регион в файл
+-- Super+Ctrl+S  → окно в файл
+-- Print         → весь экран в файл
+hl.bind(mod .. " + S",           hl.dsp.exec_cmd("hyprshot -m region --clipboard-only"))
+hl.bind(mod .. " + SHIFT + S",   hl.dsp.exec_cmd("hyprshot -m region"))
+hl.bind(mod .. " + CTRL + S",    hl.dsp.exec_cmd("hyprshot -m window"))
+hl.bind("Print",                  hl.dsp.exec_cmd("hyprshot -m output"))
+
+-- Color picker
+hl.bind(mod .. " + SHIFT + C",   hl.dsp.exec_cmd("hyprpicker -a"))
+
+-- Night mode toggle (hyprsunset, 4500K)
+hl.bind(mod .. " + ALT + N",     hl.dsp.exec_cmd("pkill hyprsunset || hyprsunset -t 4500"))
+
+-- Focus
+hl.bind(mod .. " + h", hl.dsp.focus({ direction = "left" }))
+hl.bind(mod .. " + l", hl.dsp.focus({ direction = "right" }))
+hl.bind(mod .. " + k", hl.dsp.focus({ direction = "up" }))
+hl.bind(mod .. " + j", hl.dsp.focus({ direction = "down" }))
+
+-- Workspaces
+for i = 1, 10 do
+    local key = i % 10
+    hl.bind(mod .. " + " .. key,         hl.dsp.focus({ workspace = i }))
+    hl.bind(mod .. " + SHIFT + " .. key, hl.dsp.window.move({ workspace = i }))
+end
+
+hl.bind(mod .. " + TAB",         hl.dsp.focus({ workspace = "e+1" }))
+hl.bind(mod .. " + SHIFT + TAB", hl.dsp.focus({ workspace = "e-1" }))
+
+-- Mouse
+hl.bind(mod .. " + mouse:272", hl.dsp.window.drag(),   { mouse = true })
+hl.bind(mod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
+
+-- Audio
+hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true })
+hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"),      { locked = true, repeating = true })
+hl.bind("XF86AudioMute",        hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"),     { locked = true })
+hl.bind("XF86AudioMicMute",     hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"),   { locked = true })
+
+-- Brightness
+hl.bind("XF86MonBrightnessUp",   hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%+"), { locked = true, repeating = true })
+hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%-"), { locked = true, repeating = true })
+
+-- Media
+hl.bind("XF86AudioNext",  hl.dsp.exec_cmd("playerctl next"),       { locked = true })
+hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd("playerctl previous"),   { locked = true })
+hl.bind("XF86AudioPlay",  hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
+hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
+
+-- WINDOW RULES
+hl.window_rule({
+    name      = "firefox-on-ws1",
+    match     = { class = "^(firefox)$" },
+    workspace = "1 silent",
+})
+
+hl.window_rule({
+    name           = "suppress-maximize",
+    match          = { class = ".*" },
+    suppress_event = "maximize",
+})
+
+hl.window_rule({
+    name     = "fix-xwayland-drags",
+    match    = { class = "^$", title = "^$", xwayland = true, float = true, fullscreen = false, pin = false },
+    no_focus = true,
+})
