@@ -116,33 +116,6 @@
   # Virtualisation
   virtualisation.docker.enable = true;
 
-  # wg-easy: WireGuard web UI
-  # Create /var/lib/wg-easy/env with:
-  #   WG_HOST=<your-public-ip-or-domain>
-  #   PASSWORD_HASH=<bcrypt-hash>  # generate: docker run ghcr.io/wg-easy/wg-easy wgpw YOUR_PASSWORD
-  virtualisation.oci-containers.backend = "docker";
-  virtualisation.oci-containers.containers.wg-easy = {
-    image = "ghcr.io/wg-easy/wg-easy";
-    environmentFiles = [ "/var/lib/wg-easy/env" ];
-    environment = {
-      LANG      = "en";
-      PORT      = "51821";
-      WG_PORT   = "51820";
-    };
-    volumes = [ "/var/lib/wg-easy:/etc/wireguard" ];
-    ports   = [ "51820:51820/udp" "51821:51821/tcp" ];
-    extraOptions = [
-      "--cap-add=NET_ADMIN"
-      "--cap-add=SYS_MODULE"
-      "--sysctl=net.ipv4.conf.all.src_valid_mark=1"
-      "--sysctl=net.ipv4.ip_forward=1"
-    ];
-  };
-
-  networking.firewall.allowedUDPPorts = [ 51820 ];
-  networking.firewall.allowedTCPPorts = [ 51821 ];
-  boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
-
   # Gaming
   programs.gamemode.enable = true;
   programs.steam = {
@@ -173,6 +146,7 @@
       rofi
       telegram-desktop
       xwayland-satellite
+      wireguard-tools
     ];
   };
 
