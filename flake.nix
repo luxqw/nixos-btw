@@ -32,7 +32,6 @@
       modules = [
         ./noctalia.nix
         ./configuration.nix
-        ./hardware-configuration.nix
 
         ({pkgs, ...}: {
           nixpkgs.overlays = [claude-code.overlays.default];

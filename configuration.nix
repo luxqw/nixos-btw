@@ -9,13 +9,18 @@
     ./hardware-configuration.nix
   ];
 
+  # GPU
   services.xserver.videoDrivers = ["amdgpu" "nvidia"];
+
+  hardware.graphics = {
+    enable = true;
+    enable32Bit = true;
+  };
 
   hardware.nvidia = {
     modesetting.enable = true;
     powerManagement.enable = true;
     powerManagement.finegrained = true;
-
     open = false;
     nvidiaSettings = true;
     package = config.boot.kernelPackages.nvidiaPackages.stable;
@@ -30,6 +35,8 @@
     amdgpuBusId = "PCI:6:0:0";
   };
 
+  # Boot into docked mode by default (external monitor setup)
+  # At boot menu select the untagged entry to run without external monitor
   specialisation = {
     docked.configuration = {
       system.nixos.tags = ["docked"];
@@ -41,45 +48,107 @@
         };
         powerManagement.finegrained = lib.mkForce false;
       };
+      environment.sessionVariables = {
+        GBM_BACKEND = "nvidia-drm";
+        __GLX_VENDOR_LIBRARY_NAME = "nvidia";
+      };
     };
   };
 
+  # Boot
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-
   boot.kernelPackages = pkgs.linuxPackages_latest;
-
   boot.kernelParams = ["nvidia_drm.fbdev=1"];
+  boot.kernelModules = ["xt_TPROXY" "xt_socket" "xt_mark" "iptable_mangle" "nf_tproxy_ipv4"];
 
+  # Network
   networking.hostName = "nixos";
-
   networking.networkmanager.enable = true;
 
+  # Locale
   time.timeZone = "Europe/Belgrade";
-
   i18n.defaultLocale = "en_US.UTF-8";
 
+  # Display
   services.xserver.enable = true;
-
-  #services.xserver.displayManager.gdm.enable = true;
-  #services.xserver.desktopManager.gnome.enable = true;
   services.displayManager.ly.enable = true;
   programs.niri.enable = true;
-  services.xserver.xkb = {
-    layout = "us";
-    variant = "";
+  services.xserver.xkb.layout = "us";
+
+  # Nix store maintenance
+  nix.gc = {
+    automatic = true;
+    dates = "weekly";
+    options = "--delete-older-than 30d";
+  };
+  nix.settings = {
+    auto-optimise-store = true;
+    experimental-features = ["nix-command" "flakes"];
+    download-buffer-size = 268435456;
+    trusted-users = ["root" "lux"];
+    extra-substituters = ["https://hyprland.cachix.org"];
+    extra-trusted-public-keys = ["hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="];
   };
 
-  services.printing.enable = true;
-  services.libinput.enable = true;
-
-  services.pulseaudio.enable = false;
+  # Audio
   security.rtkit.enable = true;
   services.pipewire = {
     enable = true;
     alsa.enable = true;
     alsa.support32Bit = true;
     pulse.enable = true;
+  };
+
+  # Printing & input
+  services.printing.enable = true;
+  services.libinput.enable = true;
+
+  # Proxy
+  services.v2raya.enable = true;
+  services.v2raya.cliPackage = pkgs.xray;
+
+  # Hardware
+  hardware.bluetooth.enable = true;
+  services.power-profiles-daemon.enable = true;
+  services.upower.enable = true;
+
+  # Virtualisation
+  virtualisation.docker.enable = true;
+
+  # wg-easy: WireGuard web UI
+  # Create /var/lib/wg-easy/env with:
+  #   WG_HOST=<your-public-ip-or-domain>
+  #   PASSWORD_HASH=<bcrypt-hash>  # generate: docker run ghcr.io/wg-easy/wg-easy wgpw YOUR_PASSWORD
+  virtualisation.oci-containers.backend = "docker";
+  virtualisation.oci-containers.containers.wg-easy = {
+    image = "ghcr.io/wg-easy/wg-easy";
+    environmentFiles = [ "/var/lib/wg-easy/env" ];
+    environment = {
+      LANG      = "en";
+      PORT      = "51821";
+      WG_PORT   = "51820";
+    };
+    volumes = [ "/var/lib/wg-easy:/etc/wireguard" ];
+    ports   = [ "51820:51820/udp" "51821:51821/tcp" ];
+    extraOptions = [
+      "--cap-add=NET_ADMIN"
+      "--cap-add=SYS_MODULE"
+      "--sysctl=net.ipv4.conf.all.src_valid_mark=1"
+      "--sysctl=net.ipv4.ip_forward=1"
+    ];
+  };
+
+  networking.firewall.allowedUDPPorts = [ 51820 ];
+  networking.firewall.allowedTCPPorts = [ 51821 ];
+  boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
+
+  # Gaming
+  programs.gamemode.enable = true;
+  programs.steam = {
+    enable = true;
+    remotePlay.openFirewall = true;
+    dedicatedServer.openFirewall = true;
   };
 
   users.users.lux = {
@@ -89,7 +158,6 @@
     packages = with pkgs; [
       tree
       vis
-      git
       foot
       alacritty
       fuzzel
@@ -98,44 +166,15 @@
       lua-language-server
       nil
       alejandra
-      vim
-      wget
       adwaita-icon-theme
       gnome-themes-extra
       nitch
       thunar
       rofi
-      swaybg
-      swaylock
       telegram-desktop
+      xwayland-satellite
     ];
   };
-
-  programs.gamemode.enable = true;
-
-  programs.steam = {
-    enable = true;
-    remotePlay.openFirewall = true;
-    dedicatedServer.openFirewall = true;
-  };
-
-  nix.settings = {
-    experimental-features = ["nix-command" "flakes"];
-    download-buffer-size = 268435456;
-    trusted-users = ["root" "lux"];
-    extra-substituters = ["https://hyprland.cachix.org"];
-    extra-trusted-public-keys = ["hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="];
-  };
-
-  nixpkgs.config.allowUnfree = true;
-
-  hardware.bluetooth.enable = true;
-
-  services.power-profiles-daemon.enable = true;
-
-  services.upower.enable = true;
-
-  virtualisation.docker.enable = true;
 
   environment.systemPackages = with pkgs; [
     inputs.zen-browser.packages."${pkgs.stdenv.hostPlatform.system}".default
@@ -152,6 +191,8 @@
   fonts.packages = with pkgs; [
     nerd-fonts.iosevka
   ];
+
+  nixpkgs.config.allowUnfree = true;
 
   system.stateVersion = "25.11";
 }

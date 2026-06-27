@@ -9,26 +9,27 @@
 
   home.stateVersion = "25.11";
 
-  home.packages = [
-    pkgs.claude-code
+  home.packages = with pkgs; [
+    discord
+    zed-editor
+    antigravity
+    mpv
+    qbittorrent
+    chromium
+    onlyoffice-desktopeditors
 
-    pkgs.discord
-    pkgs.zed-editor
-    pkgs.antigravity
-    pkgs.mpv
-    pkgs.qbittorrent
+    ripgrep
+    fd
+    bat
+    eza
+    jq
+    htop
+    wget
+    unzip
 
-    pkgs.ripgrep
-    pkgs.fd
-    pkgs.bat
-    pkgs.eza
-    pkgs.jq
-    pkgs.htop
-    pkgs.wget
-    pkgs.unzip
-
-    pkgs.nodejs_22
-    pkgs.go
+    nodejs_22
+    go
+    gh
   ];
 
   programs.git = {
@@ -48,6 +49,7 @@
       cat = "bat";
       edit = "nvim /etc/nixos/";
       rebuild = "sudo nixos-rebuild switch --flake /etc/nixos#nixos";
+      rebuild-hypr = "sudo nixos-rebuild switch --flake /etc/nixos/hyprland#nixos-hypr";
     };
   };
 
