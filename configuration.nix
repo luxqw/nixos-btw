@@ -72,7 +72,6 @@
     enable = true;
     package = inputs.noctalia-greeter.packages.${pkgs.stdenv.hostPlatform.system}.default;
 
-    # Optional configuration
     greeter-args = "";
     settings = {
       cursor = {
@@ -142,8 +141,11 @@
       foot
       neovim
       gcc
+      lua-language-server
       nil
       alejandra
+      adwaita-icon-theme
+      gnome-themes-extra
       nitch
       thunar
       rofi

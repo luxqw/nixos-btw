@@ -60,7 +60,7 @@
     enable = true;
     settings = {
       main = {
-        font = "Iosevka NF:size=18";
+        font = "Iosevka NF:size=14";
         pad = "4x4";
       };
       colors-dark = {
