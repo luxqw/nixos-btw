@@ -11,12 +11,14 @@
 
   home.packages = with pkgs; [
     discord
+    vesktop
     zed-editor
     antigravity
     mpv
     qbittorrent
     chromium
     onlyoffice-desktopeditors
+    mpvpaper
 
     ripgrep
     fd
@@ -49,8 +51,7 @@
       cat = "bat";
       edit = "nvim /etc/nixos/";
       rebuild = "sudo nixos-rebuild switch --flake /etc/nixos#nixos";
-      rebuild-hypr = "sudo nixos-rebuild switch --flake /etc/nixos#nixos-hypr";
-      vpn-up = "sudo wg-quick up wg0";
+vpn-up = "sudo wg-quick up wg0";
       vpn-down = "sudo wg-quick down wg0";
       vpn = "ip link show wg0 &>/dev/null && sudo wg-quick down wg0 || sudo wg-quick up wg0";
     };
@@ -69,30 +70,30 @@
     settings = {
       main = {
         font = "Iosevka NF:size=12";
-        pad  = "4x4";
+        pad = "4x4";
       };
       colors-dark = {
         foreground = "c0caf5";
         background = "1a1b26";
-        alpha      = "0.98";
-        regular0   = "15161E";
-        regular1   = "f7768e";
-        regular2   = "9ece6a";
-        regular3   = "e0af68";
-        regular4   = "7aa2f7";
-        regular5   = "bb9af7";
-        regular6   = "7dcfff";
-        regular7   = "a9b1d6";
-        bright0    = "414868";
-        bright1    = "f7768e";
-        bright2    = "9ece6a";
-        bright3    = "e0af68";
-        bright4    = "7aa2f7";
-        bright5    = "bb9af7";
-        bright6    = "7dcfff";
-        bright7    = "c0caf5";
-        dim0       = "ff9e64";
-        dim1       = "db4b4b";
+        alpha = "0.98";
+        regular0 = "15161E";
+        regular1 = "f7768e";
+        regular2 = "9ece6a";
+        regular3 = "e0af68";
+        regular4 = "7aa2f7";
+        regular5 = "bb9af7";
+        regular6 = "7dcfff";
+        regular7 = "a9b1d6";
+        bright0 = "414868";
+        bright1 = "f7768e";
+        bright2 = "9ece6a";
+        bright3 = "e0af68";
+        bright4 = "7aa2f7";
+        bright5 = "bb9af7";
+        bright6 = "7dcfff";
+        bright7 = "c0caf5";
+        dim0 = "ff9e64";
+        dim1 = "db4b4b";
       };
     };
   };

@@ -19,12 +19,16 @@ input {
     focus-follows-mouse max-scroll-amount="0%"
 }
 
+layer-rule {
+  match namespace="^noctalia-backdrop"
+  place-within-backdrop true
+}
+
 output "eDP-1" {
-    mode "2560x1600@165.004"
+    mode "2560x1600@60"
     scale 1.5
     transform "normal"
     position x=3440 y=0
-    variable-refresh-rate
 }
 
 output "DP-2" {
@@ -46,29 +50,43 @@ layout {
 
     default-column-width { proportion 0.5; }
 
-    focus-ring {
+    focus-ring {           
         width 1.5
-        active-color "#7fc8ff"
-        inactive-color "#505050"
+        active-color   "#7aa2f7"
+        inactive-color "#1a1b26"
+        urgent-color   "#f7768e"
     }
 
     border {
         off
-        width 1.5
-        active-color "#ffc87f"
-        inactive-color "#505050"
-        urgent-color "#9b0000"
+        active-color   "#7aa2f7"
+        inactive-color "#1a1b26"
+        urgent-color   "#f7768e"
     }
 
     shadow {
-        softness 30
-        spread 5
-        offset x=0 y=5
-        color "#0007"
+        color "#15161e70"
+    }
+
+    tab-indicator {
+        active-color   "#7aa2f7"
+        inactive-color "#003dbf"
+        urgent-color   "#f7768e"
+    }
+
+    insert-hint {
+        color "#7aa2f780"
     }
 }
 
-spawn-at-startup "noctalia-shell"
+recent-windows {
+    highlight {
+        active-color "#7aa2f7"
+        urgent-color "#f7768e"
+    }
+}
+
+spawn-at-startup "noctalia"
 
 screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
 
@@ -105,7 +123,9 @@ window-rule {
 
 binds {
     Mod+Shift+Slash { show-hotkey-overlay; }
-    Mod+D { spawn-sh "noctalia-shell ipc call launcher toggle"; }
+    //Mod+D { spawn-sh "rofi -show drun -theme Arc-Dark"; }
+    Mod+D { spawn-sh "noctalia msg panel-toggle launcher"; }
+    
     Mod+Return { spawn "foot"; }
     Super+Alt+L { spawn "swaylock"; }
     Super+Alt+S allow-when-locked=true hotkey-overlay-title=null { spawn-sh "pkill orca || exec orca"; }
@@ -242,3 +262,5 @@ binds {
     Ctrl+Alt+Delete { quit; }
     Mod+Shift+P    { power-off-monitors; }
 }
+
+include "noctalia.kdl"
