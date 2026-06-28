@@ -10,15 +10,15 @@
   home.stateVersion = "25.11";
 
   home.packages = with pkgs; [
-    discord
     vesktop
     zed-editor
     antigravity
     mpv
     qbittorrent
+    protonup-qt
+    telegram-desktop
     chromium
     onlyoffice-desktopeditors
-    mpvpaper
 
     ripgrep
     fd
@@ -51,17 +51,8 @@
       cat = "bat";
       edit = "nvim /etc/nixos/";
       rebuild = "sudo nixos-rebuild switch --flake /etc/nixos#nixos";
-vpn-up = "sudo wg-quick up wg0";
+      vpn-up = "sudo wg-quick up wg0";
       vpn-down = "sudo wg-quick down wg0";
-      vpn = "ip link show wg0 &>/dev/null && sudo wg-quick down wg0 || sudo wg-quick up wg0";
-    };
-  };
-
-  gtk = {
-    enable = true;
-    iconTheme = {
-      name = "Papirus-Dark";
-      package = pkgs.papirus-icon-theme;
     };
   };
 
@@ -69,7 +60,7 @@ vpn-up = "sudo wg-quick up wg0";
     enable = true;
     settings = {
       main = {
-        font = "Iosevka NF:size=12";
+        font = "Iosevka NF:size=18";
         pad = "4x4";
       };
       colors-dark = {

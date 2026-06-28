@@ -106,17 +106,6 @@ workspace "b" {}
 workspace "a" {}
 
 window-rule {
-    match app-id=r#"firefox$"# title="^Picture-in-Picture$"
-    open-floating true
-}
-
-window-rule {
-    match title="Firefox"
-    open-on-workspace "c"
-    open-maximized true
-}
-
-window-rule {
     geometry-corner-radius 4
     clip-to-geometry true
 }
@@ -124,10 +113,8 @@ window-rule {
 binds {
     Mod+Shift+Slash { show-hotkey-overlay; }
     //Mod+D { spawn-sh "rofi -show drun -theme Arc-Dark"; }
-    Mod+D { spawn-sh "noctalia msg panel-toggle launcher"; }
-    
+    Mod+D { spawn-sh "noctalia msg panel-toggle launcher"; }   
     Mod+Return { spawn "foot"; }
-    Super+Alt+L { spawn "swaylock"; }
     Super+Alt+S allow-when-locked=true hotkey-overlay-title=null { spawn-sh "pkill orca || exec orca"; }
 
     XF86AudioRaiseVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1+"; }

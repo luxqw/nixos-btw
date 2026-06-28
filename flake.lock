@@ -166,6 +166,19 @@
     },
     "nixpkgs_4": {
       "locked": {
+        "lastModified": 1781577229,
+        "narHash": "sha256-rcUHdUtJEvMdNEl2Wq+YpHraHKfcer3KsBscpZEF2Yg=",
+        "rev": "567a49d1913ce81ac6e9582e3553dd90a955875f",
+        "type": "tarball",
+        "url": "https://releases.nixos.org/nixos/unstable/nixos-26.11pre1017464.567a49d1913c/nixexprs.tar.xz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://channels.nixos.org/nixos-unstable/nixexprs.tar.xz"
+      }
+    },
+    "nixpkgs_5": {
+      "locked": {
         "lastModified": 1779560665,
         "narHash": "sha256-tpyBcxPpcQb8ukyNF7DoCwfSY3VPsxHoYwj00Cayv5o=",
         "owner": "nixos",
@@ -200,6 +213,24 @@
         "type": "github"
       }
     },
+    "noctalia-greeter": {
+      "inputs": {
+        "nixpkgs": "nixpkgs_4"
+      },
+      "locked": {
+        "lastModified": 1782517487,
+        "narHash": "sha256-EAo6mV0/HCBR4R2+VcgRwthtvJn0/aTGBDlrB0JFKNs=",
+        "owner": "noctalia-dev",
+        "repo": "noctalia-greeter",
+        "rev": "76e0349b32bfa7736888764c60d769f5d5920da4",
+        "type": "github"
+      },
+      "original": {
+        "owner": "noctalia-dev",
+        "repo": "noctalia-greeter",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "claude-code": "claude-code",
@@ -207,6 +238,7 @@
         "millennium": "millennium",
         "nixpkgs": "nixpkgs_3",
         "noctalia": "noctalia",
+        "noctalia-greeter": "noctalia-greeter",
         "zen-browser": "zen-browser"
       }
     },
@@ -228,7 +260,7 @@
     "zen-browser": {
       "inputs": {
         "home-manager": "home-manager_2",
-        "nixpkgs": "nixpkgs_4"
+        "nixpkgs": "nixpkgs_5"
       },
       "locked": {
         "lastModified": 1780309250,

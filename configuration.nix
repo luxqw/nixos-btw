@@ -7,6 +7,7 @@
 }: {
   imports = [
     ./hardware-configuration.nix
+    inputs.noctalia-greeter.nixosModules.default
   ];
 
   services.xserver.videoDrivers = ["amdgpu" "nvidia"];
@@ -55,7 +56,6 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
   boot.kernelPackages = pkgs.linuxPackages_latest;
-  boot.kernelParams = ["nvidia_drm.fbdev=1"];
   boot.kernelModules = ["xt_TPROXY" "xt_socket" "xt_mark" "iptable_mangle" "nf_tproxy_ipv4"];
 
   networking.hostName = "nixos";
@@ -65,14 +65,30 @@
   i18n.defaultLocale = "en_US.UTF-8";
 
   services.xserver.enable = true;
-  services.displayManager.ly.enable = true;
+  #services.displayManager.ly.enable = true;
   programs.niri.enable = true;
-  services.xserver.xkb.layout = "us";
+
+  programs.noctalia-greeter = {
+    enable = true;
+    package = inputs.noctalia-greeter.packages.${pkgs.stdenv.hostPlatform.system}.default;
+
+    # Optional configuration
+    greeter-args = "";
+    settings = {
+      cursor = {
+        theme = "Adwaita";
+        size = 24;
+      };
+      keyboard = {
+        layout = "us";
+      };
+    };
+  };
 
   nix.gc = {
     automatic = true;
     dates = "weekly";
-    options = "--delete-older-than 30d";
+    options = "--delete-older-than 14d";
   };
   nix.settings = {
     auto-optimise-store = true;
@@ -123,30 +139,22 @@
     extraGroups = ["networkmanager" "wheel" "docker"];
     packages = with pkgs; [
       tree
-      vis
       foot
-      alacritty
-      fuzzel
       neovim
       gcc
-      lua-language-server
       nil
       alejandra
-      adwaita-icon-theme
-      gnome-themes-extra
       nitch
       thunar
       rofi
-      telegram-desktop
-      xwayland-satellite
     ];
   };
 
   environment.systemPackages = with pkgs; [
     inputs.zen-browser.packages."${pkgs.stdenv.hostPlatform.system}".default
-    protonup-qt
     ntfs3g
     wireguard-tools
+    xwayland-satellite
   ];
 
   fileSystems."/run/media/gamedisk" = {
