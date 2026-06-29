@@ -25,7 +25,7 @@ layer-rule {
 }
 
 output "eDP-1" {
-    mode "2560x1600@60"
+    mode "2560x1600@165"
     scale 1.5
     transform "normal"
     position x=3440 y=0
@@ -96,10 +96,7 @@ hotkey-overlay {
 
 animations {}
 
-debug {
-    render-drm-device "/dev/dri/renderD129"
-    disable-direct-scanout
-}
+include "/etc/niri-render-device.kdl"
 
 workspace "c" {}
 workspace "b" {}
@@ -250,4 +247,4 @@ binds {
     Mod+Shift+P    { power-off-monitors; }
 }
 
-include "noctalia.kdl"
+include "/home/lux/.config/niri/noctalia.kdl"
