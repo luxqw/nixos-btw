@@ -10,46 +10,53 @@
     inputs.noctalia-greeter.nixosModules.default
   ];
 
-  services.xserver.videoDrivers = ["amdgpu" "nvidia"];
-
   hardware.graphics = {
     enable = true;
-    enable32Bit = true;
   };
+
+  services.xserver.videoDrivers = ["nvidia"];
 
   hardware.nvidia = {
     modesetting.enable = true;
-    powerManagement.enable = true;
-    powerManagement.finegrained = true;
+
+    powerManagement.enable = false;
+
+    powerManagement.finegrained = false;
+
     open = false;
+
     nvidiaSettings = true;
+
     package = config.boot.kernelPackages.nvidiaPackages.stable;
   };
 
   hardware.nvidia.prime = {
-    offload = {
-      enable = true;
-      enableOffloadCmd = true;
-    };
+    sync.enable = true;
+
     nvidiaBusId = "PCI:1:0:0";
     amdgpuBusId = "PCI:6:0:0";
   };
 
+  environment.etc."niri-render-device.kdl".text = ''
+    debug {
+      render-drm-device "/dev/dri/renderD129"
+      disable-direct-scanout
+    }
+  '';
+
   specialisation = {
-    docked.configuration = {
-      system.nixos.tags = ["docked"];
+    on-the-go.configuration = {
+      system.nixos.tags = ["on-the-go"];
       hardware.nvidia = {
-        prime = {
-          sync.enable = lib.mkForce true;
-          offload.enable = lib.mkForce false;
-          offload.enableOffloadCmd = lib.mkForce false;
-        };
-        powerManagement.finegrained = lib.mkForce false;
+        prime.offload.enable = lib.mkForce true;
+        prime.offload.enableOffloadCmd = lib.mkForce true;
+        prime.sync.enable = lib.mkForce false;
       };
-      environment.sessionVariables = {
-        GBM_BACKEND = "nvidia-drm";
-        __GLX_VENDOR_LIBRARY_NAME = "nvidia";
-      };
+      environment.etc."niri-render-device.kdl".text = lib.mkForce ''
+        debug {
+          render-drm-device "/dev/dri/renderD128"
+        }
+      '';
     };
   };
 
@@ -157,6 +164,7 @@
     ntfs3g
     wireguard-tools
     xwayland-satellite
+    zed-editor
   ];
 
   fileSystems."/run/media/gamedisk" = {
