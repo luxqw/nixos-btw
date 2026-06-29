@@ -32,7 +32,7 @@ output "eDP-1" {
 }
 
 output "DP-2" {
-    mode "3440x1440@165"
+    mode "3440x1440@164.999"
     scale 1
     transform "normal"
     position x=0 y=0
