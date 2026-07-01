@@ -14,11 +14,8 @@
     antigravity
     mpv
     qbittorrent
-    protonup-qt
-    telegram-desktop
     chromium
     onlyoffice-desktopeditors
-
     ripgrep
     fd
     bat
@@ -26,7 +23,6 @@
     jq
     htop
     wget
-    unzip
 
     nodejs_22
     go
@@ -50,6 +46,8 @@
       cat = "bat";
       edit = "nvim /etc/nixos/";
       rebuild = "sudo nixos-rebuild switch --flake /etc/nixos#nixos";
+      update = "sudo nix flake update /etc/nixos && sudo nixos-rebuild switch --flake /etc/nixos#nixos";
+      nx = "cd /etc/nixos";
       vpn-up = "sudo wg-quick up wg0";
       vpn-down = "sudo wg-quick down wg0";
     };
