@@ -26,7 +26,7 @@
     ...
   }: let
     shared = [
-      ./configuration.nix
+      ./nixos/modules
       ({pkgs, ...}: {
         nixpkgs.overlays = [
           claude-code.overlays.default
@@ -49,8 +49,8 @@ home-manager.extraSpecialArgs = {inherit inputs;};
         modules =
           shared
           ++ [
-            ./noctalia.nix
-            {home-manager.users.lux = import ./home.nix;}
+            ./hosts/nixos/configuration.nix
+            {home-manager.users.lux = import ./home-manager/home.nix;}
           ];
       };
 

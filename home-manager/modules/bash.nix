@@ -1,44 +1,4 @@
-{
-  config,
-  pkgs,
-  inputs,
-  ...
-}: {
-  home.username = "lux";
-  home.homeDirectory = "/home/lux";
-
-  home.stateVersion = "25.11";
-
-  home.packages = with pkgs; [
-    vesktop
-    antigravity
-    mpv
-    qbittorrent
-    chromium
-    onlyoffice-desktopeditors
-    ripgrep
-    fd
-    bat
-    eza
-    jq
-    htop
-    wget
-
-    nodejs_22
-    go
-    gh
-  ];
-
-  programs.git = {
-    enable = true;
-    settings = {
-      user.name = "lux";
-      user.email = "rakhmatullin.damir@tutamail.com";
-      init.defaultBranch = "main";
-      pull.rebase = true;
-    };
-  };
-
+{...}: {
   programs.bash = {
     enable = true;
     shellAliases = {
@@ -46,7 +6,7 @@
       cat = "bat";
       edit = "nvim /etc/nixos/";
       rebuild = "sudo nixos-rebuild switch --flake /etc/nixos#nixos";
-      update = "sudo nix flake update /etc/nixos && sudo nixos-rebuild switch --flake /etc/nixos#nixos";
+      update = "cd /etc/nixos/ && sudo nix flake update && sudo nixos-rebuild switch --flake /etc/nixos#nixos";
       nx = "cd /etc/nixos";
       vpn-up = "sudo wg-quick up wg0";
       vpn-down = "sudo wg-quick down wg0";
@@ -101,45 +61,4 @@
       }
     '';
   };
-
-  programs.foot = {
-    enable = true;
-    settings = {
-      main = {
-        font = "Iosevka NF:size=14";
-        pad = "4x4";
-      };
-      colors-dark = {
-        foreground = "c0caf5";
-        background = "1a1b26";
-        alpha = "0.98";
-        regular0 = "15161E";
-        regular1 = "f7768e";
-        regular2 = "9ece6a";
-        regular3 = "e0af68";
-        regular4 = "7aa2f7";
-        regular5 = "bb9af7";
-        regular6 = "7dcfff";
-        regular7 = "a9b1d6";
-        bright0 = "414868";
-        bright1 = "f7768e";
-        bright2 = "9ece6a";
-        bright3 = "e0af68";
-        bright4 = "7aa2f7";
-        bright5 = "bb9af7";
-        bright6 = "7dcfff";
-        bright7 = "c0caf5";
-        dim0 = "ff9e64";
-        dim1 = "db4b4b";
-      };
-    };
-  };
-  xdg.configFile."foot/foot.ini".force = true;
-
-  xdg.configFile."niri/config.kdl" = {
-    source = config.lib.file.mkOutOfStoreSymlink "/etc/nixos/niri/config.kdl";
-    force = true;
-  };
-
-  programs.home-manager.enable = true;
 }
