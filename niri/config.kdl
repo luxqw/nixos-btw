@@ -94,7 +94,9 @@ hotkey-overlay {
     skip-at-startup
 }
 
-animations {}
+animations {
+off
+}
 
 include "/etc/niri-render-device.kdl"
 
@@ -110,7 +112,8 @@ window-rule {
 binds {
     Mod+Shift+Slash { show-hotkey-overlay; }
     //Mod+D { spawn-sh "rofi -show drun -theme Arc-Dark"; }
-    Mod+D { spawn-sh "noctalia msg panel-toggle launcher"; }   
+    Mod+D { spawn-sh "noctalia msg panel-toggle launcher"; }
+    Mod+T { spawn-sh "noctalia msg panel-toggle clipboard"; }
     Mod+Return { spawn "foot"; }
     Super+Alt+S allow-when-locked=true hotkey-overlay-title=null { spawn-sh "pkill orca || exec orca"; }
 
