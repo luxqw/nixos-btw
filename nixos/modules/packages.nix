@@ -10,5 +10,10 @@
     xwayland-satellite
     zed-editor
     telegram-desktop
+    showmethekey
+    btop
+    (import inputs.creamlinux-installer {inherit pkgs;})
+    inputs.clin.packages.${system}.default
+    inputs.tele.packages.${pkgs.stdenv.hostPlatform.system}.default
   ];
 }

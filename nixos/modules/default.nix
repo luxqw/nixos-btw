@@ -6,7 +6,9 @@
     ./docker.nix
     ./fonts.nix
     ./gaming.nix
+    ./lenovo-legion.nix
     ./locale.nix
+    ./neovim.nix
     ./net.nix
     ./niri.nix
     ./noctalia.nix

@@ -6,6 +6,17 @@
     zen-browser.url = "github:0xc000022070/zen-browser-flake";
     claude-code.url = "github:sadjow/claude-code-nix";
     noctalia-greeter.url = "github:noctalia-dev/noctalia-greeter";
+    clin.url = "github:reekta92/clin-rs";
+    tele = {
+      url = "path:/home/lux/Documents/projects/tele";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    creamlinux-installer = {
+      type = "github";
+      owner = "Novattz";
+      repo = "creamlinux-installer";
+      flake = false;
+    };
     millennium.url = "github:SteamClientHomebrew/Millennium?dir=packages/nix";
     home-manager = {
       url = "github:nix-community/home-manager";
@@ -13,6 +24,10 @@
     };
     noctalia = {
       url = "github:noctalia-dev/noctalia-shell";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    nix-openclaw = {
+      url = "github:openclaw/nix-openclaw";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -31,6 +46,7 @@
         nixpkgs.overlays = [
           claude-code.overlays.default
           inputs.millennium.overlays.default
+          inputs.nix-openclaw.overlays.default
         ];
 
         environment.systemPackages = [pkgs.claude-code];
@@ -39,7 +55,7 @@
       {
         home-manager.useGlobalPkgs = true;
         home-manager.useUserPackages = true;
-home-manager.extraSpecialArgs = {inherit inputs;};
+        home-manager.extraSpecialArgs = {inherit inputs;};
       }
     ];
   in {
@@ -53,7 +69,6 @@ home-manager.extraSpecialArgs = {inherit inputs;};
             {home-manager.users.lux = import ./home-manager/home.nix;}
           ];
       };
-
     };
   };
 }

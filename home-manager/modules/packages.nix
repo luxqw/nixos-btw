@@ -1,12 +1,14 @@
 {pkgs, ...}: {
   home.packages = with pkgs; [
     vesktop
-    antigravity
     mpv
     qbittorrent
     chromium
     onlyoffice-desktopeditors
     protonup-qt
+    obs-studio
+    imv
+    zathura
 
     ripgrep
     fd
@@ -17,6 +19,7 @@
     wget
     unzip
     wl-clipboard
+    fzf
 
     nodejs_22
     go
