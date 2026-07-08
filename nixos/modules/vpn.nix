@@ -2,6 +2,13 @@
   services.v2raya.enable = true;
   services.v2raya.cliPackage = pkgs.xray;
 
+  services.zerotierone = {
+    enable = true;
+    joinNetworks = [
+      "159924d630a2b0a0"
+    ];
+  };
+
   systemd.tmpfiles.rules = [
     "L /etc/wireguard - - - - /etc/nixos/wireguard"
   ];

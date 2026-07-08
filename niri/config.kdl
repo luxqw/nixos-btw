@@ -38,6 +38,10 @@ output "DP-2" {
     position x=0 y=0
 }
 
+output "HDMI-A-1" {
+    off
+}
+
 layout {
     gaps 5
     center-focused-column "never"
@@ -100,9 +104,15 @@ off
 
 include "/etc/niri-render-device.kdl"
 
-workspace "c" {}
-workspace "b" {}
-workspace "a" {}
+workspace "c" {
+    open-on-output "DP-2"
+}
+workspace "b" {
+    open-on-output "DP-2"
+}
+workspace "a" {
+    open-on-output "DP-2"
+}
 
 window-rule {
     geometry-corner-radius 4

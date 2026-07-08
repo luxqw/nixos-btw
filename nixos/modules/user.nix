@@ -2,6 +2,6 @@
   users.users.lux = {
     isNormalUser = true;
     description = "Lux";
-    extraGroups = ["networkmanager" "wheel" "docker"];
+    extraGroups = ["networkmanager" "wheel" "docker" "input" "lenovoctl"];
   };
 }
