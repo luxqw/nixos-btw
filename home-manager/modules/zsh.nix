@@ -25,7 +25,19 @@
     autosuggestion.strategy = ["history" "completion"];
 
     completionInit = ''
-      autoload -Uz compinit && compinit
+      autoload -Uz compinit
+      # NixOS fpath spans multiple profile generations (thousands of
+      # completion files); compinit's full security audit (compaudit)
+      # rescanning all of them on every start is most of zsh's startup
+      # time. Only pay for the full audit once a day, otherwise fast-load
+      # the cached dump.
+      zcompdump="''${XDG_CACHE_HOME:-$HOME/.cache}/zsh/zcompdump"
+      mkdir -p "''${zcompdump:h}"
+      if [[ -f "$zcompdump" && -n "$zcompdump"(#qN.mh+24) ]]; then
+        compinit -C -d "$zcompdump"
+      else
+        compinit -d "$zcompdump"
+      fi
       zstyle ':completion:*' menu select
       zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=*'
       zstyle ':completion:*' list-colors "''${(s.:.)LS_COLORS}"
