@@ -19,7 +19,6 @@
     wget
     unzip
     wl-clipboard
-    fzf
 
     nodejs_22
     go

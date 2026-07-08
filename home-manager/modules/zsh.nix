@@ -1,6 +1,25 @@
-{...}: {
-  programs.bash = {
+{pkgs, ...}: {
+  programs.zsh = {
     enable = true;
+    enableCompletion = true;
+    autosuggestion.enable = true;
+    syntaxHighlighting.enable = true;
+    autocd = true;
+
+    plugins = [
+      {
+        name = "zsh-completions";
+        src = pkgs.zsh-completions;
+      }
+    ];
+
+    history = {
+      size = 10000;
+      save = 10000;
+      ignoreDups = true;
+      share = true;
+    };
+
     shellAliases = {
       ls = "eza";
       cat = "bat";
@@ -12,7 +31,8 @@
       update = "cd /etc/nixos/ && sudo nix flake update && sudo nixos-rebuild switch --flake /etc/nixos#nixos";
       nx = "cd /etc/nixos";
     };
-    initExtra = ''
+
+    initContent = ''
       _vpn_dir="/etc/nixos/wireguard"
 
       _vpn_is_up() {

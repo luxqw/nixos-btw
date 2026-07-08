@@ -43,15 +43,15 @@
         baseUrl = "http://127.0.0.1:11434";
         models = [
           {
-            id = "aratan/gemma-4-E4B-it-heretic:latest";
-            name = "Gemma4-E4B";
+            id = "gemma4:latest";
+            name = "Gemma4";
             maxTokens = 64000;
           }
         ];
       };
 
       agents.defaults = {
-        model = "ollama/aratan/gemma-4-E4B-it-heretic:latest";
+        model = "ollama/gemma4:latest";
         reasoningDefault = "on";
       };
 
