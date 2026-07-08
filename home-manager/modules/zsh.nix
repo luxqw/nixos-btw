@@ -59,7 +59,9 @@
     };
 
     initContent = ''
-      setopt extended_glob
+      # NOTE: no extended_glob here -- it turns '#' into a glob repetition
+      # operator, which breaks flake refs like /etc/nixos#nixos (used by
+      # the rebuild/update aliases below) unless every '#' is quoted.
       setopt no_case_glob
       setopt complete_in_word
       setopt auto_pushd
