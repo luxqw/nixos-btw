@@ -6,7 +6,19 @@
     settings = {
       add_newline = true;
 
-      format = "$directory$git_branch$git_status$nix_shell$cmd_duration$line_break$character";
+      format = "$username$hostname$directory$nix_shell$cmd_duration$line_break$character";
+
+      username = {
+        style_user = "bold green";
+        show_always = false;
+        format = "[$user]($style)";
+      };
+
+      hostname = {
+        ssh_only = true;
+        style = "bold green";
+        format = "[@$hostname]($style) ";
+      };
 
       directory = {
         style = "bold cyan";
@@ -16,15 +28,7 @@
       character = {
         success_symbol = "[❯](bold green)";
         error_symbol = "[❯](bold red)";
-      };
-
-      git_branch = {
-        style = "bold magenta";
-        symbol = " ";
-      };
-
-      git_status = {
-        style = "bold yellow";
+        vicmd_symbol = "[❮](bold green)";
       };
 
       nix_shell = {
