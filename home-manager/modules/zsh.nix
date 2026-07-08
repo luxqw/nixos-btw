@@ -17,8 +17,22 @@
       size = 10000;
       save = 10000;
       ignoreDups = true;
+      ignoreSpace = true;
       share = true;
+      extended = true;
     };
+
+    autosuggestion.strategy = ["history" "completion"];
+
+    completionInit = ''
+      autoload -Uz compinit && compinit
+      zstyle ':completion:*' menu select
+      zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=*'
+      zstyle ':completion:*' list-colors "''${(s.:.)LS_COLORS}"
+      zstyle ':completion:*' group-name '""'
+      zstyle ':completion:*:descriptions' format '%F{cyan}-- %d --%f'
+      zstyle ':completion:*:warnings' format '%F{red}-- no matches found --%f'
+    '';
 
     shellAliases = {
       ls = "eza";
@@ -33,6 +47,13 @@
     };
 
     initContent = ''
+      setopt extended_glob
+      setopt no_case_glob
+      setopt complete_in_word
+      setopt auto_pushd
+      setopt pushd_ignore_dups
+      unsetopt beep
+
       _vpn_dir="/etc/nixos/wireguard"
 
       _vpn_is_up() {
