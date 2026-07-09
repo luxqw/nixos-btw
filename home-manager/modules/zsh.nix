@@ -11,11 +11,6 @@
         name = "zsh-completions";
         src = pkgs.zsh-completions;
       }
-      {
-        name = "zsh-vi-mode";
-        src = pkgs.zsh-vi-mode;
-        file = "share/zsh-vi-mode/zsh-vi-mode.plugin.zsh";
-      }
     ];
 
     history = {
@@ -57,7 +52,6 @@
       edit = "nvim /etc/nixos/";
       edit-hm = "nvim /etc/nixos/home-manager/modules/packages.nix";
       edit-sys = "nvim /etc/nixos/nixos/modules/packages.nix";
-      edit-local = "nvim /etc/nixos/hosts/nixos/local-packages.nix";
       rebuild = "sudo nixos-rebuild switch --flake /etc/nixos#nixos";
       update = "cd /etc/nixos/ && sudo nix flake update && sudo nixos-rebuild switch --flake /etc/nixos#nixos";
       nx = "cd /etc/nixos";

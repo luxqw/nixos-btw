@@ -22,13 +22,13 @@
 
       directory = {
         style = "bold cyan";
-        truncation_length = 4;
+        truncation_length = 0;
+        truncate_to_repo = false;
       };
 
       character = {
         success_symbol = "[❯](bold green)";
         error_symbol = "[❯](bold red)";
-        vicmd_symbol = "[❮](bold green)";
       };
 
       nix_shell = {
