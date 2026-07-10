@@ -6,5 +6,6 @@
     description = "Lux";
     extraGroups = ["networkmanager" "wheel" "docker" "input" "lenovoctl"];
     shell = pkgs.zsh;
+    linger = true;
   };
 }

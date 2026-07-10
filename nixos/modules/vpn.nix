@@ -1,6 +1,8 @@
 {pkgs, ...}: {
   services.v2raya.enable = true;
   services.v2raya.cliPackage = pkgs.xray;
+  programs.throne.enable = true;
+  programs.throne.tunMode.enable = true;
 
   services.zerotierone = {
     enable = true;

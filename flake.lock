@@ -345,6 +345,38 @@
     },
     "nixpkgs_7": {
       "locked": {
+        "lastModified": 1783224372,
+        "narHash": "sha256-8i/87eeoqiGE4yOTjwSA3Eh/ziJRQEmd/unYU+K27sk=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs_8": {
+      "locked": {
+        "lastModified": 1782467914,
+        "narHash": "sha256-pGvFkM8N0xEkIIXDe5YYfbEAvHrk4IxBrjB/x8OomhE=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "e73de5be04e0eff4190a1432b946d469c794e7b4",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs_9": {
+      "locked": {
         "lastModified": 1782723713,
         "narHash": "sha256-oPXCU/SSUokcGaJREHibG1CBX3+s/W7orDWQOZDsEeQ=",
         "owner": "nixos",
@@ -435,6 +467,7 @@
         "noctalia": "noctalia",
         "noctalia-greeter": "noctalia-greeter",
         "tele": "tele",
+        "torio": "torio",
         "zen-browser": "zen-browser"
       }
     },
@@ -501,19 +534,38 @@
     "tele": {
       "inputs": {
         "flake-utils": "flake-utils_3",
-        "nixpkgs": [
-          "nixpkgs"
-        ]
+        "nixpkgs": "nixpkgs_7"
       },
       "locked": {
-        "lastModified": 1783549029,
-        "narHash": "sha256-YKJcWW6MROPvk6TeUerNGevWBwmp0Yt51kTT5HzYY9Y=",
-        "path": "/home/lux/Documents/projects/tele",
-        "type": "path"
+        "lastModified": 1783695167,
+        "narHash": "sha256-oybiDT2IoUMSxdpNlOejFXrpUub+YOJ58SGu8C8RV4E=",
+        "owner": "sorokin-vladimir",
+        "repo": "tele",
+        "rev": "349f73b2e4c58b4c75e78f0c3e0ec97ab5ba9d5e",
+        "type": "github"
       },
       "original": {
-        "path": "/home/lux/Documents/projects/tele",
-        "type": "path"
+        "owner": "sorokin-vladimir",
+        "repo": "tele",
+        "type": "github"
+      }
+    },
+    "torio": {
+      "inputs": {
+        "nixpkgs": "nixpkgs_8"
+      },
+      "locked": {
+        "lastModified": 1783697078,
+        "narHash": "sha256-WD3ZmMKz3O6aSoa0sJ9nAgJDmu9I4K4LcTaN6AxNoQI=",
+        "owner": "y-tretyakov",
+        "repo": "torio",
+        "rev": "75e00cfd8d86e7b5403f783d120244753a2450e5",
+        "type": "github"
+      },
+      "original": {
+        "owner": "y-tretyakov",
+        "repo": "torio",
+        "type": "github"
       }
     },
     "utils": {
@@ -537,7 +589,7 @@
     "zen-browser": {
       "inputs": {
         "home-manager": "home-manager_3",
-        "nixpkgs": "nixpkgs_7"
+        "nixpkgs": "nixpkgs_9"
       },
       "locked": {
         "lastModified": 1783463911,

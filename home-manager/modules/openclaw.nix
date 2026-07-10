@@ -58,4 +58,10 @@
       memory.backend = "qmd";
     };
   };
+
+  # The nix-openclaw module ships a bare [Unit]/[Service] with no
+  # [Install] section, so it can't be enabled via systemctl. Add
+  # WantedBy ourselves so the gateway starts on login (and, combined
+  # with lingering for this user, on boot too).
+  systemd.user.services.openclaw-gateway.Install.WantedBy = ["default.target"];
 }

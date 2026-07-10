@@ -6,6 +6,8 @@
   home.packages = with pkgs;
     [
       vesktop
+      handy
+      wtype
       mpv
       qbittorrent
       chromium
@@ -34,7 +36,6 @@
       showmethekey
       btop
       (import inputs.creamlinux-installer {inherit pkgs;})
-
       tree
       gcc
       lua-language-server
