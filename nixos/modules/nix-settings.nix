@@ -13,10 +13,6 @@
 
   nixpkgs.config.allowUnfree = true;
 
-  nixpkgs.config.permittedInsecurePackages = [
-    "pnpm-10.29.2"
-  ];
-
   environment.systemPackages = with pkgs; [nh nix-output-monitor];
   environment.sessionVariables.NH_FLAKE = "/etc/nixos";
 }
