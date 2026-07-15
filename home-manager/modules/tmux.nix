@@ -27,6 +27,18 @@
     ];
 
     extraConfig = ''
+      # Neovim auto-negotiates the Kitty keyboard protocol with foot; without
+      # this, tmux doesn't reliably translate that back into its own key
+      # names, so root-table Alt binds (M-c etc.) stop matching once nvim has
+      # touched the pane and the raw sequence falls through to the shell/nvim.
+      set -g extended-keys always
+
+      # mouse=true + keyMode vi means any scroll over a pane silently drops
+      # you into copy-mode-vi, which rebinds the whole keytable (Ctrl+C,
+      # M-c, etc. stop meaning what you expect) until you press q/Escape.
+      # Flash a message on entry/exit so it's never a silent surprise.
+      set-hook -g pane-mode-changed 'if -F "#{pane_in_mode}" "display-message \"-- COPY MODE (q/Escape to exit) --\"" "display-message \"-- copy mode exited --\""'
+
       unbind-key -a -T root
 
       set -g pane-border-lines "double"
