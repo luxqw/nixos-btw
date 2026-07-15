@@ -7,8 +7,8 @@
     claude-code.url = "github:sadjow/claude-code-nix";
     noctalia-greeter.url = "github:noctalia-dev/noctalia-greeter";
     clin.url = "github:reekta92/clin-rs";
-    torio.url = "github:y-tretyakov/torio";
     tele.url = "github:sorokin-vladimir/tele";
+    torio.url = "github:luxqw/torio";
     creamlinux-installer = {
       type = "github";
       owner = "Novattz";
