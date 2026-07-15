@@ -6,7 +6,6 @@
   home.packages = with pkgs;
     [
       vesktop
-      handy
       wtype
       mpv
       qbittorrent
@@ -15,7 +14,6 @@
       protonup-qt
       obs-studio
       imv
-      zathura
 
       ripgrep
       fd

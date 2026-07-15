@@ -11,6 +11,7 @@
     ./starship.nix
     ./tmux.nix
     ./yazi.nix
+    ./zathura.nix
     ./zoxide.nix
     ./zsh.nix
   ];
