@@ -89,6 +89,11 @@
           desc = "Enter the child directory, or open the file";
         }
         {
+          on = "Z";
+          run = "shell 'ya emit cd \"$(zoxide query -i)\"' --block --confirm";
+          desc = "cd via zoxide";
+        }
+        {
           on = ["c" "m"];
           run = "plugin chmod";
           desc = "Chmod on selected files";
@@ -97,11 +102,6 @@
           on = ["c" "a"];
           run = "plugin compress";
           desc = "Compress selected files";
-        }
-        {
-          on = ["c" "d"];
-          run = "shell 'ya emit cd \"$(zoxide query -i)\"' --block --confirm";
-          desc = "cd via zoxide";
         }
       ];
     };
