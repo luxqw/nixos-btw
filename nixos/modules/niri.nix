@@ -7,7 +7,6 @@
     inputs.noctalia-greeter.nixosModules.default
   ];
 
-  services.xserver.enable = true;
   programs.niri.enable = true;
 
   programs.noctalia-greeter = {

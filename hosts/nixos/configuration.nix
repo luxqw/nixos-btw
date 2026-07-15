@@ -24,7 +24,7 @@
     modesetting.enable = true;
     powerManagement.enable = true;
     powerManagement.finegrained = false;
-    open = false;
+    open = true;
     nvidiaSettings = true;
     package = config.boot.kernelPackages.nvidiaPackages.stable;
   };
@@ -33,6 +33,18 @@
     nvidiaBusId = "PCI:1:0:0";
     amdgpuBusId = "PCI:6:0:0";
   };
+
+  # Workaround for niri+nvidia flicker/black-screen-on-resume bug:
+  # https://github.com/niri-wm/niri/issues/3384
+  boot.extraModprobeConfig = ''
+    options nvidia_modeset vblank_sem_control=0
+  '';
+
+  # nixpkgs' nvidia.nix only force-loads nvidia/nvidia_modeset/nvidia_drm
+  # early via systemd-modules-load when services.xserver.enable is on. We
+  # don't run Xorg (niri is Wayland-only), so declare them ourselves --
+  # otherwise early KMS races with greetd/niri startup at boot.
+  boot.kernelModules = ["nvidia" "nvidia_modeset" "nvidia_drm"];
 
   environment.sessionVariables = {
     GBM_BACKEND = "nvidia-drm";
