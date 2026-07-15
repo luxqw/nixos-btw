@@ -43,7 +43,6 @@
       gnome-themes-extra
       nitch
       thunar
-      rofi
       opencode
 
       # nvim LSP servers (nvim itself: nixos/modules/neovim.nix)

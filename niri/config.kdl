@@ -91,6 +91,7 @@ recent-windows {
 }
 
 spawn-at-startup "noctalia"
+spawn-at-startup "/run/current-system/sw/libexec/polkit-gnome-authentication-agent-1"
 
 screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
 
@@ -121,7 +122,6 @@ window-rule {
 
 binds {
     Mod+Shift+Slash { show-hotkey-overlay; }
-    //Mod+D { spawn-sh "rofi -show drun -theme Arc-Dark"; }
     Mod+D { spawn-sh "noctalia msg panel-toggle launcher"; }
     Mod+T { spawn-sh "noctalia msg panel-toggle clipboard"; }
     Mod+Return { spawn "foot"; }
