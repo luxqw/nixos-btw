@@ -45,14 +45,13 @@
       thunar
       opencode
 
-      # nvim LSP servers (nvim itself: nixos/modules/neovim.nix)
       rust-analyzer
       clang-tools # clangd
       gopls
       zls
       intelephense
       typescript-language-server
-      vscode-langservers-extracted # vscode-{css,json}-language-server
+      vscode-langservers-extracted
       haskell-language-server
       serve-d
       templ
@@ -61,6 +60,7 @@
     ++ [
       inputs.zen-browser.packages."${pkgs.stdenv.hostPlatform.system}".default
       inputs.clin.packages.${pkgs.stdenv.hostPlatform.system}.default
-      inputs.tele.packages.${pkgs.stdenv.hostPlatform.system}.default
+      inputs.tele.packages.${pkgs.system}.default
+      inputs.torio.packages.${pkgs.system}.default
     ];
 }

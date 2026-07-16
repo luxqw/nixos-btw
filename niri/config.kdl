@@ -101,7 +101,7 @@ hotkey-overlay {
 }
 
 animations {
-off
+on
 }
 
 include "/etc/niri-render-device.kdl"
