@@ -24,10 +24,6 @@
       url = "github:noctalia-dev/noctalia-shell";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    nix-openclaw = {
-      url = "github:openclaw/nix-openclaw";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs = inputs @ {
@@ -44,7 +40,6 @@
         nixpkgs.overlays = [
           claude-code.overlays.default
           inputs.millennium.overlays.default
-          inputs.nix-openclaw.overlays.default
         ];
 
         environment.systemPackages = [pkgs.claude-code];

@@ -59,14 +59,6 @@
   environment.etc."niri-render-device.kdl".text = ''
     debug {
       render-drm-device "/dev/dri/renderD129"
-      disable-direct-scanout
-    }
-  '';
-
-  environment.etc."nvidia/nvidia-application-profiles-rc.d/50-niri-vram-fix.json".text = ''
-    {
-      "rules": [{"pattern": {"feature": "procname", "matches": "niri"}, "profile": "limit-free-buffer-pool"}],
-      "profiles": [{"name": "limit-free-buffer-pool", "settings": [{"key": "GLVidHeapReuseRatio", "value": 0}]}]
     }
   '';
 

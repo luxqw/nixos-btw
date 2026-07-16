@@ -13,7 +13,6 @@
     ./niri.nix
     ./noctalia.nix
     ./nix-settings.nix
-    ./ollama.nix
     ./packages.nix
     ./peripherals.nix
     ./power.nix

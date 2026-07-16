@@ -6,7 +6,6 @@
     ./git.nix
     ./neovim.nix
     ./niri.nix
-    ./openclaw.nix
     ./packages.nix
     ./starship.nix
     ./tmux.nix
