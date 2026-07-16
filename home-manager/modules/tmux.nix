@@ -41,6 +41,14 @@
 
       unbind-key -a -T root
 
+      # unbind-key -a -T root above wipes tmux's built-in mouse bindings too
+      # (root table only -- copy-mode-vi's own MouseDrag1Pane/MouseDragEnd1Pane
+      # selection binds are untouched). Re-add just the entry points so
+      # click-drag still starts a selection.
+      bind -n MouseDown1Pane select-pane -t = \; send-keys -M
+      bind -n MouseDrag1Pane select-pane -t = \; copy-mode -M
+      bind -n MouseDrag1Border resize-pane -M
+
       set -g pane-border-lines "double"
 
       set -g renumber-windows on

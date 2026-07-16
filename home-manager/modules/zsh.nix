@@ -67,6 +67,10 @@
       setopt pushd_ignore_dups
       unsetopt beep
 
+      # Ctrl+S/Ctrl+Q default to XOFF/XON flow control, which freezes the
+      # terminal on a stray Ctrl+S until Ctrl+Q is pressed. Disable it.
+      stty -ixon
+
       _vpn_dir="/etc/nixos/wireguard"
 
       _vpn_is_up() {
