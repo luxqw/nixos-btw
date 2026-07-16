@@ -60,7 +60,7 @@
     ++ [
       inputs.zen-browser.packages."${pkgs.stdenv.hostPlatform.system}".default
       inputs.clin.packages.${pkgs.stdenv.hostPlatform.system}.default
-      inputs.tele.packages.${pkgs.system}.default
-      inputs.torio.packages.${pkgs.system}.default
+      inputs.tele.packages.${pkgs.stdenv.hostPlatform.system}.default
+      inputs.torio.packages.${pkgs.stdenv.hostPlatform.system}.default
     ];
 }
