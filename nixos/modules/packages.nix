@@ -10,5 +10,10 @@
     wireguard-tools
     xwayland-satellite
     localsend
+    spotify
   ];
+
+  programs.gamescope = {
+    enable = true;
+  };
 }
