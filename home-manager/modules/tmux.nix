@@ -16,7 +16,12 @@
           set -g @tokyo-night-tmux_show_path 1
         '';
       }
-      resurrect
+      {
+        plugin = resurrect;
+        extraConfig = ''
+          set -g @resurrect-processes ':all:'
+        '';
+      }
       {
         plugin = continuum;
         extraConfig = ''
