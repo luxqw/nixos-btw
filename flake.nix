@@ -7,15 +7,12 @@
     claude-code.url = "github:sadjow/claude-code-nix";
     noctalia-greeter.url = "github:noctalia-dev/noctalia-greeter";
     clin.url = "github:reekta92/clin-rs";
-    tele.url = "github:sorokin-vladimir/tele";
-    torio.url = "github:luxqw/torio";
     creamlinux-installer = {
       type = "github";
       owner = "Novattz";
       repo = "creamlinux-installer";
       flake = false;
     };
-    millennium.url = "github:SteamClientHomebrew/Millennium?dir=packages/nix";
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -31,7 +28,6 @@
     nixpkgs,
     claude-code,
     home-manager,
-    millennium,
     ...
   }: let
     shared = [
@@ -39,7 +35,6 @@
       ({pkgs, ...}: {
         nixpkgs.overlays = [
           claude-code.overlays.default
-          inputs.millennium.overlays.default
         ];
 
         environment.systemPackages = [pkgs.claude-code];
