@@ -31,7 +31,6 @@
 
       zed-editor
       telegram-desktop
-      showmethekey
       btop
       (import inputs.creamlinux-installer {inherit pkgs;})
       tree
@@ -43,10 +42,9 @@
       gnome-themes-extra
       nitch
       thunar
-      opencode
 
       rust-analyzer
-      clang-tools # clangd
+      clang-tools
       gopls
       zls
       intelephense
