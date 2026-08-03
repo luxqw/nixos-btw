@@ -1,9 +1,9 @@
-# Туннели — именованные WireGuard-интерфейсы в частные сети.
+# Tunnels — named WireGuard interfaces into private networks.
 #
-# Список туннелей нигде не записан: он выводится из содержимого
-# secrets/wg/, где имя файла служит именем интерфейса и именем юнита.
-# Чтобы добавить туннель, достаточно положить туда новый .age и
-# пересобрать систему. См. docs/adr/0001.
+# The list of tunnels is written down nowhere: it is derived from the
+# contents of secrets/wg/, where a filename serves as the interface name
+# and the unit name. Adding a tunnel means dropping a new .age in there
+# and rebuilding. See docs/adr/0001.
 {
   config,
   lib,
@@ -28,8 +28,8 @@ in {
     configFile = config.age.secrets.${name}.path;
   });
 
-  # Туннели поднимаются при буте, но гасить и поднимать их можно вручную
-  # без пароля. Разрешение узкое: только эти юниты, только эти глаголы.
+  # Tunnels start at boot, but stopping and starting them by hand needs no
+  # password. The grant is narrow: only these units, only these verbs.
   security.polkit.extraConfig = ''
     polkit.addRule(function(action, subject) {
       var units = ${builtins.toJSON units};

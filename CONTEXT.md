@@ -1,51 +1,51 @@
 # nixos-btw
 
-Конфигурация одной машины — ноутбука Lenovo Legion под NixOS. Репозиторий описывает и систему, и пользовательское окружение, и хранит сырые конфиги программ, которые никсом не управляются.
+Configuration for a single machine — a Lenovo Legion laptop running NixOS. The repository covers the system, the user environment, and the raw program configs that nix deliberately does not manage.
 
 ## Language
 
-### Структура конфигурации
+### Configuration structure
 
-**Хост**:
-Физическая машина, для которой собирается система. Сейчас он один — `nixos`.
-_Avoid_: машина, таргет
+**Host**:
+A physical machine a system is built for. There is currently one, `nixos`.
+_Avoid_: machine, target
 
-**Специализация**:
-Альтернативный вариант загрузки того же хоста, отличающийся набором опций. Выбирается в загрузчике, не на лету.
-_Avoid_: профиль, режим, пресет
+**Specialisation**:
+An alternative boot entry for the same host with a different set of options. Chosen in the bootloader, not at runtime.
+_Avoid_: profile, mode, preset
 
-**Системный модуль**:
-Файл, описывающий часть конфигурации уровня ОС — то, что существует до входа пользователя и не принадлежит ему.
-_Avoid_: конфиг, nix-файл
+**System module**:
+A file describing part of the OS-level configuration — whatever exists before a user logs in and does not belong to any user.
+_Avoid_: config, nix file
 
-**Домашний модуль**:
-Файл, описывающий часть пользовательского окружения через home-manager. Всё, чем пользуется человек, а не система.
-_Avoid_: user-модуль, hm-конфиг
+**Home module**:
+A file describing part of the user environment through home-manager. Everything a person uses rather than the system.
+_Avoid_: user module, hm config
 
-**Дотфайл**:
-Сырой конфиг программы на её родном языке — kdl, lua, toml, — который остаётся вне никса и редактируется без пересборки.
-_Avoid_: ресурс, ассет, статика
+**Dotfile**:
+A raw program config in its own language — kdl, lua, toml — kept outside nix and editable without a rebuild.
+_Avoid_: resource, asset
 
-**Секрет**:
-Файл с приватным ключом или учётными данными, который хранится в репозитории только в зашифрованном виде.
-_Avoid_: креды, пароль
+**Secret**:
+A file holding a private key or credentials, stored in the repository only in encrypted form.
+_Avoid_: creds, password
 
-### Сеть
+### Network
 
-Слово «VPN» в этом проекте не используется: оно означает три несовместимые вещи сразу. Вместо него — три термина ниже.
+The word "VPN" is not used in this project: it names three incompatible things at once. The three terms below replace it.
 
-**Туннель**:
-Именованный WireGuard-интерфейс, дающий доступ к одной частной сети. Ловит только свои подсети и никогда не забирает дефолтный маршрут.
-_Avoid_: VPN, wg-конфиг, впн
+**Tunnel**:
+A named WireGuard interface providing access to one private network. It carries only its own subnets and never claims the default route.
+_Avoid_: VPN, wg config
 
-**Обход**:
-Прокси-клиент, чья задача — вывести трафик за пределы сетевых ограничений провайдера.
-_Avoid_: VPN, прокси-впн
+**Proxy**:
+A client whose job is to move traffic past network restrictions imposed by an ISP.
+_Avoid_: VPN, proxy-VPN
 
-**Оверлей**:
-Mesh-сеть, объединяющая разные устройства в один адресуемый сегмент независимо от их физического расположения.
-_Avoid_: VPN, mesh-VPN
+**Overlay**:
+A mesh network joining separate devices into one addressable segment regardless of where they physically sit.
+_Avoid_: VPN, mesh VPN
 
-**Дефолтный маршрут**:
-Путь, по которому уходит трафик, не подошедший ни под одну конкретную подсеть. В любой момент времени он ровно один — за него конкурируют обход и туннели.
-_Avoid_: шлюз по умолчанию, default gw
+**Default route**:
+The path taken by traffic that matched no specific subnet. Exactly one exists at any moment — the proxy and the tunnels compete for it.
+_Avoid_: default gateway, default gw

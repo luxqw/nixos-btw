@@ -1,8 +1,9 @@
-# Обёртка над agenix/age для туннелей.
+# A wrapper around agenix/age for tunnels.
 #
-# Существует потому, что голые команды требуют помнить три вещи разом:
-# запускаться из /etc/nixos/secrets, писать имя как wg/<имя>.age, и знать,
-# что новый секрет создаётся age'ом, а не agenix'ем. Здесь всё это зашито.
+# It exists because the bare commands require holding three unrelated
+# facts at once: run from /etc/nixos/secrets, spell the name wg/<name>.age,
+# and reach for age rather than agenix when the secret does not exist yet.
+# All three are baked in here.
 {
   pkgs,
   inputs,
@@ -21,15 +22,15 @@
 
       usage() {
         cat <<'USAGE'
-      tunnel — управление туннелями
+      tunnel — manage wireguard tunnels
 
-        tunnel list                 список туннелей и их состояние
-        tunnel add <имя> <конфиг>   зашифровать новый конфиг
-        tunnel edit <имя>           открыть существующий в $EDITOR
-        tunnel show <имя>           вывести расшифрованный в stdout
-        tunnel rm <имя>             удалить туннель
+        tunnel list                 list tunnels and their state
+        tunnel add <name> <config>  encrypt a new config
+        tunnel edit <name>          open an existing one in $EDITOR
+        tunnel show <name>          print the decrypted config
+        tunnel rm <name>            remove a tunnel
 
-      После add, edit и rm нужна пересборка:
+      add, edit and rm need a rebuild afterwards:
         sudo nixos-rebuild switch --flake /etc/nixos
       USAGE
       }
@@ -44,34 +45,34 @@
           ;;
 
         add)
-          [ $# -eq 3 ] || { echo "нужно: tunnel add <имя> <конфиг>" >&2; exit 1; }
+          [ $# -eq 3 ] || { echo "usage: tunnel add <name> <config>" >&2; exit 1; }
           name=$2
-          [ ''${#name} -le 15 ] || { echo "имя длиннее 15 символов — интерфейс так назвать нельзя" >&2; exit 1; }
-          [ ! -e "$dir/wg/$name.age" ] || { echo "туннель $name уже есть — правь через tunnel edit" >&2; exit 1; }
-          [ -f "$3" ] || { echo "нет файла: $3" >&2; exit 1; }
+          [ ''${#name} -le 15 ] || { echo "name longer than 15 characters — not a valid interface name" >&2; exit 1; }
+          [ ! -e "$dir/wg/$name.age" ] || { echo "tunnel $name already exists — use tunnel edit" >&2; exit 1; }
+          [ -f "$3" ] || { echo "no such file: $3" >&2; exit 1; }
           age -R "$key.pub" -o "$dir/wg/$name.age" "$3"
-          echo "создан $dir/wg/$name.age"
-          echo "дальше: sudo nixos-rebuild switch --flake /etc/nixos"
+          echo "created $dir/wg/$name.age"
+          echo "next: sudo nixos-rebuild switch --flake /etc/nixos"
           ;;
 
         edit)
-          [ $# -eq 2 ] || { echo "нужно: tunnel edit <имя>" >&2; exit 1; }
-          [ -e "$dir/wg/$2.age" ] || { echo "нет такого туннеля: $2" >&2; exit 1; }
+          [ $# -eq 2 ] || { echo "usage: tunnel edit <name>" >&2; exit 1; }
+          [ -e "$dir/wg/$2.age" ] || { echo "no such tunnel: $2" >&2; exit 1; }
           (cd "$dir" && RULES=./secrets.nix agenix -e "wg/$2.age" -i "$key")
-          echo "дальше: sudo nixos-rebuild switch --flake /etc/nixos && systemctl restart wg-quick-$2"
+          echo "next: sudo nixos-rebuild switch --flake /etc/nixos && systemctl restart wg-quick-$2"
           ;;
 
         show)
-          [ $# -eq 2 ] || { echo "нужно: tunnel show <имя>" >&2; exit 1; }
-          [ -e "$dir/wg/$2.age" ] || { echo "нет такого туннеля: $2" >&2; exit 1; }
+          [ $# -eq 2 ] || { echo "usage: tunnel show <name>" >&2; exit 1; }
+          [ -e "$dir/wg/$2.age" ] || { echo "no such tunnel: $2" >&2; exit 1; }
           (cd "$dir" && RULES=./secrets.nix agenix -d "wg/$2.age" -i "$key")
           ;;
 
         rm)
-          [ $# -eq 2 ] || { echo "нужно: tunnel rm <имя>" >&2; exit 1; }
-          [ -e "$dir/wg/$2.age" ] || { echo "нет такого туннеля: $2" >&2; exit 1; }
+          [ $# -eq 2 ] || { echo "usage: tunnel rm <name>" >&2; exit 1; }
+          [ -e "$dir/wg/$2.age" ] || { echo "no such tunnel: $2" >&2; exit 1; }
           rm "$dir/wg/$2.age"
-          echo "удалён $2; дальше: sudo nixos-rebuild switch --flake /etc/nixos"
+          echo "removed $2; next: sudo nixos-rebuild switch --flake /etc/nixos"
           ;;
 
         *)

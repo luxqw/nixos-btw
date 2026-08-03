@@ -1,17 +1,17 @@
-# Конфиг neovim остаётся сырым дотфайлом: симлинк мимо стора, чтобы
-# править lua без пересборки системы.
+# The neovim config stays a raw dotfile: a symlink past the store, so lua
+# can be edited without rebuilding the system.
 #
-# Парсеры treesitter раньше лежали в репозитории восемью .so-файлами,
-# собранными руками под конкретный ABI. Теперь их даёт nixpkgs, а
-# neovim находит их в ~/.local/share/nvim/site — этот путь входит в
-# runtimepath по умолчанию и не мешает симлинку конфига выше.
+# Treesitter parsers used to sit in the repository as eight .so files built
+# by hand against one specific ABI. They come from nixpkgs now, and neovim
+# finds them in ~/.local/share/nvim/site — a path that is on the runtimepath
+# by default and does not collide with the config symlink above.
 {
   config,
   pkgs,
   ...
 }: let
-  # Именно grammarPlugins, а не withPlugins: последний в текущем nixpkgs
-  # отдаёт плагин вообще без скомпилированных .so.
+  # grammarPlugins rather than withPlugins: the latter yields a plugin with
+  # no compiled .so at all in the current nixpkgs.
   grammars = pkgs.symlinkJoin {
     name = "nvim-treesitter-parsers";
     paths = with pkgs.vimPlugins.nvim-treesitter.grammarPlugins; [

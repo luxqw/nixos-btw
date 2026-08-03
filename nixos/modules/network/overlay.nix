@@ -1,4 +1,4 @@
-# Оверлей — mesh-сеть, объединяющая устройства в один адресуемый сегмент.
+# Overlay — a mesh network joining devices into one addressable segment.
 {...}: {
   services.zerotierone = {
     enable = true;

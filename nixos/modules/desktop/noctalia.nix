@@ -1,5 +1,5 @@
-# Оболочка noctalia и её же greeter — раньше были разнесены по двум
-# модулям, хотя это одна программа.
+# The noctalia shell and its greeter — previously split across two modules
+# despite being one program.
 {
   pkgs,
   inputs,

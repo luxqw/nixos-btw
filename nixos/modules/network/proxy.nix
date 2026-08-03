@@ -1,8 +1,8 @@
-# Обход — прокси-клиенты, выводящие трафик за сетевые ограничения.
+# Proxies — clients that move traffic past network restrictions.
 #
-# v2raya и throne решают одну и ту же задачу и оба претендуют на
-# дефолтный маршрут. Одновременно включённый tun-режим throne подерётся
-# с v2raya; сейчас работает только v2raya.
+# v2raya and throne solve the same problem and both want the default
+# route. Enabling throne's tun mode will fight v2raya; only v2raya is
+# actually in use right now.
 {pkgs, ...}: {
   services.v2raya = {
     enable = true;
