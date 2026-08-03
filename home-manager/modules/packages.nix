@@ -14,6 +14,9 @@
       protonup-qt
       obs-studio
       imv
+      spotify
+      localsend
+      exiftool
 
       ripgrep
       fd

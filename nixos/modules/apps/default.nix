@@ -1,8 +1,7 @@
 {...}: {
   imports = [
-    ./desktop
-    ./shell
-    ./git.nix
+    ./docker.nix
+    ./gaming.nix
     ./neovim.nix
     ./packages.nix
   ];

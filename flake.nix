@@ -13,6 +13,10 @@
       repo = "creamlinux-installer";
       flake = false;
     };
+    agenix = {
+      url = "github:ryantm/agenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -24,39 +28,35 @@
   };
 
   outputs = inputs @ {
-    self,
     nixpkgs,
+    agenix,
     claude-code,
     home-manager,
     ...
-  }: let
-    shared = [
-      ./nixos/modules
-      ({pkgs, ...}: {
-        nixpkgs.overlays = [
-          claude-code.overlays.default
-        ];
+  }: {
+    nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
+      specialArgs = {inherit inputs;};
+      modules = [
+        ./nixos/modules
+        ./hosts/nixos/configuration.nix
 
-        environment.systemPackages = [pkgs.claude-code];
-      })
-      home-manager.nixosModules.home-manager
-      {
-        home-manager.useGlobalPkgs = true;
-        home-manager.useUserPackages = true;
-        home-manager.extraSpecialArgs = {inherit inputs;};
-      }
-    ];
-  in {
-    nixosConfigurations = {
-      nixos = nixpkgs.lib.nixosSystem {
-        specialArgs = {inherit inputs;};
-        modules =
-          shared
-          ++ [
-            ./hosts/nixos/configuration.nix
-            {home-manager.users.lux = import ./home-manager/home.nix;}
+        agenix.nixosModules.default
+        home-manager.nixosModules.home-manager
+        {
+          home-manager.useGlobalPkgs = true;
+          home-manager.useUserPackages = true;
+          home-manager.extraSpecialArgs = {inherit inputs;};
+          home-manager.users.lux = import ./home-manager/home.nix;
+        }
+
+        ({pkgs, ...}: {
+          nixpkgs.overlays = [claude-code.overlays.default];
+          environment.systemPackages = [
+            pkgs.claude-code
+            agenix.packages.${pkgs.stdenv.hostPlatform.system}.default
           ];
-      };
+        })
+      ];
     };
   };
 }

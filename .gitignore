@@ -1,11 +1,14 @@
 AGENTS.md
 .claude/
-
-wireguard/*
-!wireguard/.gitkeep
-
-secrets/*
-!secrets/.gitkeep
-!secrets/*.example
-
 result
+
+# Секреты коммитятся только зашифрованными. Расшифрованные конфиги
+# туннелей не должны попасть в историю даже случайно.
+secrets/**/*.conf
+
+# Парсеры treesitter теперь приходят из nixpkgs, а не из репозитория.
+dotfiles/nvim/parser/
+
+# Наследие императивных туннелей. Удалить вместе с папкой, когда конфиги
+# переедут в secrets/wg/*.age — тогда эту строку тоже можно убрать.
+wireguard/

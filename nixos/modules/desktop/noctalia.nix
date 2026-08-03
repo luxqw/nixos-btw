@@ -1,3 +1,5 @@
+# Оболочка noctalia и её же greeter — раньше были разнесены по двум
+# модулям, хотя это одна программа.
 {
   pkgs,
   inputs,
@@ -7,7 +9,9 @@
     inputs.noctalia-greeter.nixosModules.default
   ];
 
-  programs.niri.enable = true;
+  environment.systemPackages = [
+    inputs.noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default
+  ];
 
   programs.noctalia-greeter = {
     enable = true;
