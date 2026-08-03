@@ -53,6 +53,7 @@
           nixpkgs.overlays = [claude-code.overlays.default];
           environment.systemPackages = [
             pkgs.claude-code
+            pkgs.age # создание новых секретов; agenix -e умеет только существующие
             agenix.packages.${pkgs.stdenv.hostPlatform.system}.default
           ];
         })
