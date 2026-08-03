@@ -2,12 +2,14 @@
 # wg/, поэтому новый туннель покрывается правилом автоматически, как только
 # его файл появился.
 #
-# Добавить туннель:
-#   age -R ~/.ssh/id_ed25519.pub -o secrets/wg/<имя>.age <конфиг>.conf
+# Добавить туннель (пути абсолютные — команда не зависит от каталога):
+#   age -R ~/.ssh/id_ed25519.pub -o /etc/nixos/secrets/wg/<имя>.age <конфиг>.conf
 #   sudo nixos-rebuild switch --flake /etc/nixos
 #
-# Отредактировать существующий:
+# Отредактировать существующий (из /etc/nixos):
 #   agenix -e wg/<имя>.age
+#
+# До первой пересборки age в системе ещё нет — тогда `nix-shell -p age`.
 let
   lux = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIE/1YvuBqo5bySoS2EczLFGNzx8ONDJqeibq6O8n4KiG lux@nixos";
 
