@@ -52,6 +52,11 @@
     LIBVA_DRIVER_NAME = "nvidia";
     NVD_BACKEND = "direct";
     ELECTRON_OZONE_PLATFORM_HINT = "auto";
+    # ELECTRON_OZONE_PLATFORM_HINT only reaches Electron apps; the nixpkgs
+    # chromium wrapper gates --ozone-platform-hint on NIXOS_OZONE_WL instead.
+    # Without it chromium runs under XWayland, where the portal screencast
+    # path is unreachable and screen sharing never starts.
+    NIXOS_OZONE_WL = "1";
     MOZ_ENABLE_WAYLAND = "1";
     __GL_SHADER_DISK_CACHE_SKIP_CLEANUP = "1";
   };
