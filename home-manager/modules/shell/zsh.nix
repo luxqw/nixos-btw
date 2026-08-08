@@ -2,9 +2,18 @@
   programs.zsh = {
     enable = true;
     enableCompletion = true;
-    autosuggestion.enable = true;
     syntaxHighlighting.enable = true;
     autocd = true;
+
+    # zsh picks vi keybindings on its own whenever $EDITOR or $VISUAL
+    # contains the substring "vi" -- "nvim" does, so the prompt silently
+    # came up in vi mode. Pin the keymap instead of renaming the editor.
+    defaultKeymap = "emacs";
+
+    autosuggestion = {
+      enable = true;
+      strategy = ["history" "completion"];
+    };
 
     plugins = [
       {
@@ -21,8 +30,6 @@
       share = true;
       extended = true;
     };
-
-    autosuggestion.strategy = ["history" "completion"];
 
     completionInit = ''
       autoload -Uz compinit
