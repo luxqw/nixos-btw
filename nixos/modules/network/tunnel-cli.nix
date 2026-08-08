@@ -25,14 +25,27 @@
       tunnel — manage wireguard tunnels
 
         tunnel list                 list tunnels and their state
+        tunnel up <name>            bring a tunnel up
+        tunnel down <name>          take a tunnel down
+        tunnel restart <name>       restart a tunnel
         tunnel add <name> <config>  encrypt a new config
         tunnel edit <name>          open an existing one in $EDITOR
         tunnel show <name>          print the decrypted config
         tunnel rm <name>            remove a tunnel
 
+      up, down and restart need no password — see the polkit rule in
+      tunnels.nix. Tunnels also start on their own at boot.
+
       add, edit and rm need a rebuild afterwards:
         sudo nixos-rebuild switch --flake /etc/nixos
       USAGE
+      }
+
+      # Guards the verbs that take a name, so a typo turns into a message
+      # rather than systemd complaining about a unit that never existed.
+      require_tunnel() {
+        [ -n "''${1-}" ] || { echo "usage: tunnel $2 <name>" >&2; exit 1; }
+        [ -e "$dir/wg/$1.age" ] || { echo "no such tunnel: $1" >&2; exit 1; }
       }
 
       case "''${1-}" in
@@ -42,6 +55,17 @@
             n=$(basename "$f" .age)
             printf '%-16s %s\n' "$n" "$(systemctl is-active "wg-quick-$n" 2>&1)"
           done
+          ;;
+
+        up|down|restart)
+          verb=$1
+          require_tunnel "''${2-}" "$verb"
+          case "$verb" in
+            up) systemctl start "wg-quick-$2" ;;
+            down) systemctl stop "wg-quick-$2" ;;
+            restart) systemctl restart "wg-quick-$2" ;;
+          esac
+          printf '%-16s %s\n' "$2" "$(systemctl is-active "wg-quick-$2" 2>&1)"
           ;;
 
         add)
