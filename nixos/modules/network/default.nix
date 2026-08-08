@@ -1,4 +1,4 @@
-{...}: {
+_: {
   imports = [
     ./networkmanager.nix
     ./overlay.nix

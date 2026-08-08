@@ -1,4 +1,4 @@
-{...}: {
+_: {
   imports = [
     ./foot.nix
     ./niri.nix

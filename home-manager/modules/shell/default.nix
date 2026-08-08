@@ -1,4 +1,4 @@
-{...}: {
+_: {
   imports = [
     ./atuin.nix
     ./fzf.nix

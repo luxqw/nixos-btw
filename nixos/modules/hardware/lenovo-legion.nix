@@ -1,4 +1,4 @@
-{...}: {
+_: {
   users.groups.lenovoctl = {};
 
   # Lets the "lenovoctl" group toggle Lenovo IdeaPad/Legion ACPI features
