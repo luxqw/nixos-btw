@@ -4,5 +4,6 @@ _: {
     ./gaming.nix
     ./neovim.nix
     ./packages.nix
+    ./wireshark.nix
   ];
 }
