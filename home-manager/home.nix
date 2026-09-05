@@ -1,4 +1,4 @@
-_: {
+{pkgs, ...}: {
   imports = [
     ./modules
   ];
@@ -14,4 +14,10 @@ _: {
   };
 
   programs.home-manager.enable = true;
+  programs.obs-studio = {
+    enable = true;
+    plugins = with pkgs.obs-studio-plugins; [
+      obs-backgroundremoval
+    ];
+  };
 }

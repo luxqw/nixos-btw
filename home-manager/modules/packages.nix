@@ -12,7 +12,6 @@
       chromium
       onlyoffice-desktopeditors
       protonup-qt
-      obs-studio
       imv
       spotify
       localsend
