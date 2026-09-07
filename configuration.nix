@@ -43,7 +43,7 @@
         tunnel rm <name>            remove a tunnel
 
       up, down and restart need no password — see the polkit rule in
-      tunnels.nix. Tunnels also start on their own at boot.
+      configuration.nix. Tunnels also start on their own at boot.
 
       add, edit and rm need a rebuild afterwards:
         sudo nixos-rebuild switch --flake /etc/nixos

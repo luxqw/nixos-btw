@@ -2,6 +2,8 @@
 
 Configuration for a single machine — a Lenovo Legion laptop running NixOS. The repository covers the system, the user environment, and the raw program configs that nix deliberately does not manage.
 
+The nix code carries no comments; the reasons behind individual settings live in `docs/rationale.md`.
+
 ## Language
 
 ### Configuration structure
@@ -14,13 +16,13 @@ _Avoid_: machine, target
 An alternative boot entry for the same host with a different set of options. Chosen in the bootloader, not at runtime.
 _Avoid_: profile, mode, preset
 
-**System module**:
-A file describing part of the OS-level configuration — whatever exists before a user logs in and does not belong to any user.
-_Avoid_: config, nix file
+**System configuration**:
+The OS-level half — whatever exists before a user logs in and does not belong to any user. It is one file, `configuration.nix`; the sections inside it are navigation, not boundaries.
+_Avoid_: system module, config, nix file
 
-**Home module**:
-A file describing part of the user environment through home-manager. Everything a person uses rather than the system.
-_Avoid_: user module, hm config
+**Home configuration**:
+The user half, expressed through home-manager. Everything a person uses rather than the system. It is one file, `home.nix`. It stays separate from the system half because the two share option names that mean different things — `programs.zsh` exists in both.
+_Avoid_: home module, user module, hm config
 
 **Dotfile**:
 A raw program config in its own language — kdl, lua, toml — kept outside nix and editable without a rebuild.

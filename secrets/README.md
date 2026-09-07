@@ -63,7 +63,7 @@ systemctl restart wg-quick-fleet
 The restart is not a formality. The secret's path — `/run/agenix/fleet` —
 does not change when its contents do, so systemd sees no reason to restart
 the unit by itself. The restart will not ask for a password: the polkit rule
-in `nixos/modules/network/tunnels.nix` grants `lux` start/stop/restart on
+in the `network` section of `configuration.nix` grants `lux` start/stop/restart on
 these units.
 
 ## Inspect
