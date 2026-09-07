@@ -30,15 +30,13 @@
   outputs = inputs @ {
     nixpkgs,
     agenix,
-    claude-code,
     home-manager,
     ...
   }: {
     nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
       specialArgs = {inherit inputs;};
       modules = [
-        ./nixos/modules
-        ./hosts/nixos/configuration.nix
+        ./configuration.nix
 
         agenix.nixosModules.default
         home-manager.nixosModules.home-manager
@@ -46,17 +44,8 @@
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
           home-manager.extraSpecialArgs = {inherit inputs;};
-          home-manager.users.lux = import ./home-manager/home.nix;
+          home-manager.users.lux = import ./home.nix;
         }
-
-        ({pkgs, ...}: {
-          nixpkgs.overlays = [claude-code.overlays.default];
-          environment.systemPackages = [
-            pkgs.claude-code
-            pkgs.age # creating new secrets; agenix -e only edits existing ones
-            agenix.packages.${pkgs.stdenv.hostPlatform.system}.default
-          ];
-        })
       ];
     };
   };
