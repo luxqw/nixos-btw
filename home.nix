@@ -96,17 +96,16 @@ in {
       ls = "eza";
       cat = "bat";
       edit = "nvim /etc/nixos/";
-      edit-hm = "nvim /etc/nixos/home-manager/modules/packages.nix";
-      edit-sys = "nvim /etc/nixos/nixos/modules/packages.nix";
-      rebuild = "sudo nixos-rebuild switch --flake /etc/nixos#nixos";
-      update = "cd /etc/nixos/ && sudo nix flake update && sudo nixos-rebuild switch --flake /etc/nixos#nixos";
+      rebuild = "nh os switch";
+      rebuild-test = "nh os test";
+      update = "nh os switch --update";
       nx = "cd /etc/nixos";
     };
 
     initContent = lib.mkOrder 950 ''
       # NOTE: no extended_glob here -- it turns '#' into a glob repetition
-      # operator, which breaks flake refs like /etc/nixos#nixos (used by
-      # the rebuild/update aliases below) unless every '#' is quoted.
+      # operator, which breaks flake refs like /etc/nixos#nixos unless
+      # every '#' is quoted.
       setopt no_case_glob
       setopt complete_in_word
       setopt auto_pushd
