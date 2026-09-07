@@ -23,6 +23,27 @@
         "type": "github"
       }
     },
+    "anicli-ru": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1788817889,
+        "narHash": "sha256-XZI2awlXpY6/zEmkJbw1MBQNE+or2GoBbiUN26pImVE=",
+        "owner": "luxqw",
+        "repo": "ani-cli-ru",
+        "rev": "62403c6d06bea20ee647d5c25039691001c76087",
+        "type": "github"
+      },
+      "original": {
+        "owner": "luxqw",
+        "ref": "nix-flake",
+        "repo": "ani-cli-ru",
+        "type": "github"
+      }
+    },
     "claude-code": {
       "inputs": {
         "flake-utils": "flake-utils",
@@ -297,6 +318,7 @@
     "root": {
       "inputs": {
         "agenix": "agenix",
+        "anicli-ru": "anicli-ru",
         "claude-code": "claude-code",
         "clin": "clin",
         "creamlinux-installer": "creamlinux-installer",

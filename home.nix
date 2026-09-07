@@ -554,5 +554,6 @@ in {
     ++ [
       inputs.zen-browser.packages."${pkgs.stdenv.hostPlatform.system}".default
       inputs.clin.packages.${pkgs.stdenv.hostPlatform.system}.default
+      inputs.anicli-ru.packages.${pkgs.stdenv.hostPlatform.system}.default
     ]);
 }
