@@ -30,11 +30,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1788817889,
-        "narHash": "sha256-XZI2awlXpY6/zEmkJbw1MBQNE+or2GoBbiUN26pImVE=",
+        "lastModified": 1788818636,
+        "narHash": "sha256-WXoqXZfZ9dxn9W+3p5tPC2r2rs1wAS4ygYGShX7Ejk4=",
         "owner": "luxqw",
         "repo": "ani-cli-ru",
-        "rev": "62403c6d06bea20ee647d5c25039691001c76087",
+        "rev": "d0a32979b04b1f938d659ac01ffc1468cd052024",
         "type": "github"
       },
       "original": {
