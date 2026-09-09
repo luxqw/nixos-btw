@@ -18,6 +18,83 @@
       zig
     ];
   };
+
+  mkObsidianPlugin = pluginId: {
+    repo,
+    version,
+    hashes,
+  }:
+    pkgs.runCommandLocal "obsidian-plugin-${pluginId}-${version}" {} (''
+        mkdir -p "$out"
+      ''
+      + lib.concatStrings (lib.mapAttrsToList (file: hash: ''
+          cp ${pkgs.fetchurl {
+            url = "https://github.com/${repo}/releases/download/${version}/${file}";
+            inherit hash;
+          }} "$out/${file}"
+        '')
+        hashes));
+
+  obsidianPlugins = lib.mapAttrs mkObsidianPlugin {
+    obsidian-livesync = {
+      repo = "vrtmrz/obsidian-livesync";
+      version = "1.0.28";
+      hashes = {
+        "main.js" = "sha256-zR6F8WZLB1/WHRdWWNUEOQ+Nnx+VyebHyN8byw0V+m4=";
+        "manifest.json" = "sha256-oSEnQ8RXtiXlhJEsuYS1nnVuqZTjllKhQup4Wc/lUIY=";
+        "styles.css" = "sha256-S6AL70F+6Y2aYt2f67eS3GVVlJz8no4GlFCtaZqyufA=";
+      };
+    };
+    tasknotes = {
+      repo = "callumalpass/tasknotes";
+      version = "4.12.5";
+      hashes = {
+        "main.js" = "sha256-f4K2u//l/0sDxrFYGqGT8SBM1ZcHAO+WQfCV4MJ3vE4=";
+        "manifest.json" = "sha256-m+yYiTjGejvKIkJNlGaA4CsOodLDn9hgz8rvNcNyBI0=";
+        "styles.css" = "sha256-ILc5tmv0VZYhBJ0dS4BovtgWJwoSdzHka7Yg/zFNWNg=";
+      };
+    };
+  };
+
+  obsidian-plugins = pkgs.writeShellApplication {
+    name = "obsidian-plugins";
+
+    runtimeInputs = with pkgs; [coreutils jq];
+
+    text = ''
+      vault="''${1:-$PWD}"
+
+      if [ ! -d "$vault" ]; then
+        echo "obsidian-plugins: no such vault: $vault" >&2
+        exit 1
+      fi
+
+      plugins_file="$vault/.obsidian/community-plugins.json"
+
+      install_plugin() {
+        dir="$vault/.obsidian/plugins/$1"
+
+        mkdir -p "$dir"
+        cp --no-preserve=mode,ownership "$2"/* "$dir/"
+
+        if [ -f "$plugins_file" ]; then
+          jq --arg id "$1" 'if index($id) then . else . + [$id] end' \
+            "$plugins_file" > "$plugins_file.tmp"
+          mv "$plugins_file.tmp" "$plugins_file"
+        else
+          jq -n --arg id "$1" '[$id]' > "$plugins_file"
+        fi
+
+        echo "obsidian-plugins: $1 -> $dir"
+      }
+
+      mkdir -p "$vault/.obsidian/plugins"
+
+      ${lib.concatStringsSep "\n" (lib.mapAttrsToList
+        (pluginId: drv: ''install_plugin "${pluginId}" "${drv}"'')
+        obsidianPlugins)}
+    '';
+  };
 in {
   # ─────────────────────────────── base ───────────────────────────────
 
@@ -505,6 +582,7 @@ in {
       qbittorrent
       chromium
       onlyoffice-desktopeditors
+      obsidian
       protonup-qt
       imv
       spotify
@@ -555,5 +633,6 @@ in {
       inputs.zen-browser.packages."${pkgs.stdenv.hostPlatform.system}".default
       inputs.clin.packages.${pkgs.stdenv.hostPlatform.system}.default
       inputs.anicli-ru.packages.${pkgs.stdenv.hostPlatform.system}.default
+      obsidian-plugins
     ]);
 }

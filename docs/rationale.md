@@ -191,6 +191,22 @@ no compiled `.so` at all in the current nixpkgs.
 **`home.packages` carries `lib.mkBefore`** — see
 [Merge order](#merge-order).
 
+**`obsidian-plugins` is a command you run, not an activation step.** The
+two Obsidian community plugins (Self-hosted LiveSync, TaskNotes) are
+fetched declaratively with pinned hashes, but they are *copied* into
+`<vault>/.obsidian/plugins/` rather than symlinked from the store, and
+only when invoked. Three reasons, none reversible:
+
+- A vault is user data at a path the configuration does not know, and
+  LiveSync replicates it to other devices. Nothing here may own it.
+- `.obsidian/` is written by Obsidian at runtime — `data.json`, the
+  enabled-plugin list, plugin self-updates — and by LiveSync when hidden
+  file sync is on. Read-only store symlinks make all of that fail.
+- Upstream's own flake downloads `releases/latest` inside a `shellHook`,
+  so the result depends on the day it ran. Pinning the three release
+  assets per plugin by hash is what makes a rebuild reproducible; the
+  cost is that a plugin upgrade is a hash bump here.
+
 ---
 
 ## Merge order
