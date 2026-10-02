@@ -21,6 +21,8 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # No nixpkgs.follows: its Bun FOD hash is pinned to its own nixpkgs.
+    millennium.url = "github:SteamClientHomebrew/Millennium?dir=packages/nix";
     umbriel = {
       url = "github:noctalia-dev/umbriel";
       inputs.nixpkgs.follows = "nixpkgs";

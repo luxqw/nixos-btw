@@ -349,6 +349,10 @@ in {
 
   programs.steam = {
     enable = true;
+    # Steam with Millennium (needed by noctalia's steam template). Its
+    # profile relinks ubuntu12_*/libXtst.so.6 on every launch, so the
+    # loader always points at a store path rooted by this generation.
+    package = inputs.millennium.packages.${system}.millennium-steam;
     remotePlay.openFirewall = true;
     dedicatedServer.openFirewall = true;
   };
