@@ -109,12 +109,6 @@ in {
   };
 
   programs.home-manager.enable = true;
-  programs.obs-studio = {
-    enable = true;
-    plugins = with pkgs.obs-studio-plugins; [
-      obs-backgroundremoval
-    ];
-  };
 
   # ─────────────────────────────── shell ──────────────────────────────
 
@@ -427,6 +421,13 @@ in {
         fi
   '';
 
+  programs.obs-studio = {
+    enable = true;
+    plugins = with pkgs.obs-studio-plugins; [
+      obs-backgroundremoval
+    ];
+  };
+
   programs.zathura = {
     enable = true;
     options = {
@@ -574,67 +575,79 @@ in {
 
   # ───────────────────────────── packages ─────────────────────────────
 
-  home.packages = lib.mkBefore (with pkgs;
-    [
-      vesktop
-      wtype
-      mpv
-      qbittorrent
-      chromium
-      onlyoffice-desktopeditors
-      obsidian
-      protonup-qt
-      imv
-      localsend
-      keepassxc
-      exiftool
-      dbeaver-bin
+  home.packages = lib.mkBefore (with pkgs; let
+    system = pkgs.stdenv.hostPlatform.system;
 
+    apps = [
+      chromium
+      inputs.zen-browser.packages.${system}.default
+      telegram-desktop
+      vesktop
+      obsidian
+      obsidian-plugins
+      onlyoffice-desktopeditors
+      keepassxc
+      localsend
+      qbittorrent
+      mpv
+      imv
+      thunar
+      zed-editor
+      dbeaver-bin
+    ];
+
+    games = [
+      protonup-qt
+      (import inputs.creamlinux-installer {inherit pkgs;})
+    ];
+
+    cli = [
       ripgrep
       fd
       bat
       eza
       jq
+      btop
+      dust
+      nitch
       wget
+      zip
       unzip
-      wl-clipboard
       openssl
-      yt-dlp
+      exiftool
       ffmpeg
       imagemagick
-      python3
-      zip
-      dust
+      yt-dlp
+      wl-clipboard
+      wtype
+      inputs.clin.packages.${system}.default
+      inputs.anicli-ru.packages.${system}.default
+    ];
 
+    network = [
       dnsutils
       mtr
       tcpdump
       traceroute
+    ];
 
-      nodejs_22
+    dev = [
       go
-      gh
-
-      zed-editor
-      telegram-desktop
-      btop
-      (import inputs.creamlinux-installer {inherit pkgs;})
+      gopls
+      nodejs_22
+      python3
       gcc
-      lua-language-server
+      gh
       nil
       alejandra
+      lua-language-server
+      vscode-langservers-extracted
+    ];
+
+    theming = [
       adwaita-icon-theme
       gnome-themes-extra
-      nitch
-      thunar
-
-      gopls
-      vscode-langservers-extracted
-    ]
-    ++ [
-      inputs.zen-browser.packages."${pkgs.stdenv.hostPlatform.system}".default
-      inputs.clin.packages.${pkgs.stdenv.hostPlatform.system}.default
-      inputs.anicli-ru.packages.${pkgs.stdenv.hostPlatform.system}.default
-      obsidian-plugins
-    ]);
+    ];
+  in
+    apps ++ games ++ cli ++ network ++ dev ++ theming);
 }

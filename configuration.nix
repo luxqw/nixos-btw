@@ -253,11 +253,6 @@ in {
   };
 
   # ────────────────────────────── network ─────────────────────────────
-  services.jellyfin = {
-    enable = true;
-    openFirewall = true; # opens 8096 (HTTP) and discovery ports
-    user = "lux"; # your username, so it can read your downloads folder
-  };
 
   networking.hostName = "nixos";
   networking.networkmanager.enable = true;
@@ -341,6 +336,12 @@ in {
 
   virtualisation.docker.enable = true;
 
+  services.jellyfin = {
+    enable = true;
+    openFirewall = true;
+    user = "lux";
+  };
+
   programs.gamemode.enable = true;
   programs.gamescope.enable = true;
 
@@ -358,17 +359,20 @@ in {
   environment.systemPackages = [
     pkgs.nh
     pkgs.nix-output-monitor
-    tunnelCli
-    inputs.noctalia.packages.${system}.default
-    pkgs.ntfs3g
     pkgs.nixd
-    pkgs.polkit_gnome
-    pkgs.wireguard-tools
-    pkgs.xwayland-satellite
-    pkgs.neovim-unwrapped
-    pkgs.claude-code
+
     pkgs.age
     agenixPackage
+    pkgs.wireguard-tools
+    tunnelCli
+
+    inputs.noctalia.packages.${system}.default
+    pkgs.polkit_gnome
+    pkgs.xwayland-satellite
+
+    pkgs.ntfs3g
+    pkgs.neovim-unwrapped
+    pkgs.claude-code
   ];
 
   # ────────────────────────────── system ──────────────────────────────

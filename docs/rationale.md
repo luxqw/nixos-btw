@@ -106,6 +106,10 @@ The default package is `wireshark-cli`, which ships no GUI at all. The
 full package is named plainly `wireshark` and carries the Qt interface
 alongside the same `tshark` and `dumpcap`.
 
+**jellyfin runs as `lux`**, not its own `jellyfin` user, so it can read
+the media in the home directory (downloads) without loosening permissions
+on it.
+
 **`neovim-unwrapped` in the system packages** is a deliberate exception
 to "only system things in the system": root needs an editor to fix
 configs by hand when home-manager is unavailable. The user's neovim and
