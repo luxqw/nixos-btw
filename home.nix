@@ -598,6 +598,18 @@ in {
       wget
       unzip
       wl-clipboard
+      openssl
+      yt-dlp
+      ffmpeg
+      imagemagick
+      python3
+      zip
+      dust
+
+      dnsutils
+      mtr
+      tcpdump
+      traceroute
 
       nodejs_22
       go
