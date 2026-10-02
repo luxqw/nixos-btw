@@ -173,6 +173,12 @@ and are left untouched.
 writes live colors to the same path; once it has, the activation leaves
 the file alone, so rebuilds never clobber the live theme.
 
+**foot's `shell` is `tmux new -As main`.** Every terminal attaches to one
+named session instead of spawning a new numbered one; with continuum
+restoring sessions at server start, numbered sessions used to pile up
+into the dozens. Per-project sessions come from the sessionizer on
+`prefix f` (fzf over `~/Documents/projects`), named after the directory.
+
 **`selection-clipboard = "clipboard"`** in zathura: it copies selections
 to PRIMARY by default, so Ctrl+C/Ctrl+V don't see them and only
 middle-click paste works.

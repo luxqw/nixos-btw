@@ -23,6 +23,23 @@
     install -Dm755 ${pkgs.gotools}/bin/.goimports-wrapped $out/bin/goimports
   '';
 
+  tmux-sessionizer = pkgs.writeShellApplication {
+    name = "tmux-sessionizer";
+    runtimeInputs = with pkgs; [tmux fzf findutils coreutils];
+    text = ''
+      dir=$(find "$HOME/Documents/projects" -mindepth 1 -maxdepth 1 -type d | sort | fzf --reverse) || exit 0
+      name=$(basename "$dir" | tr .: __)
+
+      tmux has-session -t "=$name" 2>/dev/null || tmux new-session -ds "$name" -c "$dir"
+
+      if [ -n "''${TMUX-}" ]; then
+        tmux switch-client -t "=$name"
+      else
+        tmux attach-session -t "=$name"
+      fi
+    '';
+  };
+
   mkObsidianPlugin = pluginId: {
     repo,
     version,
@@ -315,6 +332,8 @@ in {
 
       set -g renumber-windows on
 
+      bind f display-popup -E -w 60% -h 50% ${lib.getExe tmux-sessionizer}
+
       bind -n M-r source-file ~/.config/tmux/tmux.conf \; display "Config reloaded!"
       bind -n M-s choose-tree -s
 
@@ -367,7 +386,7 @@ in {
       main = {
         font = "Iosevka NF:size=15";
         pad = "4x4";
-        shell = "zsh";
+        shell = "tmux new -As main";
         include = "${config.home.homeDirectory}/.config/foot/themes/noctalia";
       };
       colors-dark = {
@@ -624,6 +643,7 @@ in {
       imagemagick
       yt-dlp
       wl-clipboard
+      tmux-sessionizer
       wtype
       inputs.clin.packages.${system}.default
       inputs.anicli-ru.packages.${system}.default
