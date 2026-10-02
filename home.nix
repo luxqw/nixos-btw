@@ -587,7 +587,9 @@ in {
       imv
       spotify
       localsend
+      keepassxc
       exiftool
+      dbeaver-bin
 
       ripgrep
       fd

@@ -253,6 +253,11 @@ in {
   };
 
   # ────────────────────────────── network ─────────────────────────────
+  services.jellyfin = {
+    enable = true;
+    openFirewall = true; # opens 8096 (HTTP) and discovery ports
+    user = "lux"; # your username, so it can read your downloads folder
+  };
 
   networking.hostName = "nixos";
   networking.networkmanager.enable = true;
