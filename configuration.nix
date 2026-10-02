@@ -118,6 +118,7 @@
 in {
   imports = [
     inputs.noctalia-greeter.nixosModules.default
+    inputs.umbriel.nixosModules.default
     ./hardware-configuration.nix
   ];
 
@@ -300,6 +301,8 @@ in {
   # ────────────────────────────── desktop ─────────────────────────────
 
   programs.niri.enable = true;
+  # Trial second session next to niri; config in dotfiles/umbriel.
+  programs.umbriel.enable = true;
 
   programs.noctalia-greeter = {
     enable = true;

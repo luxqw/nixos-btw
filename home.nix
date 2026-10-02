@@ -380,17 +380,28 @@ in {
     force = true;
   };
 
+  xdg.configFile."umbriel" = {
+    source = config.lib.file.mkOutOfStoreSymlink "/etc/nixos/dotfiles/umbriel";
+    force = true;
+  };
+
   programs.foot = {
     enable = true;
     settings = {
       main = {
         font = "Iosevka NF:size=15";
         pad = "4x4";
-        # One tmux session per niri workspace: named workspaces use their
-        # name, unnamed ones ws<idx>; outside niri fall back to "main".
+        # One tmux session per compositor workspace: named workspaces use
+        # their name, unnamed ones ws<idx>; same names under umbriel and
+        # niri, outside both fall back to "main".
         shell = "${pkgs.writeShellScript "foot-tmux" ''
-          ws=$(niri msg -j workspaces 2>/dev/null \
-            | ${pkgs.jq}/bin/jq -r '.[] | select(.is_focused) | .name // "ws\(.idx)"')
+          if [ -n "''${UMBRIEL_SOCKET:-}" ]; then
+            ws=$(umbriel workspaces --json 2>/dev/null \
+              | ${pkgs.jq}/bin/jq -r '(.ok // .)[] | select(.focused) | if .named then .name else "ws\(.index)" end')
+          else
+            ws=$(niri msg -j workspaces 2>/dev/null \
+              | ${pkgs.jq}/bin/jq -r '.[] | select(.is_focused) | .name // "ws\(.idx)"')
+          fi
           exec tmux new -As "''${ws:-main}"
         ''}";
         include = "${config.home.homeDirectory}/.config/foot/themes/noctalia";
@@ -649,6 +660,8 @@ in {
       imagemagick
       yt-dlp
       wl-clipboard
+      grim
+      slurp
       tmux-sessionizer
       wtype
       inputs.clin.packages.${system}.default
