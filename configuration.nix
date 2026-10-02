@@ -212,7 +212,6 @@ in {
     NIXOS_OZONE_WL = "1";
     MOZ_ENABLE_WAYLAND = "1";
     __GL_SHADER_DISK_CACHE_SKIP_CLEANUP = "1";
-    NH_FLAKE = "/etc/nixos";
   };
 
   environment.etc."niri-render-device.kdl".text = ''
@@ -357,7 +356,6 @@ in {
   };
 
   environment.systemPackages = [
-    pkgs.nh
     pkgs.nix-output-monitor
     pkgs.nixd
 
@@ -380,11 +378,15 @@ in {
   time.timeZone = "Europe/Belgrade";
   i18n.defaultLocale = "en_US.UTF-8";
 
-  nix.gc = {
-    automatic = true;
-    dates = "weekly";
-    options = "--delete-older-than 14d";
+  programs.nh = {
+    enable = true;
+    flake = "/etc/nixos";
+    clean = {
+      enable = true;
+      extraArgs = "--keep 5 --keep-since 7d";
+    };
   };
+
   nix.settings = {
     auto-optimise-store = true;
     experimental-features = ["nix-command" "flakes"];
