@@ -585,7 +585,6 @@ in {
       obsidian
       protonup-qt
       imv
-      spotify
       localsend
       keepassxc
       exiftool
@@ -596,7 +595,6 @@ in {
       bat
       eza
       jq
-      htop
       wget
       unzip
       wl-clipboard
@@ -609,7 +607,6 @@ in {
       telegram-desktop
       btop
       (import inputs.creamlinux-installer {inherit pkgs;})
-      tree
       gcc
       lua-language-server
       nil
@@ -619,17 +616,8 @@ in {
       nitch
       thunar
 
-      rust-analyzer
-      clang-tools
       gopls
-      zls
-      intelephense
-      typescript-language-server
       vscode-langservers-extracted
-      haskell-language-server
-      serve-d
-      templ
-      c3-lsp
     ]
     ++ [
       inputs.zen-browser.packages."${pkgs.stdenv.hostPlatform.system}".default
