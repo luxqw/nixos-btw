@@ -386,7 +386,13 @@ in {
       main = {
         font = "Iosevka NF:size=15";
         pad = "4x4";
-        shell = "tmux new -As main";
+        # One tmux session per niri workspace: named workspaces use their
+        # name, unnamed ones ws<idx>; outside niri fall back to "main".
+        shell = "${pkgs.writeShellScript "foot-tmux" ''
+          ws=$(niri msg -j workspaces 2>/dev/null \
+            | ${pkgs.jq}/bin/jq -r '.[] | select(.is_focused) | .name // "ws\(.idx)"')
+          exec tmux new -As "''${ws:-main}"
+        ''}";
         include = "${config.home.homeDirectory}/.config/foot/themes/noctalia";
       };
       colors-dark = {
