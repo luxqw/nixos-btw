@@ -190,6 +190,23 @@ runtimepath by default and does not collide with the config symlink.
 **`grammarPlugins`, not `withPlugins`** — the latter yields a plugin with
 no compiled `.so` at all in the current nixpkgs.
 
+**nvim-treesitter itself comes from nixpkgs too**, into
+`site/pack/nix/start`, rather than through `vim.pack` like every other
+plugin. Its queries must match the parsers' revisions; a query written
+for a newer grammar errors on an older parser. Taking both from the same
+nixpkgs keeps them in lockstep. It also cannot install anything itself:
+`site/parser` is a read-only store path, so `:TSInstall` fails. A new
+language is a line in `nvimGrammars`.
+
+**LSP servers and formatters come from Nix, not Mason.** Mason downloads
+prebuilt binaries that are dynamically linked against an FHS layout NixOS
+does not have.
+
+**`goimports` is copied out of `gotools`**, not installed as `gotools`.
+`gotools` is 254 MiB of forty-odd binaries; only `goimports` is used (by
+conform, on save). The copy is the unwrapped binary: the wrapper exists
+only to put `go` on PATH, and `go` is already in `home.packages`.
+
 ### packages
 
 **`home.packages` carries `lib.mkBefore`** — see

@@ -1,117 +1,147 @@
-# Neovim Keybinds Documentation
+# nvim
 
-This document provides a simple and organized overview of all the custom keybinds defined in my Neovim configuration.
+Конфиг на основе [kickstart.nvim](https://github.com/nvim-lua/kickstart.nvim): один
+`init.lua`, который можно прочитать сверху вниз. LSP, форматтеры и treesitter-парсеры
+ставит Nix (`home.nix`), плагины ставит `vim.pack` (встроен в nvim 0.12, версии зафиксированы
+в `nvim-pack-lock.json`).
 
-## General Keybinds
+## С чего начать
 
-| Mode | Key             | Action                                                                                      |
-|------|-----------------|---------------------------------------------------------------------------------------------|
-| `n`  | `<leader>cd`    | Open Ex mode (`:Ex`)                                                                        |
-| `n`  | `J`             | Join lines while keeping the cursor in place                                                |
-| `n`  | `<C-d>`         | Scroll half-page down and keep the cursor centered                                          |
-| `n`  | `<C-u>`         | Scroll half-page up and keep the cursor centered                                            |
-| `n`  | `n`             | Move to next search result and keep it centered                                             |
-| `n`  | `N`             | Move to previous search result and keep it centered                                         |
-| `n`  | `Q`             | Disable Ex mode                                                                             |
-| `n`  | `<C-k>`         | Jump to next quickfix entry and keep it centered                                            |
-| `n`  | `<C-j>`         | Jump to previous quickfix entry and keep it centered                                        |
-| `n`  | `<leader>k`     | Jump to next location entry and keep it centered                                            |
-| `n`  | `<leader>j`     | Jump to previous location entry and keep it centered                                        |
-| `i`  | `<C-c>`         | Exit insert mode (acts like `Esc`)                                                          |
-| `n`  | `<leader>x`     | Make current file executable (`chmod +x`)                                                   |
-| `n`  | `<leader>u`     | Toggle Undotree                                                                             |
-| `n`  | `<leader>rl`    | Reload the Neovim config (`~/.config/nvim/init.lua`)                                        |
-| `n`  | `<leader><leader>` | Source the current file (`:so`)                                                          |
+1. В шелле: `vimtutor`. Это 30 минут, и это лучшее вложение времени. Пройди целиком.
+2. Потом в nvim: `:Tutor`, вторая часть.
+3. Прочитай `init.lua` сверху вниз. Непонятное слово — `:help <слово>` или `<Space>sh`.
+4. Забыл клавишу — нажми `<Space>` и подожди: which-key покажет, что дальше.
+   `<Space>sk` ищет по всем биндам.
 
----
+hardtime.nvim подсказывает, когда ты жмёшь `jjjj` вместо `5j` или `}`. Он ничего не
+блокирует. `:Hardtime report` показывает, какие привычки повторяются чаще всего.
 
-## Visual Mode Keybinds
+## Шпаргалка
 
-| Mode | Key             | Action                                                                                      |
-|------|-----------------|---------------------------------------------------------------------------------------------|
-| `v`  | `J`             | Move selected block down                                                                    |
-| `v`  | `K`             | Move selected block up                                                                      |
-| `x`  | `<leader>p`     | Paste without overwriting clipboard                                                         |
-| `v`  | `<leader>y`     | Yank into system clipboard (even on SSH)                                                    |
+`<leader>` = `Space`.
 
----
+### Выжить
 
-## Linting and Formatting
+| Клавиши | Что делает |
+|---|---|
+| `Esc` | в normal mode; заодно гасит подсветку поиска |
+| `i` / `a` / `o` | вставка перед курсором / после / на новой строке |
+| `:w` / `:q` / `:wq` | сохранить / выйти / оба |
+| `u` / `Ctrl-r` | undo / redo |
 
-| Mode | Key             | Action                                                                                      |
-|------|-----------------|---------------------------------------------------------------------------------------------|
-| `n`  | `<leader>cc`    | Run `php-cs-fixer` to lint and format PHP files                                             |
-| `n`  | `<F3>`          | Format code (`LSP`)                                                                         |
+### Движение
 
----
+| Клавиши | Что делает |
+|---|---|
+| `h j k l` | ← ↓ ↑ → |
+| `w` / `b` / `e` | следующее слово / назад / конец слова |
+| `0` / `^` / `$` | начало строки / первый символ / конец |
+| `gg` / `G` / `42G` | начало файла / конец / строка 42 |
+| `{` / `}` | абзац вверх / вниз |
+| `Ctrl-d` / `Ctrl-u` | полэкрана вниз / вверх |
+| `f<c>` / `t<c>` | прыжок на символ / перед символом; `;` повторить |
+| `%` | парная скобка |
+| `/text` `n` `N` | поиск, следующий, предыдущий |
+| `*` | искать слово под курсором |
+| `Ctrl-o` / `Ctrl-i` | назад / вперёд по истории прыжков |
 
-## Telescope Keybinds
+Номера строк относительные: `5j` — пять строк вниз, число видно слева.
 
-| Mode | Key             | Action                                                                                      |
-|------|-----------------|---------------------------------------------------------------------------------------------|
-| `n`  | `<leader>ff`    | Find files                                                                                  |
-| `n`  | `<leader>fg`    | Find git-tracked files                                                                      |
-| `n`  | `<leader>fo`    | Open recent files                                                                           |
-| `n`  | `<leader>fq`    | Open quickfix list                                                                          |
-| `n`  | `<leader>fh`    | Open help tags                                                                              |
-| `n`  | `<leader>fb`    | Open buffer list                                                                            |
-| `n`  | `<leader>fs`    | Grep current string                                                                         |
-| `n`  | `<leader>fc`    | Grep instances of the current file name without the extension                               |
-| `n`  | `<leader>fi`    | Find files in Neovim configuration directory (`~/.config/nvim/`)                            |
+### Редактирование: глагол + объект
 
----
+| Клавиши | Что делает |
+|---|---|
+| `d` `c` `y` | delete / change / yank (копировать) + движение: `dw`, `c$`, `y}` |
+| `dd` `cc` `yy` | то же для целой строки |
+| `p` / `P` | вставить после / перед |
+| `ciw` / `ci"` / `ci(` | заменить слово / внутри кавычек / внутри скобок |
+| `daw` / `da"` | удалить слово / строку в кавычках вместе с ними |
+| `.` | повторить последнее изменение |
+| `>>` / `<<` | отступ |
+| `v` / `V` / `Ctrl-v` | выделение: символы / строки / блок |
+| `sa{obj}{char}` | добавить обрамление: `saiw"` берёт слово в кавычки |
+| `sd{char}` / `sr{old}{new}` | удалить / заменить обрамление: `sd"`, `sr"'` |
 
-## Harpoon Integration
+### Поиск (telescope)
 
-| Mode | Key             | Action                                                                                      |
-|------|-----------------|---------------------------------------------------------------------------------------------|
-| `n`  | `<leader>a`     | Add current file to Harpoon list                                                            |
-| `n`  | `<C-e>`         | Toggle Harpoon quick menu                                                                   |
-| `n`  | `<leader>fl`    | Open Harpoon window with Telescope                                                          |
-| `n`  | `<C-p>`         | Go to previous Harpoon mark                                                                 |
-| `n`  | `<C-n>`         | Go to next Harpoon mark                                                                     |
+| Клавиши | Что делает |
+|---|---|
+| `<leader>sf` | файлы |
+| `<leader>sg` | grep по проекту |
+| `<leader>sw` | grep слова под курсором |
+| `<leader><leader>` | открытые буферы |
+| `<leader>/` | поиск в текущем файле |
+| `<leader>s.` | недавние файлы |
+| `<leader>sh` | help |
+| `<leader>sk` | все бинды |
+| `<leader>sd` | диагностика |
+| `<leader>sr` | вернуться к прошлому поиску |
+| `<leader>sn` | файлы этого конфига |
 
----
+В окне telescope: `Ctrl-n`/`Ctrl-p` двигают выделение, `Enter` открывает, `Esc Esc` закрывает.
 
-## LSP Keybinds
+### LSP (Go, Nix, Lua, JSON, YAML)
 
-| Mode      | Key        | Action                                                                                      |
-|-----------|------------|---------------------------------------------------------------------------------------------|
-| `n`       | `K`        | Show hover information                                                                      |
-| `n`       | `gd`       | Go to definition                                                                            |
-| `n`       | `gD`       | Go to declaration                                                                           |
-| `n`       | `gi`       | Go to implementation                                                                        |
-| `n`       | `go`       | Go to type definition                                                                       |
-| `n`       | `gr`       | Show references                                                                             |
-| `n`       | `gs`       | Show signature help                                                                         |
-| `n`       | `gl`       | Show diagnostics in a floating window                                                       |
-| `n`       | `<F2>`     | Rename symbol                                                                               |
-| `n`, `x`  | `<F3>`     | Format code asynchronously                                                                 |
-| `n`       | `<F4>`     | Show code actions                                                                           |
+| Клавиши | Что делает |
+|---|---|
+| `K` | документация под курсором |
+| `grd` | перейти к определению |
+| `grr` | все использования |
+| `gri` | реализации интерфейса |
+| `grt` | определение типа |
+| `grn` | переименовать |
+| `gra` | code action (fix, import, …) |
+| `gO` | символы файла |
+| `gW` | символы проекта |
+| `]d` / `[d` | следующая / предыдущая ошибка |
+| `<leader>q` | все ошибки списком |
+| `<leader>f` | отформатировать |
+| `<leader>th` | inlay hints вкл/выкл |
 
----
+Go, Nix и Lua форматируются при сохранении (goimports, alejandra, stylua).
 
-## Miscellaneous
+### Автодополнение (blink.cmp)
 
-| Mode | Key             | Action                                                                                      |
-|------|-----------------|---------------------------------------------------------------------------------------------|
-| `n`  | `<leader>dg`    | Run `DogeGenerate` (comment documentation generation)                                       |
-| `n`  | `<leader>s`     | Replace all instances of the word under the cursor on the current line                      |
+| Клавиши | Что делает |
+|---|---|
+| `Ctrl-n` / `Ctrl-p` | следующий / предыдущий вариант |
+| `Ctrl-y` | принять |
+| `Ctrl-e` | закрыть |
+| `Ctrl-Space` | документация к варианту |
+| `Ctrl-k` | сигнатура функции |
 
----
+### Окна
 
-# LSP servers:
+| Клавиши | Что делает |
+|---|---|
+| `:vs` / `:sp` | сплит вертикально / горизонтально |
+| `Ctrl-h j k l` | перейти в соседний сплит |
+| `Ctrl-w q` | закрыть сплит |
 
-I am migrating my lsp config to /lua/plugins/lsp.lua because nvim v0.11 allows a very minimal debloated way to setup language server protocols. 
+### Git (gitsigns)
 
-Below is a running list of what and how to install the lsp's that are going to be configured in this build. I will avoid mason for now because I think its better to have full control over your system, and not outsource it to mason. Just uncommonet `return {` in /plugins/lsp.lua from the original lspconfig if you want to go that route.
+| Клавиши | Что делает |
+|---|---|
+| `]c` / `[c` | следующий / предыдущий изменённый кусок |
+| `<leader>hp` | показать изменение |
+| `<leader>hs` / `<leader>hr` | stage / reset куска |
+| `<leader>hb` | blame строки |
+| `<leader>tb` | blame вкл/выкл |
 
-1. { lua-language-server } 
-  - refer to distro ( pacman -Ss lua-language-server )
-2. { css-language-server --studio, html-language-server }
-  - npm install -g vscode-langservers-extracted
-3. { intelephense }
-  - npm install -g intelephense
-4. { typescript-language-server }
-  - npm install -g typescript-language-server typescript
+### Буфер обмена
 
+| Клавиши | Что делает |
+|---|---|
+| `y` / `p` | работают с системным буфером (wl-clipboard) |
+| `<leader>y{motion}` | копировать через OSC 52: работает по ssh и в tmux |
+
+## Как устроено
+
+- `init.lua`: всё, в порядке загрузки.
+- `lua/custom/plugins/*.lua`: свои плагины (oscyank, hardtime). Новый файл подхватится сам.
+- `lua/matugen.lua`: генерирует noctalia из обоев, руками не править. При смене обоев
+  nvim получает `SIGUSR1` и перекрашивается.
+- Новый язык: добавить парсер в `nvimGrammars` и LSP в `dev` в `home.nix`, сервер в
+  `servers` в `init.lua`, потом `rebuild`.
+- Обновить плагины: `:lua vim.pack.update()`, посмотреть изменения, `:write`.
+  Потом закоммитить `nvim-pack-lock.json`.

@@ -8,16 +8,20 @@
   nvimGrammars = pkgs.symlinkJoin {
     name = "nvim-treesitter-parsers";
     paths = with pkgs.vimPlugins.nvim-treesitter.grammarPlugins; [
-      c
+      bash
       go
-      javascript
+      json
       lua
+      markdown
+      markdown_inline
       nix
-      php
-      rust
-      zig
+      yaml
     ];
   };
+
+  goimports = pkgs.runCommandLocal "goimports-${pkgs.gotools.version}" {} ''
+    install -Dm755 ${pkgs.gotools}/bin/.goimports-wrapped $out/bin/goimports
+  '';
 
   mkObsidianPlugin = pluginId: {
     repo,
@@ -560,6 +564,7 @@ in {
   };
 
   xdg.dataFile."nvim/site/parser".source = "${nvimGrammars}/parser";
+  xdg.dataFile."nvim/site/pack/nix/start/nvim-treesitter".source = pkgs.vimPlugins.nvim-treesitter;
 
   # ──────────────────────────────── git ───────────────────────────────
 
@@ -634,14 +639,17 @@ in {
     dev = [
       go
       gopls
+      goimports
       nodejs_22
       python3
       gcc
       gh
       nil
       alejandra
+      stylua
       lua-language-server
       vscode-langservers-extracted
+      yaml-language-server
     ];
 
     theming = [
