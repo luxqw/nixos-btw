@@ -1,4 +1,4 @@
-# Umbriel trial session, ported from ../niri/config.kdl.
+# Umbriel session config.
 # Edits hot-reload; check with `umbriel config validate`.
 # Docs: https://docs.noctalia.dev/umbriel/
 
@@ -40,6 +40,11 @@ repeat_delay = 200
 repeat_rate = 35
 numlock_toggle = true
 
+# Same theme as home.pointerCursor in home.nix.
+[input.cursor]
+theme = "Bibata-Modern-Classic"
+size = 24
+
 [input.touchpad]
 tap = true
 natural_scroll = true
@@ -63,26 +68,30 @@ prefer_no_csd = true
 border_width = 2
 corner_radius = 4
 
-# niri: workspace "c"/"b"/"a" { open-on-output "DP-2" }
+# Pinned to the ultrawide by position, not by name: noctalia's bar labels a
+# named workspace with its name, which then travels with workspace-move-*.
 [[workspace]]
-name = "c"
+index = 1
 output = "DP-2"
 
 [[workspace]]
-name = "b"
+index = 2
 output = "DP-2"
 
 [[workspace]]
-name = "a"
+index = 3
 output = "DP-2"
 
-# Not in niri: blur behind noctalia surfaces and a hot corner for overview.
+# Blur behind noctalia surfaces and a hot corner for overview.
+# blur_optimized blurs the wallpaper once instead of everything below each
+# layer every frame; unoptimized, workspace animations cost ~75% more
+# compositor CPU and stutter on this nvidia setup.
 [[layer_rule]]
 match.namespace = "^noctalia-(bar-[^\"]+|notification|dock|panel|attached-panel|osd|desktop-widget-[^\"]*)$"
 blur = true
 blur_ignore_alpha = 0.5
 blur_popups = true
-blur_optimized = false
+blur_optimized = true
 
 [hot_corners.top_left]
 enabled = true
@@ -132,7 +141,7 @@ enabled = false
 enabled = false
 
 # ─────────────────────────────── keybinds ──────────────────────────────
-# Same keys as niri. Defining this table replaces Umbriel's built-in binds.
+# Defining this table replaces Umbriel's built-in binds.
 
 [keybinds]
 "Mod+Shift+Slash" = "cheatsheet-toggle"
@@ -244,7 +253,6 @@ enabled = false
 # Columns
 "Mod+BracketLeft" = "window-consume-or-expel-left"
 "Mod+BracketRight" = "window-consume-or-expel-right"
-# Approximation: niri's consume-into-column / expel have no exact twin.
 "Mod+Comma" = "window-consume-left"
 "Mod+Period" = "window-consume-right"
 
@@ -252,10 +260,8 @@ enabled = false
 "Mod+Shift+R" = "window-cycle-secondary-extent"
 "Mod+F" = { action = "window-toggle-maximize", repeat = false }
 "Mod+Shift+F" = { action = "window-toggle-fullscreen", repeat = false }
-# Approximation of niri's expand-column-to-available-width.
 "Mod+Ctrl+F" = "window-set-primary-extent:1.0"
 "Mod+C" = "column-center"
-# Approximation of niri's center-visible-columns.
 "Mod+Ctrl+C" = "column-center"
 
 "Mod+Minus" = "window-modify-primary-extent:-0.1"
@@ -267,11 +273,14 @@ enabled = false
 "Mod+Shift+V" = { action = "window-focus-switch-floating", repeat = false }
 "Mod+W" = { action = "column-toggle-tabbed", repeat = false }
 
-# Screenshots: same folder and naming as niri, also copied to the clipboard.
-# Alt+Print picks a window/region with slurp, since IPC window coordinates
-# are layout-relative rather than global.
+# Screenshots go to ~/Pictures/Screenshots and the clipboard.
+#   Mod+S                    region (drag with slurp, Esc cancels)
+#   Mod+Shift+S, Print       the whole focused monitor
+#   Alt+Print                a window: click it in slurp
 "Mod+S" = { action = "spawn:f=~/Pictures/Screenshots/\"Screenshot from $(date '+%Y-%m-%d %H-%M-%S').png\"; g=$(slurp) && grim -g \"$g\" \"$f\" && wl-copy < \"$f\"", repeat = false }
-"Ctrl+Print" = { action = "spawn:f=~/Pictures/Screenshots/\"Screenshot from $(date '+%Y-%m-%d %H-%M-%S').png\"; o=$(umbriel workspaces --json | jq -r '(.ok // .)[] | select(.focused) | .output'); grim -o \"$o\" \"$f\" && wl-copy < \"$f\"", repeat = false }
+"Mod+Shift+S" = { action = "spawn:f=~/Pictures/Screenshots/\"Screenshot from $(date '+%Y-%m-%d %H-%M-%S').png\"; o=$(umbriel workspaces --json | jq -r '(.ok? // .)[] | select(.focused) | .output'); grim -o \"$o\" \"$f\" && wl-copy < \"$f\"", repeat = false }
+"Print" = { action = "spawn:f=~/Pictures/Screenshots/\"Screenshot from $(date '+%Y-%m-%d %H-%M-%S').png\"; o=$(umbriel workspaces --json | jq -r '(.ok? // .)[] | select(.focused) | .output'); grim -o \"$o\" \"$f\" && wl-copy < \"$f\"", repeat = false }
+"Ctrl+Print" = { action = "spawn:f=~/Pictures/Screenshots/\"Screenshot from $(date '+%Y-%m-%d %H-%M-%S').png\"; o=$(umbriel workspaces --json | jq -r '(.ok? // .)[] | select(.focused) | .output'); grim -o \"$o\" \"$f\" && wl-copy < \"$f\"", repeat = false }
 "Alt+Print" = { action = "spawn:f=~/Pictures/Screenshots/\"Screenshot from $(date '+%Y-%m-%d %H-%M-%S').png\"; g=$(slurp) && grim -g \"$g\" \"$f\" && wl-copy < \"$f\"", repeat = false }
 
 "Mod+Escape" = { action = "shortcuts-inhibit-toggle", allow_when_inhibited = true, repeat = false }

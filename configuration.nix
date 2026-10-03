@@ -215,12 +215,6 @@ in {
     __GL_SHADER_DISK_CACHE_SKIP_CLEANUP = "1";
   };
 
-  environment.etc."niri-render-device.kdl".text = ''
-    debug {
-      render-drm-device "/dev/dri/renderD129"
-    }
-  '';
-
   # ─────────────────────────── specialisation ─────────────────────────
 
   specialisation = {
@@ -231,11 +225,6 @@ in {
         prime.offload.enableOffloadCmd = lib.mkForce true;
         powerManagement.finegrained = lib.mkForce true;
       };
-      environment.etc."niri-render-device.kdl".text = lib.mkForce ''
-        debug {
-          render-drm-device "/dev/dri/renderD128"
-        }
-      '';
       environment.sessionVariables = lib.mkForce {
         LIBVA_DRIVER_NAME = "radeonsi";
         ELECTRON_OZONE_PLATFORM_HINT = "auto";
@@ -300,18 +289,17 @@ in {
 
   # ────────────────────────────── desktop ─────────────────────────────
 
-  programs.niri.enable = true;
-  # Trial second session next to niri; config in dotfiles/umbriel.
+  # Config in dotfiles/umbriel.
   programs.umbriel.enable = true;
 
-  programs.noctalia-greeter = {
+  services.displayManager.noctalia-greeter = {
     enable = true;
     package = inputs.noctalia-greeter.packages.${system}.default;
 
     greeter-args = "";
     settings = {
       cursor = {
-        theme = "Adwaita";
+        theme = "Bibata-Modern-Classic";
         size = 24;
       };
       keyboard = {
@@ -363,6 +351,7 @@ in {
   };
 
   environment.systemPackages = [
+    pkgs.bibata-cursors # noctalia-greeter runs as its own user
     pkgs.nix-output-monitor
     pkgs.nixd
 
@@ -373,7 +362,6 @@ in {
 
     inputs.noctalia.packages.${system}.default
     pkgs.polkit_gnome
-    pkgs.xwayland-satellite
 
     pkgs.ntfs3g
     pkgs.neovim-unwrapped

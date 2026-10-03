@@ -6,7 +6,7 @@
       not from Mason / :TSInstall. Nothing here downloads a binary.
     - Colors come from noctalia's matugen template (lua/matugen.lua) and
       follow the wallpaper; tokyonight is the fallback.
-    - Extras live in lua/custom/plugins/: vim-oscyank, hardtime.nvim.
+    - Extras live in lua/custom/plugins/: vim-oscyank, hardtime.nvim, lazygit.nvim.
 
   Cheat sheet: README.md next to this file. Start with `vimtutor` in a shell.
   Read this file top to bottom; `:help <word>` explains anything you don't know.
@@ -123,6 +123,7 @@ do
       { '<leader>s', group = '[S]earch', mode = { 'n', 'v' } },
       { '<leader>t', group = '[T]oggle' },
       { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } },
+      { '<leader>g', group = '[G]it' },
       { 'gr', group = 'LSP Actions', mode = { 'n' } },
     },
   }

@@ -116,6 +116,13 @@
         obsidianPlugins)}
     '';
   };
+  qtctConf = dir: ''
+    [Appearance]
+    color_scheme_path=${config.xdg.configHome}/${dir}/colors/noctalia.conf
+    custom_palette=true
+    icon_theme=Papirus-Dark
+    style=Fusion
+  '';
 in {
   # ─────────────────────────────── base ───────────────────────────────
 
@@ -138,8 +145,6 @@ in {
     enableCompletion = true;
     syntaxHighlighting.enable = true;
     autocd = true;
-
-    defaultKeymap = "emacs";
 
     autosuggestion = {
       enable = true;
@@ -207,6 +212,11 @@ in {
       # Ctrl+S/Ctrl+Q default to XOFF/XON flow control, which freezes the
       # terminal on a stray Ctrl+S until Ctrl+Q is pressed. Disable it.
       stty -ixon
+
+      # The emacs keymap only has Alt+B/F for word motion; bind the
+      # Ctrl+Left/Right sequences foot (and tmux) send as well.
+      bindkey '^[[1;5D' backward-word
+      bindkey '^[[1;5C' forward-word
     '';
   };
 
@@ -283,14 +293,6 @@ in {
 
     plugins = with pkgs.tmuxPlugins; [
       {
-        plugin = tokyo-night-tmux;
-        extraConfig = ''
-          set -g @tokyo-night-tmux_theme night
-          set -g @tokyo-night-tmux_show_hostname 1
-          set -g @tokyo-night-tmux_show_path 1
-        '';
-      }
-      {
         plugin = resurrect;
         extraConfig = ''
           set -g @resurrect-processes ':all:'
@@ -298,7 +300,16 @@ in {
       }
       {
         plugin = continuum;
+        # status-right has to be set before continuum loads: it appends its
+        # autosave hook to whatever status-right is at that point. Colors are
+        # @noctalia_* options from the theme sourced at the end of extraConfig.
         extraConfig = ''
+          set -g status-left-length 40
+          set -g status-left "#[bg=#{@noctalia_primary},fg=#{@noctalia_on_primary},bold] #S #[default] "
+          set -g status-right-length 80
+          set -g status-right "#[fg=#{@noctalia_on_surface_variant}] #{=/-40/…:pane_current_path} #[bg=#{@noctalia_primary_container},fg=#{@noctalia_on_primary_container}] #H "
+          set -g window-status-format " #I #W "
+          set -g window-status-current-format " #I #W "
           set -g @continuum-restore 'on'
           set -g @continuum-save-interval '15'
         '';
@@ -333,6 +344,7 @@ in {
       set -g renumber-windows on
 
       bind f display-popup -E -w 60% -h 50% ${lib.getExe tmux-sessionizer}
+      bind g display-popup -E -w 90% -h 90% -d "#{pane_current_path}" lazygit
 
       bind -n M-r source-file ~/.config/tmux/tmux.conf \; display "Config reloaded!"
       bind -n M-s choose-tree -s
@@ -346,6 +358,13 @@ in {
       bind -n M-7 select-window -t 7
       bind -n M-8 select-window -t 8
       bind -n M-9 select-window -t 9
+
+      # With extended-keys on, foot reports Alt+Shift+< as CSI 27;4;60~ (the
+      # shifted symbol, Shift still set), which tmux names M-S-<, not M-<.
+      bind -n 'M-S-<' swap-window -d -t -1
+      bind -n 'M-S->' swap-window -d -t +1
+      bind -n 'M-S-{' swap-pane -U
+      bind -n 'M-S-}' swap-pane -D
 
       bind -n M-Left select-pane -L
       bind -n M-Right select-pane -R
@@ -370,15 +389,14 @@ in {
       bind -T copy-mode-vi y send -X copy-pipe-and-cancel "wl-copy || xclip -in -selection clipboard"
       bind -n M-/ copy-mode \; command-prompt -p "(search down)" "send -X search-forward '%%%'"
       bind -n M-? copy-mode \; command-prompt -p "(search up)"   "send -X search-backward '%%%'"
+
+      # Must stay the last line, verbatim: noctalia's tmux template apply.sh
+      # rewrites tmux.conf unless this exact line is already at the end.
+      source-file -q "$HOME/.config/tmux/themes/noctalia.conf"
     '';
   };
 
   # ────────────────────────────── desktop ─────────────────────────────
-
-  xdg.configFile."niri" = {
-    source = config.lib.file.mkOutOfStoreSymlink "/etc/nixos/dotfiles/niri";
-    force = true;
-  };
 
   xdg.configFile."umbriel" = {
     source = config.lib.file.mkOutOfStoreSymlink "/etc/nixos/dotfiles/umbriel";
@@ -391,17 +409,13 @@ in {
       main = {
         font = "Iosevka NF:size=15";
         pad = "4x4";
-        # One tmux session per compositor workspace: named workspaces use
-        # their name, unnamed ones ws<idx>; same names under umbriel and
-        # niri, outside both fall back to "main".
+        # One tmux session per umbriel workspace: named workspaces use their
+        # name, unnamed ones ws<idx>; outside umbriel fall back to "main".
+        # `.ok?` not `.ok`: the reply is a bare array, and `.ok` on an array
+        # is an error that `//` doesn't catch, which emptied $ws.
         shell = "${pkgs.writeShellScript "foot-tmux" ''
-          if [ -n "''${UMBRIEL_SOCKET:-}" ]; then
-            ws=$(umbriel workspaces --json 2>/dev/null \
-              | ${pkgs.jq}/bin/jq -r '(.ok // .)[] | select(.focused) | if .named then .name else "ws\(.index)" end')
-          else
-            ws=$(niri msg -j workspaces 2>/dev/null \
-              | ${pkgs.jq}/bin/jq -r '.[] | select(.is_focused) | .name // "ws\(.idx)"')
-          fi
+          ws=$(umbriel workspaces --json 2>/dev/null \
+            | ${pkgs.jq}/bin/jq -r '(.ok? // .)[] | select(.focused) | if .named then .name else "ws\(.index)" end')
           exec tmux new -As "''${ws:-main}"
         ''}";
         include = "${config.home.homeDirectory}/.config/foot/themes/noctalia";
@@ -592,6 +606,197 @@ in {
     ];
   };
 
+  # ─────────────────────────────── theme ──────────────────────────────
+
+  # Colors come from noctalia templates (gtk3/gtk4 noctalia.css, qt*ct
+  # colors, kdeglobals); this only picks the base themes they sit on.
+  home.pointerCursor = {
+    enable = true;
+    package = pkgs.bibata-cursors;
+    name = "Bibata-Modern-Classic";
+    size = 24;
+    gtk.enable = true;
+    x11.enable = true;
+  };
+
+  gtk = {
+    enable = true;
+    colorScheme = "dark";
+    theme = {
+      package = pkgs.adw-gtk3;
+      name = "adw-gtk3-dark";
+    };
+    # Leave gtk-4.0/gtk.css to noctalia: a gtk4 theme makes home-manager
+    # write that file as an import of the theme, replacing noctalia's.
+    gtk4.theme = null;
+    iconTheme = {
+      package = pkgs.papirus-icon-theme;
+      name = "Papirus-Dark";
+    };
+  };
+
+  dconf.settings."org/gnome/desktop/interface" = {
+    color-scheme = "prefer-dark";
+    gtk-theme = "adw-gtk3-dark";
+    icon-theme = "Papirus-Dark";
+    cursor-theme = "Bibata-Modern-Classic";
+    cursor-size = 24;
+  };
+
+  qt = {
+    enable = true;
+    platformTheme.name = "qtct";
+  };
+
+  # Only the pointer to noctalia's palette; the palette file itself is
+  # rewritten by noctalia's qt template on every wallpaper change.
+  xdg.configFile."qt5ct/qt5ct.conf".text = qtctConf "qt5ct";
+  xdg.configFile."qt6ct/qt6ct.conf".text = qtctConf "qt6ct";
+
+  # ─────────────────────────────── files ──────────────────────────────
+
+  # Every common type gets an explicit default: left to mimeinfo.cache,
+  # folders and zips opened in zathura's comic reader and images and PDFs
+  # in chromium.
+  xdg.mimeApps = let
+    zed = "dev.zed.Zed.desktop";
+    imv = "imv-dir.desktop";
+    zathura = "org.pwmt.zathura-pdf-mupdf.desktop";
+    office = "onlyoffice-desktopeditors.desktop";
+    archive = "org.gnome.FileRoller.desktop";
+    browser = "zen-beta.desktop";
+    assoc = app: types: lib.genAttrs types (_: app);
+  in {
+    enable = true;
+    defaultApplications =
+      assoc zed [
+        "text/plain"
+        "text/markdown"
+        "text/x-log"
+        "text/x-python"
+        "text/x-shellscript"
+        "application/x-shellscript"
+        "text/x-csrc"
+        "text/x-chdr"
+        "text/x-c++src"
+        "text/x-go"
+        "text/x-lua"
+        "text/x-nix"
+        "text/x-makefile"
+        "text/css"
+        "text/javascript"
+        "application/javascript"
+        "application/json"
+        "application/x-yaml"
+        "application/yaml"
+        "application/toml"
+        "application/xml"
+        "text/xml"
+        "application/sql"
+      ]
+      // assoc imv [
+        "image/png"
+        "image/jpeg"
+        "image/gif"
+        "image/webp"
+        "image/svg+xml"
+        "image/bmp"
+        "image/tiff"
+        "image/avif"
+        "image/heic"
+        "image/heif"
+        "image/jxl"
+        "image/x-icon"
+        "image/vnd.microsoft.icon"
+      ]
+      // assoc "mpv.desktop" [
+        "video/mp4"
+        "video/x-matroska"
+        "video/webm"
+        "video/quicktime"
+        "video/x-msvideo"
+        "video/mpeg"
+        "audio/mpeg"
+        "audio/flac"
+        "audio/ogg"
+        "audio/wav"
+        "audio/x-wav"
+        "audio/mp4"
+        "audio/opus"
+        "audio/aac"
+      ]
+      // assoc zathura [
+        "application/pdf"
+        "application/epub+zip"
+        "application/x-mobipocket-ebook"
+        "application/x-fictionbook"
+      ]
+      // assoc "org.pwmt.zathura-djvu.desktop" ["image/vnd.djvu" "image/x-djvu"]
+      // assoc "org.pwmt.zathura-ps.desktop" ["application/postscript"]
+      // assoc "org.pwmt.zathura-cb.desktop" ["application/vnd.comicbook+zip" "application/vnd.comicbook-rar"]
+      // assoc office [
+        "text/csv"
+        "application/rtf"
+        "application/msword"
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        "application/vnd.oasis.opendocument.text"
+        "application/vnd.ms-excel"
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        "application/vnd.oasis.opendocument.spreadsheet"
+        "application/vnd.ms-powerpoint"
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        "application/vnd.oasis.opendocument.presentation"
+      ]
+      // assoc archive [
+        "application/zip"
+        "application/x-tar"
+        "application/gzip"
+        "application/x-compressed-tar"
+        "application/x-7z-compressed"
+        "application/vnd.rar"
+        "application/x-rar"
+        "application/x-xz"
+        "application/x-xz-compressed-tar"
+        "application/zstd"
+        "application/x-zstd-compressed-tar"
+        "application/x-bzip2"
+        "application/x-bzip2-compressed-tar"
+        "application/x-iso9660-image"
+        "application/x-cd-image"
+      ]
+      // assoc "org.qbittorrent.qBittorrent.desktop" ["application/x-bittorrent" "x-scheme-handler/magnet"]
+      // assoc "thunar.desktop" ["inode/directory"]
+      // assoc "dbeaver.desktop" ["application/x-sqlite3" "application/vnd.sqlite3"]
+      // assoc browser [
+        "text/html"
+        "application/xhtml+xml"
+        "x-scheme-handler/http"
+        "x-scheme-handler/https"
+        "x-scheme-handler/chrome"
+        "x-scheme-handler/mailto"
+        "application/x-extension-htm"
+        "application/x-extension-html"
+        "application/x-extension-shtml"
+        "application/x-extension-xhtml"
+        "application/x-extension-xht"
+      ]
+      // {
+        "x-scheme-handler/tg" = "org.telegram.desktop.desktop";
+        "x-scheme-handler/tonsite" = "org.telegram.desktop.desktop";
+        "x-scheme-handler/discord" = "vesktop.desktop";
+        "x-scheme-handler/claude-cli" = "claude-code-url-handler.desktop";
+        "application/vnd.microsoft.portable-executable" = "steam.desktop";
+        "x-scheme-handler/pttp" = "CiscoPacketTracerPtsa-9.0.1.desktop";
+        "application/x-pka" = "CiscoPacketTracer-9.0.1.desktop";
+        "application/x-pkt" = "CiscoPacketTracer-9.0.1.desktop";
+        "application/x-pkz" = "CiscoPacketTracer-9.0.1.desktop";
+        "application/x-pksz" = "CiscoPacketTracer-9.0.1.desktop";
+      };
+  };
+  # Was a hand-edited file; apps that "set themselves as default" now
+  # get a read-only list, so changes go here.
+  xdg.configFile."mimeapps.list".force = true;
+
   # ────────────────────────────── editor ──────────────────────────────
 
   xdg.configFile."nvim" = {
@@ -614,6 +819,16 @@ in {
     };
   };
 
+  programs.lazygit = {
+    enable = true;
+    settings = {
+      gui.nerdFontsVersion = "3";
+      # Inside nvim's :LazyGit, `e` opens the file in that same nvim
+      # (via $NVIM) instead of nesting a second editor in the float.
+      os.editPreset = "nvim-remote";
+    };
+  };
+
   # ───────────────────────────── packages ─────────────────────────────
 
   home.packages = lib.mkBefore (with pkgs; let
@@ -628,11 +843,14 @@ in {
       obsidian-plugins
       onlyoffice-desktopeditors
       keepassxc
+      bitwarden-cli # noctalia bitwarden plugin (bw serve)
+      super-productivity # noctalia super-productivity plugin (REST API)
       localsend
       qbittorrent
       mpv
       imv
       thunar
+      file-roller
       zed-editor
       dbeaver-bin
     ];
@@ -680,7 +898,9 @@ in {
       gopls
       goimports
       nodejs_22
-      python3
+      # numpy/onnxruntime/pillow: noctalia wallpaper_depth can't use its
+      # venv on NixOS, so it runs on this interpreter instead.
+      (python3.withPackages (ps: with ps; [numpy onnxruntime pillow]))
       gcc
       gh
       nil

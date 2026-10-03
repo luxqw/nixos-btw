@@ -16,14 +16,14 @@ tried and failed.
 ### boot
 
 **`options nvidia_modeset vblank_sem_control=0`** works around a
-niri+nvidia bug: flicker and a black screen on resume.
+nvidia bug first seen under niri: flicker and a black screen on resume.
 <https://github.com/niri-wm/niri/issues/3384>
 
 **`nvidia`, `nvidia_modeset` and `nvidia_drm` in `boot.kernelModules`**
 are declared by hand. nixpkgs' `nvidia.nix` only force-loads them early
 via `systemd-modules-load` when `services.xserver.enable` is on. Xorg
-doesn't run here — niri is Wayland-only — so without these three, early
-KMS races with greetd/niri startup at boot.
+doesn't run here — umbriel is Wayland-only — so without these three, early
+KMS races with greetd/compositor startup at boot.
 
 **The blank line inside `boot.extraModprobeConfig`** is load-bearing for
 byte-identical output only; see [Merge order](#merge-order).
@@ -32,7 +32,7 @@ byte-identical output only; see [Merge order](#merge-order).
 
 **`services.logind.settings.Login.HandlePowerKey = "ignore"`** — logind's
 own handling suspends directly, bypassing noctalia and its
-`lockOnSuspend = true` entirely. niri binds the power key to noctalia's
+`lockOnSuspend = true` entirely. noctalia handles the power key with its
 lock-and-suspend instead, so logind is told to stay out of it.
 
 **The `lenovoctl` group and the tmpfiles rule** let that group toggle
@@ -124,7 +124,6 @@ hardware or login cannot work without. Everything user-facing lives in
 | `ntfs3g`            | mounting the games partition                  |
 | `polkit_gnome`      | authorisation agent for the graphical session |
 | `wireguard-tools`   | `wg show`, for inspecting tunnels             |
-| `xwayland-satellite`| X11 applications under niri                   |
 
 (In the pre-collapse tree the "mounting the games partition" comment sat
 on the `nixd` line rather than `ntfs3g`; it describes `ntfs3g`.)
@@ -158,10 +157,33 @@ day; otherwise the cached dump is fast-loaded.
 
 ### desktop
 
-**The whole `niri` directory is symlinked, not just `config.kdl`.** The
-config pulls in `include "/home/lux/.config/niri/noctalia.kdl"`, so the
-second file has to sit beside it. This used to rest on a hand-made
-symlink created outside home-manager.
+**The whole `umbriel` directory is symlinked, not just `config.toml`.**
+The config includes `noctalia.toml`, written by noctalia's umbriel
+template, so the second file has to sit beside it. Edits hot-reload.
+
+**umbriel workspaces are named "1" "2" "3"**, pinned to DP-2. The names
+are what noctalia's bar shows and what foot's tmux sessions are called;
+letters (carried over from niri) showed up as `c b a 4`.
+
+**`blur_optimized = true`** on the noctalia layer rule. Unoptimized blur
+re-blurs everything under the bar every frame: flipping workspaces for
+5 s cost the compositor ~3.5 s CPU vs ~2.0 s optimized (1.65 s with no
+blur at all), and animations stuttered.
+
+**Theme bases, not colors.** noctalia's templates write the colors
+(`gtk-3.0`/`gtk-4.0` `noctalia.css`, `qt*ct/colors/noctalia.conf`,
+`kdeglobals`); home.nix only picks what they sit on: adw-gtk3-dark,
+Papirus-Dark, the Bibata-Modern-Classic cursor and qt*ct with Fusion.
+`gtk.gtk4.theme = null` because a gtk4 theme makes home-manager own
+`gtk-4.0/gtk.css`, which is noctalia's file. The cursor is also set in
+umbriel's `[input.cursor]` and the greeter, which don't read
+`XCURSOR_THEME`.
+
+**`xdg.mimeApps` lists every common type explicitly.** Left to
+`mimeinfo.cache`, folders and zips opened in zathura's comic reader,
+images and PDFs in chromium and torrents in mpv. `mimeapps.list` used to
+be hand-edited, so it is `force`d; "set as default" in an app no longer
+sticks, add the type in home.nix instead.
 
 **foot's `include` points at noctalia's matugen output.** It re-opens
 `[colors-dark]` and overrides `foreground`/`background`/`regular*`/
@@ -173,11 +195,25 @@ and are left untouched.
 writes live colors to the same path; once it has, the activation leaves
 the file alone, so rebuilds never clobber the live theme.
 
-**foot's `shell` is `tmux new -As main`.** Every terminal attaches to one
-named session instead of spawning a new numbered one; with continuum
+**tmux colors come from noctalia's community `tmux` template**, not a
+theme plugin (tokyo-night-tmux hardcoded its palette). The template
+writes `~/.config/tmux/themes/noctalia.conf`, which `tmux.conf` sources
+on its last line. That line must stay last and verbatim: the template's
+`apply.sh` rewrites `tmux.conf` otherwise, and it is a read-only store
+file. `status-left`/`status-right` are set in continuum's plugin block
+because continuum appends its autosave hook to `status-right` on load.
+
+**foot's `shell` attaches to one tmux session per umbriel workspace**,
+named after the focused workspace (`main` outside umbriel), instead of
+spawning a new numbered one; with continuum
 restoring sessions at server start, numbered sessions used to pile up
 into the dozens. Per-project sessions come from the sessionizer on
 `prefix f` (fzf over `~/Documents/projects`), named after the directory.
+
+**lazygit opens from two places**: `prefix g` in tmux (a popup in the
+pane's directory, for when no editor is open) and `<leader>gg` in nvim.
+`os.editPreset = "nvim-remote"` makes `e` inside the nvim float open the
+file in that nvim rather than a nested one.
 
 **`selection-clipboard = "clipboard"`** in zathura: it copies selections
 to PRIMARY by default, so Ctrl+C/Ctrl+V don't see them and only

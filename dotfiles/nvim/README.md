@@ -127,6 +127,7 @@ Go, Nix и Lua форматируются при сохранении (goimports
 | `<leader>hs` / `<leader>hr` | stage / reset куска |
 | `<leader>hb` | blame строки |
 | `<leader>tb` | blame вкл/выкл |
+| `<leader>gg` | lazygit во всплывающем окне (`q` закрыть) |
 
 ### Буфер обмена
 
