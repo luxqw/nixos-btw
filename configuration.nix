@@ -50,8 +50,6 @@
       USAGE
       }
 
-      # Guards the verbs that take a name, so a typo turns into a message
-      # rather than systemd complaining about a unit that never existed.
       require_tunnel() {
         [ -n "''${1-}" ] || { echo "usage: tunnel $2 <name>" >&2; exit 1; }
         [ -e "$dir/wg/$1.age" ] || { echo "no such tunnel: $1" >&2; exit 1; }
@@ -122,8 +120,6 @@ in {
     ./hardware-configuration.nix
   ];
 
-  # ─────────────────────────────── boot ───────────────────────────────
-
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
   boot.kernelPackages = pkgs.linuxPackages_latest;
@@ -150,8 +146,6 @@ in {
     options nvidia_modeset vblank_sem_control=0
   '';
 
-  # ───────────────────────────── hardware ─────────────────────────────
-
   security.rtkit.enable = true;
   services.pipewire = {
     enable = true;
@@ -177,8 +171,6 @@ in {
   zramSwap.enable = true;
 
   services.logind.settings.Login.HandlePowerKey = "ignore";
-
-  # ───────────────────────────── graphics ─────────────────────────────
 
   services.xserver.videoDrivers = ["amdgpu" "nvidia"];
 
@@ -215,8 +207,6 @@ in {
     __GL_SHADER_DISK_CACHE_SKIP_CLEANUP = "1";
   };
 
-  # ─────────────────────────── specialisation ─────────────────────────
-
   specialisation = {
     on-the-go.configuration = {
       system.nixos.tags = ["on-the-go"];
@@ -233,15 +223,11 @@ in {
     };
   };
 
-  # ──────────────────────────── filesystems ───────────────────────────
-
   fileSystems."/run/media/gamedisk" = {
     device = "/dev/disk/by-label/Games";
     fsType = "ntfs";
     options = ["nofail" "x-gvfs-show" "uid=1000" "gid=1000" "umask=000" "exec"];
   };
-
-  # ────────────────────────────── network ─────────────────────────────
 
   networking.hostName = "nixos";
   networking.networkmanager.enable = true;
@@ -279,17 +265,12 @@ in {
     });
   '';
 
-  # ────────────────────────────── secrets ─────────────────────────────
-
   age.identityPaths = ["/home/lux/.ssh/id_ed25519"];
 
   age.secrets = lib.genAttrs tunnelNames (name: {
     file = tunnelSecretsDir + "/${name}.age";
   });
 
-  # ────────────────────────────── desktop ─────────────────────────────
-
-  # Config in dotfiles/umbriel.
   programs.umbriel.enable = true;
 
   services.displayManager.noctalia-greeter = {
@@ -322,8 +303,6 @@ in {
     emoji = ["Noto Color Emoji"];
   };
 
-  # ──────────────────────────────── apps ──────────────────────────────
-
   virtualisation.docker.enable = true;
 
   services.jellyfin = {
@@ -337,9 +316,6 @@ in {
 
   programs.steam = {
     enable = true;
-    # Steam with Millennium (needed by noctalia's steam template). Its
-    # profile relinks ubuntu12_*/libXtst.so.6 on every launch, so the
-    # loader always points at a store path rooted by this generation.
     package = inputs.millennium.packages.${system}.millennium-steam;
     remotePlay.openFirewall = true;
     dedicatedServer.openFirewall = true;
@@ -351,7 +327,7 @@ in {
   };
 
   environment.systemPackages = [
-    pkgs.bibata-cursors # noctalia-greeter runs as its own user
+    pkgs.bibata-cursors
     pkgs.nix-output-monitor
     pkgs.nixd
 
@@ -367,8 +343,6 @@ in {
     pkgs.neovim-unwrapped
     pkgs.claude-code
   ];
-
-  # ────────────────────────────── system ──────────────────────────────
 
   time.timeZone = "Europe/Belgrade";
   i18n.defaultLocale = "en_US.UTF-8";

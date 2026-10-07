@@ -1,10 +1,5 @@
 AGENTS.md
 .claude/
 result
-
-# Secrets are committed encrypted only. Decrypted tunnel configs must not
-# reach the history even by accident.
 secrets/**/*.conf
-
-# Treesitter parsers come from nixpkgs now, not from the repository.
 dotfiles/nvim/parser/

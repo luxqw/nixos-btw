@@ -124,8 +124,6 @@
     style=Fusion
   '';
 in {
-  # ─────────────────────────────── base ───────────────────────────────
-
   home.username = "lux";
   home.homeDirectory = "/home/lux";
 
@@ -137,8 +135,6 @@ in {
   };
 
   programs.home-manager.enable = true;
-
-  # ─────────────────────────────── shell ──────────────────────────────
 
   programs.zsh = {
     enable = true;
@@ -169,11 +165,6 @@ in {
 
     completionInit = ''
       autoload -Uz compinit
-      # NixOS fpath spans multiple profile generations (thousands of
-      # completion files); compinit's full security audit (compaudit)
-      # rescanning all of them on every start is most of zsh's startup
-      # time. Only pay for the full audit once a day, otherwise fast-load
-      # the cached dump.
       zcompdump="''${XDG_CACHE_HOME:-$HOME/.cache}/zsh/zcompdump"
       mkdir -p "''${zcompdump:h}"
       if [[ -f "$zcompdump" && -n "$zcompdump"(#qN.mh+24) ]]; then
@@ -200,21 +191,14 @@ in {
     };
 
     initContent = lib.mkOrder 950 ''
-      # NOTE: no extended_glob here -- it turns '#' into a glob repetition
-      # operator, which breaks flake refs like /etc/nixos#nixos unless
-      # every '#' is quoted.
       setopt no_case_glob
       setopt complete_in_word
       setopt auto_pushd
       setopt pushd_ignore_dups
       unsetopt beep
 
-      # Ctrl+S/Ctrl+Q default to XOFF/XON flow control, which freezes the
-      # terminal on a stray Ctrl+S until Ctrl+Q is pressed. Disable it.
       stty -ixon
 
-      # The emacs keymap only has Alt+B/F for word motion; bind the
-      # Ctrl+Left/Right sequences foot (and tmux) send as well.
       bindkey '^[[1;5D' backward-word
       bindkey '^[[1;5C' forward-word
     '';
@@ -300,9 +284,6 @@ in {
       }
       {
         plugin = continuum;
-        # status-right has to be set before continuum loads: it appends its
-        # autosave hook to whatever status-right is at that point. Colors are
-        # @noctalia_* options from the theme sourced at the end of extraConfig.
         extraConfig = ''
           set -g status-left-length 40
           set -g status-left "#[bg=#{@noctalia_primary},fg=#{@noctalia_on_primary},bold] #S #[default] "
@@ -317,24 +298,12 @@ in {
     ];
 
     extraConfig = ''
-      # Neovim auto-negotiates the Kitty keyboard protocol with foot; without
-      # this, tmux doesn't reliably translate that back into its own key
-      # names, so root-table Alt binds (M-c etc.) stop matching once nvim has
-      # touched the pane and the raw sequence falls through to the shell/nvim.
       set -g extended-keys always
 
-      # mouse=true + keyMode vi means any scroll over a pane silently drops
-      # you into copy-mode-vi, which rebinds the whole keytable (Ctrl+C,
-      # M-c, etc. stop meaning what you expect) until you press q/Escape.
-      # Flash a message on entry/exit so it's never a silent surprise.
       set-hook -g pane-mode-changed 'if -F "#{pane_in_mode}" "display-message \"-- COPY MODE (q/Escape to exit) --\"" "display-message \"-- copy mode exited --\""'
 
       unbind-key -a -T root
 
-      # unbind-key -a -T root above wipes tmux's built-in mouse bindings too
-      # (root table only -- copy-mode-vi's own MouseDrag1Pane/MouseDragEnd1Pane
-      # selection binds are untouched). Re-add just the entry points so
-      # click-drag still starts a selection.
       bind -n MouseDown1Pane select-pane -t = \; send-keys -M
       bind -n MouseDrag1Pane select-pane -t = \; copy-mode -M
       bind -n MouseDrag1Border resize-pane -M
@@ -359,8 +328,6 @@ in {
       bind -n M-8 select-window -t 8
       bind -n M-9 select-window -t 9
 
-      # With extended-keys on, foot reports Alt+Shift+< as CSI 27;4;60~ (the
-      # shifted symbol, Shift still set), which tmux names M-S-<, not M-<.
       bind -n 'M-S-<' swap-window -d -t -1
       bind -n 'M-S->' swap-window -d -t +1
       bind -n 'M-S-{' swap-pane -U
@@ -390,13 +357,9 @@ in {
       bind -n M-/ copy-mode \; command-prompt -p "(search down)" "send -X search-forward '%%%'"
       bind -n M-? copy-mode \; command-prompt -p "(search up)"   "send -X search-backward '%%%'"
 
-      # Must stay the last line, verbatim: noctalia's tmux template apply.sh
-      # rewrites tmux.conf unless this exact line is already at the end.
       source-file -q "$HOME/.config/tmux/themes/noctalia.conf"
     '';
   };
-
-  # ────────────────────────────── desktop ─────────────────────────────
 
   xdg.configFile."umbriel" = {
     source = config.lib.file.mkOutOfStoreSymlink "/etc/nixos/dotfiles/umbriel";
@@ -409,10 +372,6 @@ in {
       main = {
         font = "Iosevka NF:size=15";
         pad = "4x4";
-        # One tmux session per umbriel workspace: named workspaces use their
-        # name, unnamed ones ws<idx>; outside umbriel fall back to "main".
-        # `.ok?` not `.ok`: the reply is a bare array, and `.ok` on an array
-        # is an error that `//` doesn't catch, which emptied $ws.
         shell = "${pkgs.writeShellScript "foot-tmux" ''
           ws=$(umbriel workspaces --json 2>/dev/null \
             | ${pkgs.jq}/bin/jq -r '(.ok? // .)[] | select(.focused) | if .named then .name else "ws\(.index)" end')
@@ -606,10 +565,6 @@ in {
     ];
   };
 
-  # ─────────────────────────────── theme ──────────────────────────────
-
-  # Colors come from noctalia templates (gtk3/gtk4 noctalia.css, qt*ct
-  # colors, kdeglobals); this only picks the base themes they sit on.
   home.pointerCursor = {
     enable = true;
     package = pkgs.bibata-cursors;
@@ -626,8 +581,6 @@ in {
       package = pkgs.adw-gtk3;
       name = "adw-gtk3-dark";
     };
-    # Leave gtk-4.0/gtk.css to noctalia: a gtk4 theme makes home-manager
-    # write that file as an import of the theme, replacing noctalia's.
     gtk4.theme = null;
     iconTheme = {
       package = pkgs.papirus-icon-theme;
@@ -648,16 +601,9 @@ in {
     platformTheme.name = "qtct";
   };
 
-  # Only the pointer to noctalia's palette; the palette file itself is
-  # rewritten by noctalia's qt template on every wallpaper change.
   xdg.configFile."qt5ct/qt5ct.conf".text = qtctConf "qt5ct";
   xdg.configFile."qt6ct/qt6ct.conf".text = qtctConf "qt6ct";
 
-  # ─────────────────────────────── files ──────────────────────────────
-
-  # Every common type gets an explicit default: left to mimeinfo.cache,
-  # folders and zips opened in zathura's comic reader and images and PDFs
-  # in chromium.
   xdg.mimeApps = let
     zed = "dev.zed.Zed.desktop";
     imv = "imv-dir.desktop";
@@ -793,11 +739,7 @@ in {
         "application/x-pksz" = "CiscoPacketTracer-9.0.1.desktop";
       };
   };
-  # Was a hand-edited file; apps that "set themselves as default" now
-  # get a read-only list, so changes go here.
   xdg.configFile."mimeapps.list".force = true;
-
-  # ────────────────────────────── editor ──────────────────────────────
 
   xdg.configFile."nvim" = {
     source = config.lib.file.mkOutOfStoreSymlink "/etc/nixos/dotfiles/nvim";
@@ -806,8 +748,6 @@ in {
 
   xdg.dataFile."nvim/site/parser".source = "${nvimGrammars}/parser";
   xdg.dataFile."nvim/site/pack/nix/start/nvim-treesitter".source = pkgs.vimPlugins.nvim-treesitter;
-
-  # ──────────────────────────────── git ───────────────────────────────
 
   programs.git = {
     enable = true;
@@ -823,13 +763,9 @@ in {
     enable = true;
     settings = {
       gui.nerdFontsVersion = "3";
-      # Inside nvim's :LazyGit, `e` opens the file in that same nvim
-      # (via $NVIM) instead of nesting a second editor in the float.
       os.editPreset = "nvim-remote";
     };
   };
-
-  # ───────────────────────────── packages ─────────────────────────────
 
   home.packages = lib.mkBefore (with pkgs; let
     system = pkgs.stdenv.hostPlatform.system;
@@ -843,8 +779,8 @@ in {
       obsidian-plugins
       onlyoffice-desktopeditors
       keepassxc
-      bitwarden-cli # noctalia bitwarden plugin (bw serve)
-      super-productivity # noctalia super-productivity plugin (REST API)
+      bitwarden-cli
+      super-productivity
       localsend
       qbittorrent
       mpv
@@ -898,8 +834,6 @@ in {
       gopls
       goimports
       nodejs_22
-      # numpy/onnxruntime/pillow: noctalia wallpaper_depth can't use its
-      # venv on NixOS, so it runs on this interpreter instead.
       (python3.withPackages (ps: with ps; [numpy onnxruntime pillow]))
       gcc
       gh

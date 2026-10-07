@@ -1,132 +1,99 @@
 # Rationale
 
-Why the settings are what they are. The configuration itself carries no
-comments; the reasons live here, in sections named after the sections of
-`configuration.nix` and `home.nix`.
-
-None of this describes what the code does — read the code for that. It
-records what you cannot recover by reading it: the bug being worked
-around, the option that looks redundant but is not, the thing that was
-tried and failed.
+The nix code carries no comments. What can't be recovered by reading it —
+the bug being worked around, the option that looks redundant but isn't, the
+thing that was tried and failed — lives here, grouped by topic.
 
 ---
+
+## flake.nix
+
+**`millennium` has no `nixpkgs.follows`.** Its Bun FOD hash is pinned to its
+own nixpkgs; following ours breaks the hash.
 
 ## configuration.nix
 
 ### boot
 
-**`options nvidia_modeset vblank_sem_control=0`** works around a
-nvidia bug first seen under niri: flicker and a black screen on resume.
+**`options nvidia_modeset vblank_sem_control=0`** works around flicker and a
+black screen on resume, first seen under niri.
 <https://github.com/niri-wm/niri/issues/3384>
 
-**`nvidia`, `nvidia_modeset` and `nvidia_drm` in `boot.kernelModules`**
-are declared by hand. nixpkgs' `nvidia.nix` only force-loads them early
-via `systemd-modules-load` when `services.xserver.enable` is on. Xorg
-doesn't run here — umbriel is Wayland-only — so without these three, early
-KMS races with greetd/compositor startup at boot.
+**`nvidia`, `nvidia_modeset`, `nvidia_drm` in `boot.kernelModules`.**
+nixpkgs only force-loads them early when `services.xserver.enable` is on.
+There is no Xorg here, so without them early KMS races greetd and the
+compositor at boot.
 
-**The blank line inside `boot.extraModprobeConfig`** is load-bearing for
-byte-identical output only; see [Merge order](#merge-order).
+**The blank line inside `boot.extraModprobeConfig`** — see
+[Merge order](#merge-order).
 
 ### hardware
 
-**`services.logind.settings.Login.HandlePowerKey = "ignore"`** — logind's
-own handling suspends directly, bypassing noctalia and its
-`lockOnSuspend = true` entirely. noctalia handles the power key with its
-lock-and-suspend instead, so logind is told to stay out of it.
+**`HandlePowerKey = "ignore"`.** logind suspends directly and bypasses
+noctalia's `lockOnSuspend`. noctalia handles the power key itself.
 
-**The `lenovoctl` group and the tmpfiles rule** let that group toggle
-Lenovo IdeaPad/Legion ACPI features (currently battery
-`conservation_mode`) without root, for the `lux/lenovo-legion` noctalia
-plugin.
-
-The tmpfiles `z` rule is not a stylistic choice. udev's `GROUP=`/`MODE=`
-rule keys apply only to the `/dev` device node, not to arbitrary sysfs
-`ATTR` files (see `udev(7)`) — a `services.udev.extraRules` rule matching
-`ATTR{conservation_mode}` is a **silent no-op** here. The tmpfiles rule
-runs after udev has settled at boot, and its glob covers the ACPI
-instance name (e.g. `VPC2004:00`) without hardcoding it.
+**The `lenovoctl` group and the tmpfiles rule** let the `lux/lenovo-legion`
+noctalia plugin toggle `conservation_mode` without root. It has to be
+tmpfiles: udev's `GROUP=`/`MODE=` apply only to `/dev` nodes, so a udev rule
+on `ATTR{conservation_mode}` is a silent no-op (`udev(7)`). The glob covers
+the ACPI instance name (`VPC2004:00`) without hardcoding it.
 
 ### graphics
 
-**`NIXOS_OZONE_WL = "1"`** looks redundant next to
-`ELECTRON_OZONE_PLATFORM_HINT`, and is not.
-`ELECTRON_OZONE_PLATFORM_HINT` only reaches Electron apps; the nixpkgs
-chromium wrapper gates `--ozone-platform-hint` on `NIXOS_OZONE_WL`
-instead. Without it chromium runs under XWayland, where the portal
-screencast path is unreachable and screen sharing never starts.
+**`NIXOS_OZONE_WL = "1"` next to `ELECTRON_OZONE_PLATFORM_HINT`** is not
+redundant. The hint only reaches Electron; the chromium wrapper gates
+`--ozone-platform-hint` on `NIXOS_OZONE_WL`. Without it chromium runs under
+XWayland and screen sharing never starts.
 
 ### network
 
 **v2raya and throne** solve the same problem and both want the default
-route. Enabling throne's tun mode will fight v2raya. Only v2raya is
-actually in use right now.
+route; throne's tun mode fights v2raya.
 
-**The tunnel list is written down nowhere.** It is derived from the
-contents of `secrets/wg/`, where a filename serves as both the interface
-name and the unit name. Adding a tunnel means dropping a new `.age` in
-there and rebuilding. See ADR 0001.
+**The tunnel list is written down nowhere.** It is derived from
+`secrets/wg/`; a filename is both the interface and the unit name. See
+ADR 0001.
 
-**The polkit rule** exists because tunnels start at boot but stopping and
-starting them by hand should need no password. The grant is deliberately
-narrow: only those units, only `start`/`stop`/`restart`, only for `lux`.
+**The polkit rule** lets `lux` start/stop/restart exactly the tunnel units
+without a password, and nothing else.
 
 ### secrets
 
-**Secrets are decrypted with the user's ssh key, not a host key.**
-`services.openssh` is disabled and the machine has no host keys at all.
+**Secrets are decrypted with the user's ssh key, not a host key.** There is
+no openssh and no host key. That key is part of the system: reissue it for
+GitHub and the tunnels silently stop coming up. See ADR 0001.
 
-The consequence is easy to trip over: that key is part of the system, not
-personal. Reissue it for GitHub and the tunnels silently stop coming up.
-See ADR 0001.
-
-**The `tunnel` command** wraps agenix/age because the bare commands
-require holding three unrelated facts at once: run from
-`/etc/nixos/secrets`, spell the name `wg/<name>.age`, and reach for `age`
-rather than `agenix` when the secret does not exist yet. All three are
-baked into the wrapper.
-
-**`pkgs.age` is installed alongside agenix** because `agenix -e` only
-edits secrets that already exist; creating a new one needs `age` itself.
-
-### desktop
-
-**noctalia's shell and its greeter** were previously split across two
-modules despite being one program.
+**The `tunnel` command** exists because the bare commands need three
+unrelated facts at once: run from `/etc/nixos/secrets`, spell the name
+`wg/<name>.age`, use `age` rather than `agenix` for a secret that doesn't
+exist yet. `pkgs.age` is installed for that last one.
 
 ### apps
 
-**Wireshark needs `programs.wireshark`, not a line in the package list.**
-Capturing as a non-root user takes a `dumpcap` wrapper holding
-`cap_net_raw` and `cap_net_admin`, executable only by the `wireshark`
-group. Both the wrapper and the group come from the module; the `system`
-section puts `lux` in that group.
+**Steam comes from Millennium's flake** (noctalia's steam template needs
+it). Its profile relinks `ubuntu12_*/libXtst.so.6` on every launch, so the
+loader never points at a garbage-collected store path.
 
-The default package is `wireshark-cli`, which ships no GUI at all. The
-full package is named plainly `wireshark` and carries the Qt interface
-alongside the same `tshark` and `dumpcap`.
+**Wireshark goes through `programs.wireshark`.** Non-root capture needs the
+`dumpcap` wrapper with `cap_net_raw`/`cap_net_admin` and the `wireshark`
+group, both from the module. The default package is `wireshark-cli`, which
+has no GUI.
 
-**jellyfin runs as `lux`**, not its own `jellyfin` user, so it can read
-the media in the home directory (downloads) without loosening permissions
-on it.
+**jellyfin runs as `lux`** so it can read media in the home directory
+without loosening its permissions.
 
-**`neovim-unwrapped` in the system packages** is a deliberate exception
-to "only system things in the system": root needs an editor to fix
-configs by hand when home-manager is unavailable. The user's neovim and
-its config live in `home.nix`.
+**`neovim-unwrapped` is in the system packages** so root has an editor when
+home-manager is unavailable.
 
-**What belongs in `environment.systemPackages`** is only what services,
-hardware or login cannot work without. Everything user-facing lives in
-`home.nix`. The current entries are there for:
+**`environment.systemPackages` holds only what services, hardware or login
+need.** Everything user-facing is in `home.nix`.
 
-| package             | why                                          |
-| ------------------- | -------------------------------------------- |
-| `ntfs3g`            | mounting the games partition                  |
-| `polkit_gnome`      | authorisation agent for the graphical session |
-| `wireguard-tools`   | `wg show`, for inspecting tunnels             |
-
-(In the pre-collapse tree the "mounting the games partition" comment sat
-on the `nixd` line rather than `ntfs3g`; it describes `ntfs3g`.)
+| package           | why                                           |
+| ----------------- | --------------------------------------------- |
+| `bibata-cursors`  | noctalia-greeter runs as its own user         |
+| `ntfs3g`          | mounting the games partition                  |
+| `polkit_gnome`    | authorisation agent for the graphical session |
+| `wireguard-tools` | `wg show`                                     |
 
 ---
 
@@ -134,171 +101,140 @@ on the `nixd` line rather than `ntfs3g`; it describes `ntfs3g`.)
 
 ### shell
 
-**`defaultKeymap = "emacs"`** is pinned because zsh picks vi keybindings
-on its own whenever `$EDITOR` or `$VISUAL` contains the substring `vi` —
-`nvim` does, so the prompt silently came up in vi mode. Pinning the
-keymap beats renaming the editor.
+**`defaultKeymap = "emacs"`.** zsh switches to vi bindings whenever
+`$EDITOR`/`$VISUAL` contains `vi`, and `nvim` does.
 
-**`historyWidget.command = ""`** in fzf gives up Ctrl-R: it is owned by
-Atuin. fzf keeps Ctrl-T and Alt-C.
+**No `extended_glob`.** It makes `#` a glob operator and breaks unquoted
+flake refs like `/etc/nixos#nixos`.
 
-**zoxide is installed without shell integration** — no `z`/`zi` commands.
-It exists for yazi's `Z` keybind, to jump to frecent directories while
-browsing. Atuin's Ctrl-R covers shell history instead.
+**`stty -ixon`** disables XON/XOFF, so a stray Ctrl+S doesn't freeze the
+terminal. **The Ctrl+Left/Right `bindkey`s** exist because the emacs keymap
+only binds Alt+B/F, and foot and tmux send the CSI sequences.
 
-**`completionInit` caches the compinit dump.** NixOS' fpath spans
-multiple profile generations (thousands of completion files), and
-compinit's full security audit (`compaudit`) rescanning all of them on
-every start is most of zsh's startup time. The full audit runs once a
-day; otherwise the cached dump is fast-loaded.
+**`historyWidget.command = ""`** gives fzf's Ctrl-R to Atuin.
 
-**`initContent` carries `lib.mkOrder 950`** — see
-[Merge order](#merge-order).
+**zoxide has no shell integration.** It is only there for yazi's `Z`.
+
+**`completionInit` caches the compinit dump.** fpath spans several profile
+generations, and `compaudit` over all of them is most of zsh's startup. The
+full audit runs once a day.
+
+**`initContent` carries `lib.mkOrder 950`** — see [Merge order](#merge-order).
+
+### tmux
+
+**Colors come from noctalia's `tmux` template**, which writes
+`themes/noctalia.conf`. The `source-file` line must stay last and verbatim,
+or the template's `apply.sh` tries to rewrite the read-only `tmux.conf`.
+`status-left`/`status-right` sit in continuum's block because continuum
+appends its autosave hook to `status-right` when it loads.
+
+**`extended-keys always`.** nvim negotiates the kitty keyboard protocol with
+foot; without this, root-table Alt binds stop matching once nvim has touched
+the pane.
+
+**The `pane-mode-changed` hook** flashes a message on entering copy mode:
+with `mouse` on and vi keys, any scroll drops into copy-mode-vi, which
+rebinds the whole keytable.
+
+**`unbind-key -a -T root` wipes the default mouse binds too**, so the three
+`Mouse*` entry points are re-added. copy-mode-vi's own drag binds are
+untouched.
+
+**`M-S-<` rather than `M-<`.** With extended keys foot reports Alt+Shift+<
+as CSI 27;4;60~, which tmux names `M-S-<`.
 
 ### desktop
 
-**The whole `umbriel` directory is symlinked, not just `config.toml`.**
-The config includes `noctalia.toml`, written by noctalia's umbriel
-template, so the second file has to sit beside it. Edits hot-reload.
+**The whole `umbriel` directory is symlinked**, because `config.toml`
+includes `noctalia.toml`, written by noctalia's template. Edits hot-reload.
 
-**umbriel workspaces are named "1" "2" "3"**, pinned to DP-2. The names
-are what noctalia's bar shows and what foot's tmux sessions are called;
-letters (carried over from niri) showed up as `c b a 4`.
+**Workspaces are named "1" "2" "3"**, pinned to DP-2. The names are what the
+bar shows and what foot's tmux sessions are called.
 
 **`blur_optimized = true`** on the noctalia layer rule. Unoptimized blur
-re-blurs everything under the bar every frame: flipping workspaces for
-5 s cost the compositor ~3.5 s CPU vs ~2.0 s optimized (1.65 s with no
-blur at all), and animations stuttered.
+re-blurs everything under the bar each frame: 5 s of workspace flipping cost
+~3.5 s CPU against ~2.0 s, and animations stuttered.
 
-**Theme bases, not colors.** noctalia's templates write the colors
-(`gtk-3.0`/`gtk-4.0` `noctalia.css`, `qt*ct/colors/noctalia.conf`,
-`kdeglobals`); home.nix only picks what they sit on: adw-gtk3-dark,
-Papirus-Dark, the Bibata-Modern-Classic cursor and qt*ct with Fusion.
-`gtk.gtk4.theme = null` because a gtk4 theme makes home-manager own
-`gtk-4.0/gtk.css`, which is noctalia's file. The cursor is also set in
-umbriel's `[input.cursor]` and the greeter, which don't read
-`XCURSOR_THEME`.
+**foot's `shell` attaches to one tmux session per umbriel workspace** (`main`
+outside umbriel) instead of piling up numbered sessions that continuum
+restores. The jq filter uses `.ok?`, not `.ok`: the reply is a bare array,
+and `.ok` on an array errors in a way `//` doesn't catch. Per-project
+sessions come from the sessionizer on `prefix f`.
 
-**`xdg.mimeApps` lists every common type explicitly.** Left to
-`mimeinfo.cache`, folders and zips opened in zathura's comic reader,
-images and PDFs in chromium and torrents in mpv. `mimeapps.list` used to
-be hand-edited, so it is `force`d; "set as default" in an app no longer
-sticks, add the type in home.nix instead.
+**foot's `include` points at noctalia's matugen output** and overrides only
+the palette keys. `home.activation.seedFootTheme` seeds a fallback so the
+include always resolves, and leaves the file alone once noctalia writes it.
 
-**foot's `include` points at noctalia's matugen output.** It re-opens
-`[colors-dark]` and overrides `foreground`/`background`/`regular*`/
-`bright*` only — `alpha` and `dim*` are not part of the matugen palette
-and are left untouched.
+**lazygit opens from `prefix g` and `<leader>gg`.** `os.editPreset =
+"nvim-remote"` makes `e` inside nvim's float open the file in that nvim.
 
-**`home.activation.seedFootTheme`** seeds a fallback theme so that
-`include` always resolves to a real file. noctalia's matugen template
-writes live colors to the same path; once it has, the activation leaves
-the file alone, so rebuilds never clobber the live theme.
+**`selection-clipboard = "clipboard"`** in zathura, so Ctrl+C copies.
 
-**tmux colors come from noctalia's community `tmux` template**, not a
-theme plugin (tokyo-night-tmux hardcoded its palette). The template
-writes `~/.config/tmux/themes/noctalia.conf`, which `tmux.conf` sources
-on its last line. That line must stay last and verbatim: the template's
-`apply.sh` rewrites `tmux.conf` otherwise, and it is a read-only store
-file. `status-left`/`status-right` are set in continuum's plugin block
-because continuum appends its autosave hook to `status-right` on load.
+### theme
 
-**foot's `shell` attaches to one tmux session per umbriel workspace**,
-named after the focused workspace (`main` outside umbriel), instead of
-spawning a new numbered one; with continuum
-restoring sessions at server start, numbered sessions used to pile up
-into the dozens. Per-project sessions come from the sessionizer on
-`prefix f` (fzf over `~/Documents/projects`), named after the directory.
+**Theme bases, not colors.** noctalia's templates write the colors; home.nix
+only picks adw-gtk3-dark, Papirus-Dark, Bibata and qt*ct with Fusion.
+`gtk4.theme = null` because a gtk4 theme makes home-manager own
+`gtk-4.0/gtk.css`, which is noctalia's. The `qt*ct.conf` files only point at
+the palette that noctalia rewrites on every wallpaper change. The cursor is
+also set in umbriel and the greeter, which don't read `XCURSOR_THEME`.
 
-**lazygit opens from two places**: `prefix g` in tmux (a popup in the
-pane's directory, for when no editor is open) and `<leader>gg` in nvim.
-`os.editPreset = "nvim-remote"` makes `e` inside the nvim float open the
-file in that nvim rather than a nested one.
+### files
 
-**`selection-clipboard = "clipboard"`** in zathura: it copies selections
-to PRIMARY by default, so Ctrl+C/Ctrl+V don't see them and only
-middle-click paste works.
+**`xdg.mimeApps` lists every common type.** Left to `mimeinfo.cache`,
+folders and zips opened in zathura, images and PDFs in chromium, torrents in
+mpv. `mimeapps.list` is `force`d, so "set as default" in an app doesn't
+stick — add the type here.
 
 ### editor
 
-**The neovim config stays a raw dotfile** — a symlink past the store — so
-lua can be edited without rebuilding the system.
+**The neovim config is a raw dotfile**, symlinked past the store.
 
-**Treesitter parsers come from nixpkgs.** They used to sit in the
-repository as eight `.so` files built by hand against one specific ABI.
-neovim finds them in `~/.local/share/nvim/site`, a path that is on the
-runtimepath by default and does not collide with the config symlink.
+**Treesitter parsers and nvim-treesitter both come from nixpkgs**, so
+queries and parsers stay on the same revision. `grammarPlugins`, not
+`withPlugins`, which yields no `.so`. `:TSInstall` can't work: `site/parser`
+is a store path. A new language is a line in `nvimGrammars`.
 
-**`grammarPlugins`, not `withPlugins`** — the latter yields a plugin with
-no compiled `.so` at all in the current nixpkgs.
+**LSP servers and formatters come from Nix, not Mason** — Mason's binaries
+expect an FHS layout.
 
-**nvim-treesitter itself comes from nixpkgs too**, into
-`site/pack/nix/start`, rather than through `vim.pack` like every other
-plugin. Its queries must match the parsers' revisions; a query written
-for a newer grammar errors on an older parser. Taking both from the same
-nixpkgs keeps them in lockstep. It also cannot install anything itself:
-`site/parser` is a read-only store path, so `:TSInstall` fails. A new
-language is a line in `nvimGrammars`.
-
-**LSP servers and formatters come from Nix, not Mason.** Mason downloads
-prebuilt binaries that are dynamically linked against an FHS layout NixOS
-does not have.
-
-**`goimports` is copied out of `gotools`**, not installed as `gotools`.
-`gotools` is 254 MiB of forty-odd binaries; only `goimports` is used (by
-conform, on save). The copy is the unwrapped binary: the wrapper exists
-only to put `go` on PATH, and `go` is already in `home.packages`.
+**`goimports` is copied out of `gotools`** (254 MiB, forty-odd binaries);
+`go` is already in `home.packages`.
 
 ### packages
 
-**`home.packages` carries `lib.mkBefore`** — see
-[Merge order](#merge-order).
+**`bitwarden-cli` and `super-productivity`** are there for the noctalia
+plugins of the same names (`bw serve`, the REST API).
 
-**`obsidian-plugins` is a command you run, not an activation step.** The
-two Obsidian community plugins (Self-hosted LiveSync, TaskNotes) are
-fetched declaratively with pinned hashes, but they are *copied* into
-`<vault>/.obsidian/plugins/` rather than symlinked from the store, and
-only when invoked. Three reasons, none reversible:
+**`python3` with numpy/onnxruntime/pillow** is for noctalia's
+`wallpaper_depth`, which can't use its own venv on NixOS.
 
-- A vault is user data at a path the configuration does not know, and
-  LiveSync replicates it to other devices. Nothing here may own it.
-- `.obsidian/` is written by Obsidian at runtime — `data.json`, the
-  enabled-plugin list, plugin self-updates — and by LiveSync when hidden
-  file sync is on. Read-only store symlinks make all of that fail.
-- Upstream's own flake downloads `releases/latest` inside a `shellHook`,
-  so the result depends on the day it ran. Pinning the three release
-  assets per plugin by hash is what makes a rebuild reproducible; the
-  cost is that a plugin upgrade is a hash bump here.
+**`obsidian-plugins` is a command, not an activation step.** The plugins are
+pinned by hash but *copied* into `<vault>/.obsidian/plugins/` on demand:
+the vault is user data at a path the config doesn't know, LiveSync
+replicates it, and Obsidian writes into `.obsidian/` at runtime, which
+store symlinks would break. Upstream's flake fetches `releases/latest`, so a
+plugin upgrade is a hash bump here.
+
+**`home.packages` carries `lib.mkBefore`** — see [Merge order](#merge-order).
 
 ---
 
 ## Merge order
 
-Three constructs exist purely to pin the order in which the nix module
-system merges contributions. They look removable and are not: deleting
-any of them changes the built system.
+Three constructs pin the order in which the module system merges
+contributions. They look removable; deleting any of them changes the built
+system.
 
-They date from the collapse of the old 50-file tree into two files. Back
-then each option was defined in several modules and merged; now each is
-defined once, and the merge order it used to get has to be stated
-explicitly.
+- **`home.packages = lib.mkBefore (...)`** — home-manager's program modules
+  append their packages at the default order; without it the user's
+  packages land after them and PATH precedence flips on collisions.
+- **`programs.zsh.initContent = lib.mkOrder 950`** — keeps these setopts
+  after the zsh module's own (900) and before the starship/atuin/yazi/fzf
+  integrations (910–1000).
+- **The blank line in `boot.extraModprobeConfig`** reproduces the newline
+  `types.lines` used to put between two contributions.
 
-- **`home.packages = lib.mkBefore (...)`** — home-manager's own program
-  modules each append their package at the default order. Without
-  `mkBefore` the user's packages land *after* them, changing PATH
-  precedence on any collision.
-
-- **`programs.zsh.initContent = lib.mkOrder 950 ...`** — home-manager's
-  zsh module emits its `setopt` block at order 900, and the
-  starship/atuin/yazi/fzf integrations sit at 910–1000. 950 keeps these
-  setopts after zsh's own and before the integrations, which is where
-  they were.
-
-- **The blank line in `boot.extraModprobeConfig`** — the v4l2loopback and
-  nvidia options used to come from two modules, and `types.lines` joins
-  contributions with a newline. The blank line reproduces that join.
-
-A fourth is unmarked and worth knowing: **the order of
-`environment.systemPackages` is not arbitrary.** It reproduces the old
-merge order, which ran *opposite* to the order the `imports` lists were
-written in.
+The order of `environment.systemPackages` is also deliberate: it reproduces
+the old merge order.
