@@ -9,7 +9,7 @@
 
   agenixPackage = inputs.agenix.packages.${system}.default;
 
-  tunnelSecretsDir = ./secrets/wg;
+  tunnelSecretsDir = ../../secrets/wg;
 
   tunnelNames =
     map (lib.removeSuffix ".age")
@@ -168,8 +168,6 @@ in {
   services.power-profiles-daemon.enable = true;
   services.upower.enable = true;
 
-  zramSwap.enable = true;
-
   services.logind.settings.Login.HandlePowerKey = "ignore";
 
   services.xserver.videoDrivers = ["amdgpu" "nvidia"];
@@ -229,7 +227,7 @@ in {
     options = ["nofail" "x-gvfs-show" "uid=1000" "gid=1000" "umask=000" "exec"];
   };
 
-  networking.hostName = "nixos";
+  networking.hostName = "legion";
   networking.networkmanager.enable = true;
 
   services.zerotierone = {
@@ -344,35 +342,12 @@ in {
     pkgs.claude-code
   ];
 
-  time.timeZone = "Europe/Belgrade";
-  i18n.defaultLocale = "en_US.UTF-8";
+  programs.nh.flake = "/etc/nixos";
 
-  programs.nh = {
-    enable = true;
-    flake = "/etc/nixos";
-    clean = {
-      enable = true;
-      extraArgs = "--keep 5 --keep-since 7d";
-    };
-  };
-
-  nix.settings = {
-    auto-optimise-store = true;
-    experimental-features = ["nix-command" "flakes"];
-    download-buffer-size = 268435456;
-    trusted-users = ["root" "lux"];
-  };
-
-  nixpkgs.config.allowUnfree = true;
   nixpkgs.overlays = [inputs.claude-code.overlays.default];
 
-  programs.zsh.enable = true;
-
   users.users.lux = {
-    isNormalUser = true;
-    description = "Lux";
     extraGroups = ["networkmanager" "wheel" "docker" "input" "lenovoctl" "wireshark"];
-    shell = pkgs.zsh;
     linger = true;
   };
 

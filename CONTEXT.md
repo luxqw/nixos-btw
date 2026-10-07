@@ -1,6 +1,6 @@
 # nixos-btw
 
-Configuration for a single machine — a Lenovo Legion laptop running NixOS. The repository covers the system, the user environment, and the raw program configs that nix deliberately does not manage.
+Configuration for the NixOS machines at home — a Lenovo Legion laptop and a home server. The repository covers their systems, the user environment, and the raw program configs that nix deliberately does not manage.
 
 The nix code carries no comments; the reasons behind individual settings live in `docs/rationale.md`.
 
@@ -9,7 +9,7 @@ The nix code carries no comments; the reasons behind individual settings live in
 ### Configuration structure
 
 **Host**:
-A physical machine a system is built for. There is currently one, `nixos`.
+A physical machine a system is built for, with its own directory under `hosts/`. There are two: `legion`, the laptop, and `homelab`, the home server.
 _Avoid_: machine, target
 
 **Specialisation**:
@@ -17,11 +17,15 @@ An alternative boot entry for the same host with a different set of options. Cho
 _Avoid_: profile, mode, preset
 
 **System configuration**:
-The OS-level half — whatever exists before a user logs in and does not belong to any user. It is one file, `configuration.nix`; the sections inside it are navigation, not boundaries.
+The OS-level half — whatever exists before a user logs in and does not belong to any user. One file per host, `hosts/<host>/configuration.nix`, on top of the common module.
 _Avoid_: system module, config, nix file
 
+**Common module**:
+`modules/common.nix` — the part of the system configuration every host shares: nix settings, locale, the `lux` user.
+_Avoid_: base, shared config
+
 **Home configuration**:
-The user half, expressed through home-manager. Everything a person uses rather than the system. It is one file, `home.nix`. It stays separate from the system half because the two share option names that mean different things — `programs.zsh` exists in both.
+The user half, expressed through home-manager. Everything a person uses rather than the system. Only `legion` has one, `hosts/legion/home.nix`. It stays separate from the system half because the two share option names that mean different things — `programs.zsh` exists in both.
 _Avoid_: home module, user module, hm config
 
 **Dotfile**:

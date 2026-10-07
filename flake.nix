@@ -41,21 +41,27 @@
     agenix,
     home-manager,
     ...
-  }: {
-    nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
-      specialArgs = {inherit inputs;};
-      modules = [
-        ./configuration.nix
-
-        agenix.nixosModules.default
-        home-manager.nixosModules.home-manager
-        {
-          home-manager.useGlobalPkgs = true;
-          home-manager.useUserPackages = true;
-          home-manager.extraSpecialArgs = {inherit inputs;};
-          home-manager.users.lux = import ./home.nix;
-        }
-      ];
-    };
+  }: let
+    host = name: modules:
+      nixpkgs.lib.nixosSystem {
+        specialArgs = {inherit inputs;};
+        modules =
+          [
+            ./hosts/${name}/configuration.nix
+            ./modules/common.nix
+            agenix.nixosModules.default
+          ]
+          ++ modules;
+      };
+  in {
+    nixosConfigurations.legion = host "legion" [
+      home-manager.nixosModules.home-manager
+      {
+        home-manager.useGlobalPkgs = true;
+        home-manager.useUserPackages = true;
+        home-manager.extraSpecialArgs = {inherit inputs;};
+        home-manager.users.lux = import ./hosts/legion/home.nix;
+      }
+    ];
   };
 }

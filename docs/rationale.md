@@ -11,7 +11,7 @@ thing that was tried and failed — lives here, grouped by topic.
 **`millennium` has no `nixpkgs.follows`.** Its Bun FOD hash is pinned to its
 own nixpkgs; following ours breaks the hash.
 
-## configuration.nix
+## hosts/legion/configuration.nix
 
 ### boot
 
@@ -86,7 +86,8 @@ without loosening its permissions.
 home-manager is unavailable.
 
 **`environment.systemPackages` holds only what services, hardware or login
-need.** Everything user-facing is in `home.nix`.
+need.** Everything user-facing is in `home.nix`; what every host shares is
+in `modules/common.nix`.
 
 | package           | why                                           |
 | ----------------- | --------------------------------------------- |
@@ -97,7 +98,7 @@ need.** Everything user-facing is in `home.nix`.
 
 ---
 
-## home.nix
+## hosts/legion/home.nix
 
 ### shell
 
@@ -105,7 +106,7 @@ need.** Everything user-facing is in `home.nix`.
 `$EDITOR`/`$VISUAL` contains `vi`, and `nvim` does.
 
 **No `extended_glob`.** It makes `#` a glob operator and breaks unquoted
-flake refs like `/etc/nixos#nixos`.
+flake refs like `/etc/nixos#legion`.
 
 **`stty -ixon`** disables XON/XOFF, so a stray Ctrl+S doesn't freeze the
 terminal. **The Ctrl+Left/Right `bindkey`s** exist because the emacs keymap
