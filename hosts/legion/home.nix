@@ -136,6 +136,12 @@ in {
 
   programs.home-manager.enable = true;
 
+  services.udiskie = {
+    enable = true;
+    automount = true;
+    tray = "never";
+  };
+
   programs.zsh = {
     enable = true;
     enableCompletion = true;

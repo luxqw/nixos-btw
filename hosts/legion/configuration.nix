@@ -163,6 +163,8 @@ in {
   ];
 
   services.printing.enable = true;
+  services.udisks2.enable = true;
+  services.gvfs.enable = true;
   services.libinput.enable = true;
 
   services.power-profiles-daemon.enable = true;
