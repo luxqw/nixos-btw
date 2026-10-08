@@ -55,6 +55,44 @@
     localAddress = "10.233.1.2";
   };
 
+  abcdeConf = pkgs.writeText "abcde.conf" (lib.concatLines [
+    "CDDBMETHOD=musicbrainz"
+    "OUTPUTTYPE=flac"
+    "OUTPUTDIR=${media}/music"
+    "WAVOUTPUTDIR=${media}/.disc"
+    "OUTPUTFORMAT='\${ARTISTFILE}/\${ALBUMFILE}/\${TRACKNUM} - \${TRACKFILE}'"
+    "VAOUTPUTFORMAT='Various/\${ALBUMFILE}/\${TRACKNUM} - \${ARTISTFILE} - \${TRACKFILE}'"
+    "PADTRACKS=y"
+    "INTERACTIVE=n"
+  ]);
+
+  disc = pkgs.writeShellApplication {
+    name = "disc";
+    runtimeInputs = with pkgs; [
+      abcde
+      cdrkit
+      coreutils
+      curl
+      dvdauthor
+      dvdbackup
+      ffmpeg
+      findutils
+      gnugrep
+      gnused
+      handbrake
+      systemd
+      util-linux
+      xorriso
+    ];
+    runtimeEnv = {
+      MEDIA = media;
+      BURN_ROOT = "${cloud}/projects/burn";
+      ABCDE_CONF = abcdeConf;
+      TELEGRAM_ENV = config.age.secrets.telegram.path;
+    };
+    text = builtins.readFile ./disc.sh;
+  };
+
   jackettIndexers = pkgs.writeShellApplication {
     name = "jackett-indexers";
     runtimeInputs = [pkgs.curl pkgs.jq];
@@ -123,6 +161,7 @@ in {
 
   services.udev.extraRules = ''
     ACTION=="add", SUBSYSTEM=="block", KERNEL=="sd[a-z]", ATTR{queue/rotational}=="1", RUN+="${pkgs.hdparm}/bin/hdparm -S 242 /dev/%k"
+    ACTION=="change", SUBSYSTEM=="block", KERNEL=="sr[0-9]", ENV{DISK_MEDIA_CHANGE}=="1", ENV{ID_CDROM_MEDIA}=="1", RUN+="${pkgs.systemd}/bin/systemctl --no-block start disc@%k.service"
   '';
 
   networking.hostName = "homelab";
@@ -415,7 +454,7 @@ in {
     ];
   };
 
-  systemd.tmpfiles.settings."10-media" = lib.genAttrs (map (dir: "${media}${dir}") ["" "/downloads" "/movies" "/shows" "/music"]) (_: {
+  systemd.tmpfiles.settings."10-media" = lib.genAttrs (map (dir: "${media}${dir}") ["" "/downloads" "/movies" "/shows" "/music" "/discs"]) (_: {
     d = {
       user = "lux";
       group = "media";
@@ -620,6 +659,19 @@ in {
       user = "root";
       group = "users";
       mode = "0750";
+    };
+  };
+
+  environment.systemPackages = [disc];
+
+  systemd.services."disc@" = {
+    description = "Rip or burn the disc in %I";
+    unitConfig.RequiresMountsFor = [media];
+    serviceConfig = {
+      Type = "exec";
+      ExecStart = "${lib.getExe disc} auto /dev/%I";
+      Nice = 10;
+      IOSchedulingClass = "idle";
     };
   };
 
