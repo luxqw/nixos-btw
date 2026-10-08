@@ -720,6 +720,16 @@ in {
           };
         };
       };
+      systemd.services.pumpkin.preStart = lib.mkAfter ''
+        install -Dm600 ${pkgs.writeText "ops.json" (builtins.toJSON [
+          {
+            name = "lux";
+            uuid = "9ff79cfc-7c53-3f13-a106-bc356cf2522a";
+            level = 4;
+            bypassesPlayerLimit = true;
+          }
+        ])} /var/lib/pumpkin/data/ops.json
+      '';
       system.stateVersion = "26.11";
     };
   };
