@@ -2,6 +2,7 @@
   config,
   lib,
   pkgs,
+  inputs,
   ...
 }: let
   domain = "rakhmatullin.dev";
@@ -41,6 +42,12 @@
   };
 
   media = "/srv/media";
+
+  pumpkin = {
+    port = 41565;
+    hostAddress = "10.233.1.1";
+    localAddress = "10.233.1.2";
+  };
 
   jackettIndexers = pkgs.writeShellApplication {
     name = "jackett-indexers";
@@ -226,6 +233,14 @@ in {
       filtering = {
         protection_enabled = true;
         filtering_enabled = true;
+        rewrites_enabled = true;
+        rewrites = [
+          {
+            domain = "wg.${domain}";
+            answer = "192.168.1.10";
+            enabled = true;
+          }
+        ];
       };
       filters = [
         {
@@ -297,6 +312,13 @@ in {
         (local "torrserver" "/echo")
         (local "syncthing" "/rest/noauth/health")
         (listening "jackett")
+        {
+          name = "pumpkin";
+          url = "tcp://${pumpkin.localAddress}:${toString pumpkin.port}";
+          interval = "1m";
+          conditions = ["[CONNECTED] == true"];
+          alerts = [{type = "telegram";}];
+        }
         {
           name = "dns";
           url = "127.0.0.1";
@@ -526,6 +548,55 @@ in {
     user = "syncthing";
     group = "syncthing";
     mode = "0750";
+  };
+
+  networking.nat = {
+    enable = true;
+    internalInterfaces = ["ve-pumpkin"];
+    externalInterface = lan;
+    forwardPorts = [
+      {
+        sourcePort = pumpkin.port;
+        destination = "${pumpkin.localAddress}:${toString pumpkin.port}";
+        proto = "tcp";
+      }
+    ];
+  };
+
+  containers.pumpkin = {
+    autoStart = true;
+    privateNetwork = true;
+    inherit (pumpkin) hostAddress localAddress;
+    config = {
+      networking.firewall.allowedTCPPorts = [pumpkin.port];
+      services.pumpkin = {
+        enable = true;
+        package = inputs.pumpkin.packages.${pkgs.stdenv.hostPlatform.system}.default.overrideAttrs (old: {
+          meta = old.meta // {mainProgram = "pumpkin";};
+        });
+        whitelist.entries = [
+          {
+            name = "lux";
+            uuid = "9ff79cfc-7c53-3f13-a106-bc356cf2522a";
+          }
+        ];
+        settings = {
+          white_list = true;
+          enforce_whitelist = true;
+          networking = {
+            query.enabled = false;
+            java = {
+              address = "0.0.0.0:${toString pumpkin.port}";
+              online_mode = false;
+              authentication.enabled = false;
+              max_players = 10;
+              motd = "homelab";
+            };
+          };
+        };
+      };
+      system.stateVersion = "26.11";
+    };
   };
 
   services.harmonia.cache = {

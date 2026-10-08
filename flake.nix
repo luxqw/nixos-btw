@@ -34,6 +34,10 @@
       url = "github:noctalia-dev/noctalia-shell";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    pumpkin = {
+      url = "git+https://github.com/Pumpkin-MC/Pumpkin?shallow=1&submodules=1";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     anicli-ru = {
       url = "github:luxqw/ani-cli-ru/nix-flake";
       inputs.nixpkgs.follows = "nixpkgs";
