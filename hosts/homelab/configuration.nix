@@ -416,6 +416,21 @@ in {
         ];
       }
       {
+        "Игры" = [
+          {
+            Minecraft = {
+              href = "https://mcsrvstat.us/server/mc.${domain}";
+              icon = "minecraft.svg";
+              description = "mc.${domain}, клиент 26.3";
+              widget = {
+                type = "minecraft";
+                url = "udp://${pumpkin.localAddress}:${toString pumpkin.port}";
+              };
+            };
+          }
+        ];
+      }
+      {
         "Сеть" = [
           {
             AdGuard = {
