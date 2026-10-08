@@ -75,6 +75,10 @@ trusted key" even for a trusted user: `nix copy` asks the remote to check,
 and trusted only means `--no-check-sigs` is allowed. `nix-copy-closure`
 (nixos-rebuild) doesn't check.
 
+**`/mnt/media` is NFS from homelab, by IP**, so it doesn't depend on DNS.
+`soft`, short timeouts and the automount keep file managers from hanging
+when the server is out of reach.
+
 ### secrets
 
 **Secrets are decrypted with the user's ssh key, not a host key.** There is
@@ -155,6 +159,54 @@ depend on which LAN the server is plugged into.
 **The host key was generated before install** and is kept encrypted in
 `secrets/homelab/host-key.age`. A reinstall decrypts it into the
 nixos-anywhere `--extra-files` tree, so the secrets keep decrypting.
+
+### media
+
+**Jellyfin uses VAAPI, not QSV**, with `LIBVA_DRIVER_NAME=iHD`: on the
+UHD 630 VAAPI through `intel-media-driver` needs nothing else. No tone
+mapping (it wants OpenCL, which this GPU only gets from the legacy compute
+runtime) and no low-power encoding (it needs GuC/HuC firmware loading).
+
+**`media` has a fixed gid, 2000, in the common module.** NFS with `sec=sys`
+compares raw ids, so `lux` and the group must be the same numbers on both
+hosts. Directories under `/srv/media` are setgid `media`, and qBittorrent
+runs with `media` as its primary group and umask 0002, so `lux` can move
+and delete what it downloads.
+
+**qBittorrent `RequiresMountsFor = /srv/media`.** With the HDD missing it
+would otherwise fill the empty mountpoint on the NVMe.
+
+**qBittorrent has `LocalHostAuth = false`** and listens on 127.0.0.1 only:
+the one way in is Caddy, which does `basic_auth`. `serverConfig` is copied
+over `qBittorrent.conf` on every start, so changes made in the UI to those
+keys don't survive a restart.
+
+**No port forward for torrents.** The router forwards only the WireGuard
+and game ports; qBittorrent works passively.
+
+**Jackett has no admin password and `AllowExternal = false`**, set in
+`preStart` because Jackett writes `ServerConfig.json` itself. Caddy's
+`basic_auth` covers everything but `/api/*`: Torznab clients (Lampa,
+qBittorrent's search) can't do basic auth and use the API key instead.
+
+**FlareSolverr exists for RuTracker.** `login.php` sits behind a Cloudflare
+challenge that Jackett can't pass alone; search pages don't.
+
+**Indexers are configured by `jackett-indexers` through Jackett's API.**
+Jackett encrypts stored credentials with its own DataProtection keys, so
+the indexer JSON can't be templated. The timer runs hourly, skips indexers
+that already have a file in `Indexers/`, and so retries RuTracker through
+its maintenance windows. To change the RuTracker login: delete
+`Indexers/rutracker.json` and start the service.
+
+**TorrServer is on 8091** (8090 is Beszel) and listens on every interface:
+Lampa on the TV talks to `192.168.1.10:8091` directly.
+
+**Syncthing keys are in agenix** so both device IDs can be written into the
+config. Global discovery and relays are off: the laptop dials
+`192.168.1.10`, which works at home and through `home`. `Documents` lives
+under `/var/lib` (NVMe, btrbk, restic), `Downloads` on the HDD. Ignore
+patterns are set on the laptop, the side that has the build directories.
 
 ---
 

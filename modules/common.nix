@@ -27,5 +27,8 @@
     isNormalUser = true;
     description = "Lux";
     shell = pkgs.zsh;
+    extraGroups = ["media"];
   };
+
+  users.groups.media.gid = 2000;
 }

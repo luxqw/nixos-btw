@@ -1,5 +1,6 @@
 {
   config,
+  lib,
   pkgs,
   ...
 }: let
@@ -14,13 +15,62 @@
     extraConfig = "reverse_proxy 127.0.0.1:${toString port}";
   };
 
+  guarded = port: {
+    useACMEHost = domain;
+    extraConfig = ''
+      basic_auth {
+        lux {$ADMIN_HASH}
+      }
+      reverse_proxy 127.0.0.1:${toString port}
+    '';
+  };
+
   ports = {
     adguard = 3000;
     beszel = 8090;
+    flaresolverr = 8191;
     gatus = 8083;
     harmonia = 5000;
     homepage = 8082;
+    jackett = 9117;
+    jellyfin = 8096;
+    qbittorrent = 8080;
     scrutiny = 8081;
+    syncthing = 8384;
+    torrserver = 8091;
+  };
+
+  media = "/srv/media";
+
+  jackettIndexers = pkgs.writeShellApplication {
+    name = "jackett-indexers";
+    runtimeInputs = [pkgs.curl pkgs.jq];
+    text = ''
+      api=http://127.0.0.1:${toString ports.jackett}
+      dir=${config.services.jackett.dataDir}/Indexers
+      jar=$(mktemp)
+      trap 'rm -f "$jar"' EXIT
+
+      curl -sf -c "$jar" -b "$jar" -L -o /dev/null "$api/UI/Login"
+
+      configure() {
+        local id=$1 patch=$2
+        [ -e "$dir/$id.json" ] && return 0
+        curl -sf -b "$jar" "$api/api/v2.0/indexers/$id/config" \
+          | jq -c "$patch" \
+          | curl -sf -b "$jar" -H 'Content-Type: application/json' \
+              --data @- "$api/api/v2.0/indexers/$id/config"
+        echo "configured $id"
+      }
+
+      configure rutor .
+      configure noname-club .
+      configure rutracker '
+        map(if .id == "username" then .value = env.RUTRACKER_USERNAME
+            elif .id == "password" then .value = env.RUTRACKER_PASSWORD
+            elif .id == "striprussianletters" then .value = false
+            else . end)'
+    '';
   };
 
   local = name: path: {
@@ -29,6 +79,18 @@
     interval = "1m";
     conditions = ["[STATUS] == 200"];
     alerts = [{type = "telegram";}];
+  };
+
+  listening = name: {
+    inherit name;
+    url = "tcp://127.0.0.1:${toString ports.${name}}";
+    interval = "1m";
+    conditions = ["[CONNECTED] == true"];
+    alerts = [{type = "telegram";}];
+  };
+
+  link = name: href: icon: description: {
+    ${name} = {inherit href icon description;};
   };
 in {
   imports = [
@@ -39,6 +101,10 @@ in {
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
   hardware.enableRedistributableFirmware = true;
+  hardware.graphics = {
+    enable = true;
+    extraPackages = [pkgs.intel-media-driver];
+  };
 
   services.fstrim.enable = true;
 
@@ -99,6 +165,9 @@ in {
     restic = secret "restic";
     harmonia = secret "harmonia";
     caddy-auth = secret "caddy-auth";
+    rutracker = secret "rutracker";
+    syncthing-cert = secret "syncthing-cert" // {owner = "syncthing";};
+    syncthing-key = secret "syncthing-key" // {owner = "syncthing";};
   };
 
   security.acme = {
@@ -122,13 +191,19 @@ in {
       "status.${domain}" = proxy ports.gatus;
       "disks.${domain}" = proxy ports.scrutiny;
       "cache.${domain}" = proxy ports.harmonia;
-      "adguard.${domain}" = {
+      "adguard.${domain}" = guarded ports.adguard;
+      "jellyfin.${domain}" = proxy ports.jellyfin;
+      "torrent.${domain}" = guarded ports.qbittorrent;
+      "torrserver.${domain}" = guarded ports.torrserver;
+      "sync.${domain}" = guarded ports.syncthing;
+      "jackett.${domain}" = {
         useACMEHost = domain;
         extraConfig = ''
-          basic_auth {
+          @ui not path /api/*
+          basic_auth @ui {
             lux {$ADMIN_HASH}
           }
-          reverse_proxy 127.0.0.1:${toString ports.adguard}
+          reverse_proxy 127.0.0.1:${toString ports.jackett}
         '';
       };
     };
@@ -216,6 +291,12 @@ in {
         (local "scrutiny" "/web/dashboard")
         (local "homepage" "/")
         (local "harmonia" "/nix-cache-info")
+        (local "jellyfin" "/health")
+        (local "qbittorrent" "/")
+        (local "flaresolverr" "/")
+        (local "torrserver" "/echo")
+        (local "syncthing" "/rest/noauth/health")
+        (listening "jackett")
         {
           name = "dns";
           url = "127.0.0.1";
@@ -245,6 +326,19 @@ in {
       }
     ];
     services = [
+      {
+        "Медиа" = [
+          (link "Jellyfin" "https://jellyfin.${domain}" "jellyfin.svg" "Фильмы и сериалы")
+          (link "qBittorrent" "https://torrent.${domain}" "qbittorrent.svg" "Загрузки")
+          (link "Jackett" "https://jackett.${domain}" "jackett.svg" "Поиск по трекерам")
+          (link "TorrServer" "https://torrserver.${domain}" "torrserver.png" "Торренты онлайн для Lampa")
+        ];
+      }
+      {
+        "Файлы" = [
+          (link "Syncthing" "https://sync.${domain}" "syncthing.svg" "Documents и Downloads с ноутбука")
+        ];
+      }
       {
         "Сеть" = [
           {
@@ -284,7 +378,157 @@ in {
     ];
   };
 
-  services.harmonia = {
+  systemd.tmpfiles.settings."10-media" = lib.genAttrs (map (dir: "${media}${dir}") ["" "/downloads" "/movies" "/shows" "/music"]) (_: {
+    d = {
+      user = "lux";
+      group = "media";
+      mode = "2775";
+    };
+  });
+
+  services.jellyfin = {
+    enable = true;
+    hardwareAcceleration = {
+      enable = true;
+      type = "vaapi";
+      device = "/dev/dri/renderD128";
+    };
+    transcoding = {
+      enableHardwareEncoding = true;
+      hardwareDecodingCodecs = {
+        h264 = true;
+        hevc = true;
+        hevc10bit = true;
+        mpeg2 = true;
+        vc1 = true;
+        vp8 = true;
+        vp9 = true;
+      };
+      hardwareEncodingCodecs.hevc = true;
+    };
+  };
+  users.users.jellyfin.extraGroups = ["media" "render" "video"];
+  systemd.services.jellyfin.environment.LIBVA_DRIVER_NAME = "iHD";
+
+  services.qbittorrent = {
+    enable = true;
+    group = "media";
+    webuiPort = ports.qbittorrent;
+    serverConfig = {
+      LegalNotice.Accepted = true;
+      BitTorrent.Session = {
+        DefaultSavePath = "${media}/downloads";
+        TempPathEnabled = true;
+        TempPath = "${media}/downloads/.incomplete";
+      };
+      Preferences = {
+        General.Locale = "ru";
+        WebUI = {
+          Address = "127.0.0.1";
+          LocalHostAuth = false;
+          AlternativeUIEnabled = true;
+          RootFolder = "${pkgs.vuetorrent}/share/vuetorrent";
+        };
+      };
+    };
+  };
+  systemd.services.qbittorrent = {
+    unitConfig.RequiresMountsFor = [media];
+    serviceConfig.UMask = "0002";
+  };
+
+  services.flaresolverr = {
+    enable = true;
+    port = ports.flaresolverr;
+  };
+
+  services.jackett = {
+    enable = true;
+    port = ports.jackett;
+  };
+  systemd.services.jackett.preStart = ''
+    conf=${config.services.jackett.dataDir}/ServerConfig.json
+    [ -e "$conf" ] || echo '{}' > "$conf"
+    ${lib.getExe pkgs.jq} '.AllowExternal = false | .FlareSolverrUrl = "http://127.0.0.1:${toString ports.flaresolverr}"' \
+      "$conf" > "$conf.tmp"
+    mv "$conf.tmp" "$conf"
+  '';
+
+  systemd.services.jackett-indexers = {
+    after = ["jackett.service" "flaresolverr.service"];
+    requires = ["jackett.service"];
+    serviceConfig = {
+      Type = "oneshot";
+      User = config.services.jackett.user;
+      EnvironmentFile = config.age.secrets.rutracker.path;
+      ExecStart = lib.getExe jackettIndexers;
+    };
+  };
+  systemd.timers.jackett-indexers = {
+    wantedBy = ["timers.target"];
+    timerConfig = {
+      OnActiveSec = "2min";
+      OnUnitInactiveSec = "1h";
+    };
+  };
+
+  systemd.services.torrserver = {
+    description = "TorrServer";
+    wantedBy = ["multi-user.target"];
+    after = ["network-online.target"];
+    wants = ["network-online.target"];
+    serviceConfig = {
+      ExecStart = "${lib.getExe' pkgs.torrserver "torrserver"} --port ${toString ports.torrserver} --path /var/lib/torrserver";
+      DynamicUser = true;
+      StateDirectory = "torrserver";
+      Restart = "on-failure";
+    };
+  };
+
+  services.nfs.server = {
+    enable = true;
+    exports = ''
+      ${media} 192.168.1.0/24(rw,sync,no_subtree_check) 10.100.0.0/24(rw,sync,no_subtree_check)
+    '';
+  };
+
+  services.syncthing = {
+    enable = true;
+    guiAddress = "127.0.0.1:${toString ports.syncthing}";
+    cert = config.age.secrets.syncthing-cert.path;
+    key = config.age.secrets.syncthing-key.path;
+    settings = {
+      gui.insecureSkipHostcheck = true;
+      options = {
+        globalAnnounceEnabled = false;
+        relaysEnabled = false;
+        natEnabled = false;
+        urAccepted = -1;
+      };
+      devices.legion.id = "AYXBQIS-CZIULWX-6ISSWZZ-APOZQ22-WH573C5-TB5PS5Q-7XZVSMB-2QQZPQW";
+      folders = {
+        documents = {
+          path = "/var/lib/syncthing/Documents";
+          devices = ["legion"];
+          versioning = {
+            type = "staggered";
+            params.maxAge = toString (90 * 24 * 3600);
+          };
+        };
+        downloads = {
+          path = "/srv/sync/Downloads";
+          devices = ["legion"];
+        };
+      };
+    };
+  };
+  systemd.tmpfiles.settings."10-sync"."/srv/sync".d = {
+    user = "syncthing";
+    group = "syncthing";
+    mode = "0750";
+  };
+
+  services.harmonia.cache = {
     enable = true;
     signKeyPaths = [config.age.secrets.harmonia.path];
     settings.bind = "127.0.0.1:${toString ports.harmonia}";

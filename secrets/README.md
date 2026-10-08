@@ -1,8 +1,9 @@
 # Secrets
 
-`wg/` holds the laptop's tunnel configs. `homelab/` holds the server's
-secrets, encrypted to both `lux` and homelab's host key — `secrets.nix`
-derives the rules for both directories from their contents.
+`wg/` holds the laptop's tunnel configs, `legion/` its other secrets, both
+encrypted to `lux`. `homelab/` holds the server's secrets, encrypted to both
+`lux` and homelab's host key — `secrets.nix` derives the rules for every
+directory from its contents.
 
 ## Tunnels
 

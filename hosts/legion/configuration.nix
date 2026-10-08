@@ -303,9 +303,74 @@ in {
 
   age.identityPaths = ["/home/lux/.ssh/id_ed25519"];
 
-  age.secrets = lib.genAttrs tunnelNames (name: {
-    file = tunnelSecretsDir + "/${name}.age";
-  });
+  age.secrets =
+    lib.genAttrs tunnelNames (name: {
+      file = tunnelSecretsDir + "/${name}.age";
+    })
+    // lib.genAttrs ["syncthing-cert" "syncthing-key"] (name: {
+      file = ../../secrets/legion + "/${name}.age";
+      owner = "lux";
+    });
+
+  services.syncthing = {
+    enable = true;
+    user = "lux";
+    group = "users";
+    dataDir = "/home/lux";
+    configDir = "/home/lux/.config/syncthing";
+    cert = config.age.secrets.syncthing-cert.path;
+    key = config.age.secrets.syncthing-key.path;
+    settings = {
+      options = {
+        globalAnnounceEnabled = false;
+        relaysEnabled = false;
+        natEnabled = false;
+        urAccepted = -1;
+      };
+      devices.homelab = {
+        id = "L53YR5L-AMCVGBF-JGDVO4Y-P5DRG3F-H2SVGI6-6X4SVM5-FKX5KOD-VTB2LA4";
+        addresses = ["tcp://192.168.1.10:22000"];
+      };
+      folders = {
+        documents = {
+          path = "/home/lux/Documents";
+          devices = ["homelab"];
+          ignorePatterns = map (dir: "(?d)${dir}") [
+            ".cache"
+            ".direnv"
+            ".gradle"
+            ".venv"
+            ".zig-cache"
+            "__pycache__"
+            "build"
+            "dist"
+            "node_modules"
+            "result"
+            "target"
+          ];
+        };
+        downloads = {
+          path = "/home/lux/Downloads";
+          devices = ["homelab"];
+        };
+      };
+    };
+  };
+
+  fileSystems."/mnt/media" = {
+    device = "192.168.1.10:/srv/media";
+    fsType = "nfs";
+    options = [
+      "nfsvers=4.2"
+      "noauto"
+      "x-systemd.automount"
+      "x-systemd.idle-timeout=600"
+      "x-systemd.mount-timeout=10"
+      "soft"
+      "timeo=50"
+      "retrans=2"
+    ];
+  };
 
   programs.umbriel.enable = true;
 
