@@ -21,6 +21,10 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     millennium.url = "github:SteamClientHomebrew/Millennium?dir=packages/nix";
     umbriel = {
       url = "github:noctalia-dev/umbriel";
@@ -40,6 +44,7 @@
     nixpkgs,
     agenix,
     home-manager,
+    disko,
     ...
   }: let
     host = name: modules:
@@ -62,6 +67,10 @@
         home-manager.extraSpecialArgs = {inherit inputs;};
         home-manager.users.lux = import ./hosts/legion/home.nix;
       }
+    ];
+
+    nixosConfigurations.homelab = host "homelab" [
+      disko.nixosModules.disko
     ];
   };
 }

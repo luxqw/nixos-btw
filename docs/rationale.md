@@ -57,6 +57,15 @@ ADR 0001.
 **The polkit rule** lets `lux` start/stop/restart exactly the tunnel units
 without a password, and nothing else.
 
+**`home` is in `manualTunnels`.** It is for reaching homelab from outside;
+at home it would send traffic for the server out to the public IP and
+back. `tunnel up home` when away.
+
+**homelab is a remote builder and a substituter.** `connect-timeout = 3` and
+the ssh `ConnectTimeout` keep builds from stalling away from home, where
+`homelab.rakhmatullin.dev` (a LAN address) is unreachable.
+`publicHostKey` is the base64 of homelab's host public key.
+
 ### secrets
 
 **Secrets are decrypted with the user's ssh key, not a host key.** There is
@@ -95,6 +104,48 @@ in `modules/common.nix`.
 | `ntfs3g`          | mounting the games partition                  |
 | `polkit_gnome`    | authorisation agent for the graphical session |
 | `wireguard-tools` | `wg show`                                     |
+
+---
+
+## hosts/homelab/configuration.nix
+
+**The firewall trusts `eno1` and `home` outright.** Everything on the LAN
+and the tunnel may reach every service. That is only safe because the
+Huawei router forwards nothing but the WireGuard and game ports: never
+turn on its DMZ.
+
+**The tunnel routes `192.168.1.10/32`, not the whole LAN.** Service names
+resolve to the server's LAN address. A /32 wins over any foreign network
+that also uses `192.168.1.0/24`, which a /24 would collide with.
+
+**`DNSStubListener = false`.** resolved's stub on 127.0.0.53:53 keeps
+AdGuard from binding `0.0.0.0:53`.
+
+**AdGuard's UI sits behind Caddy's `basic_auth`.** AdGuard's own users need
+a bcrypt hash in its settings, which end up in this public repository; the
+Caddy hash comes from an agenix env file instead. The same passphrase is
+`lux`'s sudo password.
+
+**`/srv` is `nofail`.** A dead HDD must not keep the server off the network.
+
+**`hdparm -S 242`** spins the HDD down after an hour idle.
+
+**No powertop.** Its autotune enables runtime PM on the I219 NIC, which is
+known to drop the link.
+
+**`dnsResolver` is Cloudflare's authoritative server.** lego otherwise
+waits for the TXT record through the LAN resolver, which caches the
+NXDOMAIN it got before the record existed, and the order times out.
+
+**Gatus checks `127.0.0.1`, not the public names**, so the checks don't
+depend on which LAN the server is plugged into.
+
+**btrbk works on `/mnt/pool`**, the btrfs top level, because snapshots of
+`@var-lib` go into the sibling `@snapshots`.
+
+**The host key was generated before install** and is kept encrypted in
+`secrets/homelab/host-key.age`. A reinstall decrypts it into the
+nixos-anywhere `--extra-files` tree, so the secrets keep decrypting.
 
 ---
 

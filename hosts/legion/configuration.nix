@@ -20,6 +20,8 @@
 
   tunnelUnits = map (name: "wg-quick-${name}.service") tunnelNames;
 
+  manualTunnels = ["home"];
+
   tunnelCli = pkgs.writeShellApplication {
     name = "tunnel";
     runtimeInputs = [pkgs.age agenixPackage pkgs.systemd];
@@ -251,7 +253,35 @@ in {
 
   networking.wg-quick.interfaces = lib.genAttrs tunnelNames (name: {
     configFile = config.age.secrets.${name}.path;
+    autostart = !(builtins.elem name manualTunnels);
   });
+
+  nix.distributedBuilds = true;
+  nix.buildMachines = [
+    {
+      hostName = "homelab.rakhmatullin.dev";
+      sshUser = "lux";
+      sshKey = "/home/lux/.ssh/id_ed25519";
+      protocol = "ssh-ng";
+      system = "x86_64-linux";
+      maxJobs = 6;
+      speedFactor = 2;
+      supportedFeatures = ["nixos-test" "benchmark" "big-parallel" "kvm"];
+      publicHostKey = "c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSUl0QWQrWmYzdE05aEpiTHIrUW5CTG1jSldCMEpGenc5QWw4eldMdnplcHEgcm9vdEBob21lbGFi";
+    }
+  ];
+
+  nix.settings = {
+    builders-use-substitutes = true;
+    connect-timeout = 3;
+    extra-substituters = ["https://cache.rakhmatullin.dev"];
+    extra-trusted-public-keys = ["cache.rakhmatullin.dev-1:ysIIVJpZZyE3gdeJ542ooRjC6iYqkbawCN93gpSsek4="];
+  };
+
+  programs.ssh.extraConfig = ''
+    Host homelab.rakhmatullin.dev
+      ConnectTimeout 3
+  '';
 
   security.polkit.extraConfig = ''
     polkit.addRule(function(action, subject) {
