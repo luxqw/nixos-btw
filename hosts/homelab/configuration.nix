@@ -702,7 +702,7 @@ in {
         whitelist.entries = [
           {
             name = "luxqww";
-            uuid = "0c08f420-6b37-3a11-9a9d-b48258f56307";
+            uuid = "79ef51ec-132e-603b-6d0c-75fde3703c85";
           }
         ];
         settings = {
@@ -724,7 +724,7 @@ in {
         ops = pkgs.writeText "ops.json" (builtins.toJSON [
           {
             name = "luxqww";
-            uuid = "0c08f420-6b37-3a11-9a9d-b48258f56307";
+            uuid = "79ef51ec-132e-603b-6d0c-75fde3703c85";
             level = 4;
             bypassesPlayerLimit = true;
           }
