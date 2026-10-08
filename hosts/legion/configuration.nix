@@ -267,7 +267,6 @@ in {
       maxJobs = 6;
       speedFactor = 2;
       supportedFeatures = ["nixos-test" "benchmark" "big-parallel" "kvm"];
-      publicHostKey = "c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSUl0QWQrWmYzdE05aEpiTHIrUW5CTG1jSldCMEpGenc5QWw4eldMdnplcHEgcm9vdEBob21lbGFi";
     }
   ];
 
@@ -278,8 +277,15 @@ in {
     extra-trusted-public-keys = ["cache.rakhmatullin.dev-1:ysIIVJpZZyE3gdeJ542ooRjC6iYqkbawCN93gpSsek4="];
   };
 
+  programs.ssh.knownHosts.homelab = {
+    hostNames = ["homelab.rakhmatullin.dev" "192.168.1.10" "10.100.0.1"];
+    publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIItAd+Zf3tM9hJbLr+QnBLmcJWB0JFzw9Al8zWLvzepq";
+  };
+
   programs.ssh.extraConfig = ''
-    Host homelab.rakhmatullin.dev
+    Host homelab homelab.rakhmatullin.dev
+      HostName homelab.rakhmatullin.dev
+      User lux
       ConnectTimeout 3
   '';
 

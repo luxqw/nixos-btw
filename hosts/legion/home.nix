@@ -193,6 +193,7 @@ in {
       rebuild = "nh os switch";
       rebuild-test = "nh os test";
       update = "nh os switch --update";
+      deploy-homelab = "nh os switch -H homelab --target-host homelab --build-host homelab";
       nx = "cd /etc/nixos";
     };
 

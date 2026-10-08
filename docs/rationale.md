@@ -64,7 +64,16 @@ back. `tunnel up home` when away.
 **homelab is a remote builder and a substituter.** `connect-timeout = 3` and
 the ssh `ConnectTimeout` keep builds from stalling away from home, where
 `homelab.rakhmatullin.dev` (a LAN address) is unreachable.
-`publicHostKey` is the base64 of homelab's host public key.
+The host key lives in `programs.ssh.knownHosts`, which root's ssh in the
+build hook also reads, so `buildMachines` needs no `publicHostKey`.
+
+**`deploy-homelab` builds on homelab itself** (`--build-host` = target): only
+`.drv` files leave the laptop, and they are content-addressed, so they need
+no signature. Pushing locally built outputs with `nix copy --to ssh-ng://…`
+— what nh does when building locally — fails with "lacks a signature by a
+trusted key" even for a trusted user: `nix copy` asks the remote to check,
+and trusted only means `--no-check-sigs` is allowed. `nix-copy-closure`
+(nixos-rebuild) doesn't check.
 
 ### secrets
 
