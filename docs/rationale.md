@@ -90,6 +90,187 @@ unrelated facts at once: run from `/etc/nixos/secrets`, spell the name
 `wg/<name>.age`, use `age` rather than `agenix` for a secret that doesn't
 exist yet. `pkgs.age` is installed for that last one.
 
+### apps
+
+**Steam comes from Millennium's flake** (noctalia's steam template needs
+it). Its profile relinks `ubuntu12_*/libXtst.so.6` on every launch, so the
+loader never points at a garbage-collected store path.
+
+**Wireshark goes through `programs.wireshark`.** Non-root capture needs the
+`dumpcap` wrapper with `cap_net_raw`/`cap_net_admin` and the `wireshark`
+group, both from the module. The default package is `wireshark-cli`, which
+has no GUI.
+
+**jellyfin runs as `lux`** so it can read media in the home directory
+without loosening its permissions.
+
+**`neovim-unwrapped` is in the system packages** so root has an editor when
+home-manager is unavailable.
+
+**`environment.systemPackages` holds only what services, hardware or login
+need.** Everything user-facing is in `home.nix`; what every host shares is
+in `modules/common.nix`.
+
+| package           | why                                           |
+| ----------------- | --------------------------------------------- |
+| `bibata-cursors`  | noctalia-greeter runs as its own user         |
+| `ntfs3g`          | mounting the games partition                  |
+| `polkit_gnome`    | authorisation agent for the graphical session |
+| `wireguard-tools` | `wg show`                                     |
+
+---
+
+## hosts/homelab/configuration.nix
+
+**The firewall trusts `eno1` and `home` outright.** Everything on the LAN
+and the tunnel may reach every service. That is only safe because the
+Huawei router forwards nothing but the WireGuard and game ports: never
+turn on its DMZ.
+
+**The tunnel routes `192.168.1.10/32`, not the whole LAN.** Service names
+resolve to the server's LAN address. A /32 wins over any foreign network
+that also uses `192.168.1.0/24`, which a /24 would collide with.
+
+**`DNSStubListener = false`.** resolved's stub on 127.0.0.53:53 keeps
+AdGuard from binding `0.0.0.0:53`.
+
+**AdGuard's UI sits behind Caddy's `basic_auth`.** AdGuard's own users need
+a bcrypt hash in its settings, which end up in this public repository; the
+Caddy hash comes from an agenix env file instead. The same passphrase is
+`lux`'s sudo password.
+
+**`/srv` is `nofail`.** A dead HDD must not keep the server off the network.
+
+**`hdparm -S 242`** spins the HDD down after an hour idle.
+
+**No powertop.** Its autotune enables runtime PM on the I219 NIC, which is
+known to drop the link.
+
+**`dnsResolver` is Cloudflare's authoritative server.** lego otherwise
+waits for the TXT record through the LAN resolver, which caches the
+NXDOMAIN it got before the record existed, and the order times out.
+
+**Gatus checks `127.0.0.1`, not the public names**, so the checks don't
+depend on which LAN the server is plugged into.
+
+**btrbk works on `/mnt/pool`**, the btrfs top level, because snapshots of
+`@var-lib` go into the sibling `@snapshots`.
+
+**The host key was generated before install** and is kept encrypted in
+`secrets/homelab/host-key.age`. A reinstall decrypts it into the
+nixos-anywhere `--extra-files` tree, so the secrets keep decrypting.
+
+### media
+
+**Jellyfin uses VAAPI, not QSV**, with `LIBVA_DRIVER_NAME=iHD`: on the
+UHD 630 VAAPI through `intel-media-driver` needs nothing else. No tone
+mapping (it wants OpenCL, which this GPU only gets from the legacy compute
+runtime) and no low-power encoding (it needs GuC/HuC firmware loading).
+
+**`media` has a fixed gid, 2000, in the common module.** NFS with `sec=sys`
+compares raw ids, so `lux` and the group must be the same numbers on both
+hosts. Directories under `/srv/media` are setgid `media`, and qBittorrent
+runs with `media` as its primary group and umask 0002, so `lux` can move
+and delete what it downloads.
+
+**qBittorrent `RequiresMountsFor = /srv/media`.** With the HDD missing it
+would otherwise fill the empty mountpoint on the NVMe.
+
+**qBittorrent has `LocalHostAuth = false`** and listens on 127.0.0.1 only:
+the one way in is Caddy, which does `basic_auth`. `serverConfig` is copied
+over `qBittorrent.conf` on every start, so changes made in the UI to those
+keys don't survive a restart.
+
+**No port forward for torrents.** The router forwards only the WireGuard
+and game ports; qBittorrent works passively.
+
+**Jackett has no admin password and `AllowExternal = false`**, set in
+`preStart` because Jackett writes `ServerConfig.json` itself. Caddy's
+`basic_auth` covers everything but `/api/*`: Torznab clients (Lampa,
+qBittorrent's search) can't do basic auth and use the API key instead.
+
+**FlareSolverr exists for RuTracker.** `login.php` sits behind a Cloudflare
+challenge that Jackett can't pass alone; search pages don't.
+
+**Indexers are configured by `jackett-indexers` through Jackett's API.**
+Jackett encrypts stored credentials with its own DataProtection keys, so
+the indexer JSON can't be templated. The timer runs hourly, skips indexers
+that already have a file in `Indexers/`, and so retries RuTracker through
+its maintenance windows. To change the RuTracker login: delete
+`Indexers/rutracker.json` and start the service.
+
+**TorrServer is on 8091** (8090 is Beszel) and listens on every interface:
+Lampa on the TV talks to `192.168.1.10:8091` directly.
+
+**Syncthing keys are in agenix** so both device IDs can be written into the
+config. Global discovery and relays are off: the laptop dials
+`192.168.1.10`, which works at home and through `home`. `Documents` lives
+under `/var/lib` (NVMe, btrbk, restic), `Downloads` on the HDD. Ignore
+patterns are set on the laptop, the side that has the build directories.
+
+### pumpkin
+
+**Pumpkin comes from the upstream flake**, run by the nixpkgs module: the
+nixpkgs package lags, and the client version has to match the server's.
+The input is `git+https` with `submodules=1` because the flake sets
+`self.submodules`, which the `github:` scheme rejects.
+
+**It runs in a container with its own network.** On the host's network a
+compromised game server could reach everything bound to 127.0.0.1 —
+qBittorrent and Jackett have no auth there. The port reaches it through
+`networking.nat.forwardPorts`; LAN players come in on `eno1` the same way.
+
+**Offline mode with a whitelist.** Online mode needs every player to own a
+Mojang account. The whitelist holds `lux`'s offline UUID (UUID v3 of
+`OfflinePlayer:lux`); `whitelist.json` is only written when absent, so
+later changes go through the game. Nobody is op. Offline mode trusts
+whatever name the client sends, so the whitelist only keeps out strangers
+who don't know a player's name.
+
+**No RCON.** Upstream dropped it for the management protocol (MSMP), which
+stays off.
+
+**Port 41565, not 25565**, keeps the scanners that sweep 25565 away.
+Players use `mc.rakhmatullin.dev`: an SRV record points it at
+`wg.rakhmatullin.dev:41565`, and AdGuard rewrites `wg` to `192.168.1.10`
+for the LAN, so the same name works at home without NAT loopback on the
+router. The rewrite also lets the phone's `home` tunnel connect on home
+Wi-Fi.
+
+**World backups come for free**: the container's state is under
+`/var/lib/nixos-containers`, inside `@var-lib`, which btrbk snapshots
+hourly and restic copies nightly.
+
+### apps
+
+**Vaultwarden signups are open, but only for `tutamail.com` addresses.**
+There is no admin page (no `ADMIN_TOKEN`), so nobody could invite; the
+service is reachable only from the LAN and the tunnel.
+
+**Immich keeps photos on the HDD** (`/srv/photos`) and its database on the
+NVMe. Immich dumps the database into `backups/` under the media location
+every night, so the `photos` restic repository covers both. Thumbnails and
+transcoded video are excluded: Immich regenerates them.
+
+**The `photos` repository is on the NVMe** — the other disk from the
+photos — and has no prune: photos only accumulate. After every run it is
+made readable for group `users`, and the laptop's weekly `photos-backup`
+rsyncs it to `~/Backups/photos` as a third copy. rsync runs without
+`--delete`, so a wiped repository on the server doesn't wipe the copy.
+
+**OpenCloud uses the posix driver on `/srv/cloud`**, so the files are plain
+files on disk that other tools (the `disc` burner) can read. The path
+templates use the user name and the space name instead of UUIDs; they had
+to be set before the first start, since existing spaces keep their paths.
+`STORAGE_USERS_POSIX_WATCH_FS` picks up files changed behind OpenCloud's
+back through `inotifywait`, hence `inotify-tools` on the unit's `PATH`.
+
+**OpenCloud runs with `PROXY_TLS=false` and `OC_INSECURE=true`.** Caddy
+terminates TLS; inside, OpenCloud's services talk to each other over
+self-signed TLS (the IDP to the LDAP of IDM), which needs the insecure flag.
+The admin password is generated by `opencloud init` on first start and
+lives in `/etc/opencloud/opencloud.yaml`.
+
 ---
 
 ## hosts/legion/home.nix

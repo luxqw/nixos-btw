@@ -357,6 +357,25 @@ in {
     };
   };
 
+  systemd.services.photos-backup = {
+    description = "Copy homelab's photo backup repository";
+    path = [pkgs.rsync pkgs.openssh];
+    serviceConfig = {
+      Type = "oneshot";
+      User = "lux";
+      ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p /home/lux/Backups/photos";
+      ExecStart = "${pkgs.rsync}/bin/rsync -a lux@192.168.1.10:/var/backup/photos/ /home/lux/Backups/photos/";
+    };
+  };
+  systemd.timers.photos-backup = {
+    wantedBy = ["timers.target"];
+    timerConfig = {
+      OnCalendar = "weekly";
+      Persistent = true;
+      RandomizedDelaySec = "1h";
+    };
+  };
+
   fileSystems."/mnt/media" = {
     device = "192.168.1.10:/srv/media";
     fsType = "nfs";

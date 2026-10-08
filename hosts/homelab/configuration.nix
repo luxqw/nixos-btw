@@ -33,15 +33,21 @@
     gatus = 8083;
     harmonia = 5000;
     homepage = 8082;
+    immich = 2283;
     jackett = 9117;
     jellyfin = 8096;
+    opencloud = 9200;
     qbittorrent = 8080;
     scrutiny = 8081;
     syncthing = 8384;
     torrserver = 8091;
+    vaultwarden = 8222;
   };
 
   media = "/srv/media";
+  photos = "/srv/photos";
+  cloud = "/srv/cloud";
+  photosRepo = "/var/backup/photos";
 
   pumpkin = {
     port = 41565;
@@ -203,6 +209,9 @@ in {
       "torrent.${domain}" = guarded ports.qbittorrent;
       "torrserver.${domain}" = guarded ports.torrserver;
       "sync.${domain}" = guarded ports.syncthing;
+      "vault.${domain}" = proxy ports.vaultwarden;
+      "photos.${domain}" = proxy ports.immich;
+      "cloud.${domain}" = proxy ports.opencloud;
       "jackett.${domain}" = {
         useACMEHost = domain;
         extraConfig = ''
@@ -312,6 +321,9 @@ in {
         (local "torrserver" "/echo")
         (local "syncthing" "/rest/noauth/health")
         (listening "jackett")
+        (local "vaultwarden" "/alive")
+        (local "immich" "/api/server/ping")
+        (listening "opencloud")
         {
           name = "pumpkin";
           url = "tcp://${pumpkin.localAddress}:${toString pumpkin.port}";
@@ -358,6 +370,9 @@ in {
       }
       {
         "Файлы" = [
+          (link "OpenCloud" "https://cloud.${domain}" "opencloud.svg" "Облако")
+          (link "Immich" "https://photos.${domain}" "immich.svg" "Фото")
+          (link "Vaultwarden" "https://vault.${domain}" "vaultwarden.svg" "Пароли")
           (link "Syncthing" "https://sync.${domain}" "syncthing.svg" "Documents и Downloads с ноутбука")
         ];
       }
@@ -550,6 +565,64 @@ in {
     mode = "0750";
   };
 
+  services.vaultwarden = {
+    enable = true;
+    domain = "vault.${domain}";
+    config = {
+      ROCKET_ADDRESS = "127.0.0.1";
+      ROCKET_PORT = ports.vaultwarden;
+      SIGNUPS_ALLOWED = true;
+      SIGNUPS_DOMAINS_WHITELIST = "tutamail.com";
+    };
+  };
+
+  services.immich = {
+    enable = true;
+    host = "127.0.0.1";
+    port = ports.immich;
+    mediaLocation = photos;
+    accelerationDevices = ["/dev/dri/renderD128"];
+  };
+  users.users.immich.extraGroups = ["render" "video"];
+  systemd.services.immich-server.unitConfig.RequiresMountsFor = [photos];
+
+  services.opencloud = {
+    enable = true;
+    port = ports.opencloud;
+    url = "https://cloud.${domain}";
+    environment = {
+      OC_INSECURE = "true";
+      PROXY_TLS = "false";
+      STORAGE_USERS_POSIX_ROOT = cloud;
+      STORAGE_USERS_POSIX_WATCH_FS = "true";
+      STORAGE_USERS_POSIX_PERSONAL_SPACE_PATH_TEMPLATE = "users/{{.User.Username}}";
+      STORAGE_USERS_POSIX_GENERAL_SPACE_PATH_TEMPLATE = "projects/{{.SpaceName | replace \" \" \"-\" | lower}}";
+    };
+  };
+  systemd.services.opencloud = {
+    path = [pkgs.inotify-tools];
+    unitConfig.RequiresMountsFor = [cloud];
+    serviceConfig.ReadWritePaths = [cloud];
+  };
+
+  systemd.tmpfiles.settings."10-apps" = {
+    ${photos}.d = {
+      user = "immich";
+      group = "immich";
+      mode = "0750";
+    };
+    ${cloud}.d = {
+      user = "opencloud";
+      group = "opencloud";
+      mode = "0750";
+    };
+    ${photosRepo}.d = {
+      user = "root";
+      group = "users";
+      mode = "0750";
+    };
+  };
+
   networking.nat = {
     enable = true;
     internalInterfaces = ["ve-pumpkin"];
@@ -628,6 +701,19 @@ in {
       Persistent = true;
     };
     pruneOpts = ["--keep-daily 7" "--keep-weekly 4" "--keep-monthly 6"];
+  };
+
+  services.restic.backups.photos = {
+    repository = photosRepo;
+    passwordFile = config.age.secrets.restic.path;
+    initialize = true;
+    paths = [photos];
+    exclude = ["${photos}/thumbs" "${photos}/encoded-video"];
+    backupCleanupCommand = "chgrp -R users ${photosRepo} && chmod -R g+rX ${photosRepo}";
+    timerConfig = {
+      OnCalendar = "04:00";
+      Persistent = true;
+    };
   };
 
   system.stateVersion = "26.11";
