@@ -706,8 +706,8 @@ in {
           }
         ];
         settings = {
-          white_list = true;
-          enforce_whitelist = true;
+          white_list = false;
+          enforce_whitelist = false;
           networking = {
             query.enabled = false;
             java = {
