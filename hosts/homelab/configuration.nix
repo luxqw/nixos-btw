@@ -701,8 +701,8 @@ in {
         });
         whitelist.entries = [
           {
-            name = "lux";
-            uuid = "9ff79cfc-7c53-3f13-a106-bc356cf2522a";
+            name = "luxqww";
+            uuid = "0c08f420-6b37-3a11-9a9d-b48258f56307";
           }
         ];
         settings = {
@@ -720,16 +720,25 @@ in {
           };
         };
       };
-      systemd.services.pumpkin.preStart = lib.mkAfter ''
-        install -Dm600 ${pkgs.writeText "ops.json" (builtins.toJSON [
+      systemd.services.pumpkin.preStart = let
+        ops = pkgs.writeText "ops.json" (builtins.toJSON [
           {
-            name = "lux";
-            uuid = "9ff79cfc-7c53-3f13-a106-bc356cf2522a";
+            name = "luxqww";
+            uuid = "0c08f420-6b37-3a11-9a9d-b48258f56307";
             level = 4;
             bypassesPlayerLimit = true;
           }
-        ])} /var/lib/pumpkin/data/ops.json
-      '';
+        ]);
+      in
+        lib.mkAfter ''
+          mkdir -p data
+          if [ -s data/ops.json ]; then
+            ${lib.getExe pkgs.jq} -s 'add | unique_by(.uuid)' ${ops} data/ops.json > data/ops.json.new
+            mv data/ops.json.new data/ops.json
+          else
+            install -m600 ${ops} data/ops.json
+          fi
+        '';
       system.stateVersion = "26.11";
     };
   };
