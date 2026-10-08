@@ -254,7 +254,7 @@ in {
       "jackett.${domain}" = {
         useACMEHost = domain;
         extraConfig = ''
-          @ui not path /api/*
+          @ui not path /api/* /dl/*
           basic_auth @ui {
             lux {$ADMIN_HASH}
           }
