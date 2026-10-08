@@ -11,4 +11,4 @@ let
       (name: builtins.match ".*\\.age" name != null)
       (builtins.attrNames (builtins.readDir (./. + "/${dir}"))));
 in
-  builtins.listToAttrs (rules "wg" [lux] ++ rules "homelab" [lux homelab])
+  builtins.listToAttrs (rules "wg" [lux] ++ rules "legion" [lux] ++ rules "homelab" [lux homelab])
