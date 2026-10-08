@@ -800,6 +800,7 @@ in {
 
     games = [
       protonup-qt
+      hmcl
       (import inputs.creamlinux-installer {inherit pkgs;})
     ];
 
