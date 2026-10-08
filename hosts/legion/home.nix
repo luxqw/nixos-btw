@@ -800,7 +800,7 @@ in {
 
     games = [
       protonup-qt
-      hmcl
+      inputs.elyprismlauncher.packages.${system}.default
       (import inputs.creamlinux-installer {inherit pkgs;})
     ];
 

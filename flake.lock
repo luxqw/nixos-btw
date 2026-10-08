@@ -114,6 +114,27 @@
         "type": "github"
       }
     },
+    "elyprismlauncher": {
+      "inputs": {
+        "libnbtplusplus": "libnbtplusplus",
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1783855669,
+        "narHash": "sha256-NR1KXShYQXVwRro8k0d1G6eAeQ7dxPqIk8dd6WcuKPQ=",
+        "owner": "ElyPrismLauncher",
+        "repo": "ElyPrismLauncher",
+        "rev": "5ea65f7a8057f06382845b870a378e8b35e62559",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ElyPrismLauncher",
+        "repo": "ElyPrismLauncher",
+        "type": "github"
+      }
+    },
     "flake-compat": {
       "flake": false,
       "locked": {
@@ -186,6 +207,22 @@
       "original": {
         "owner": "nix-community",
         "repo": "home-manager",
+        "type": "github"
+      }
+    },
+    "libnbtplusplus": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1772016279,
+        "narHash": "sha256-7itkptyjoRcXfGLwg1/jxajetZ3a4mDc66+w4X6yW8s=",
+        "owner": "PrismLauncher",
+        "repo": "libnbtplusplus",
+        "rev": "687e43031df0dc641984b4256bcca50d5b3f7de3",
+        "type": "github"
+      },
+      "original": {
+        "owner": "PrismLauncher",
+        "repo": "libnbtplusplus",
         "type": "github"
       }
     },
@@ -406,6 +443,7 @@
         "clin": "clin",
         "creamlinux-installer": "creamlinux-installer",
         "disko": "disko",
+        "elyprismlauncher": "elyprismlauncher",
         "home-manager": "home-manager",
         "millennium": "millennium",
         "nixpkgs": "nixpkgs_4",
