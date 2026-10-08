@@ -409,7 +409,7 @@ in {
       }
       {
         "Файлы" = [
-          (link "OpenCloud" "https://cloud.${domain}" "opencloud.svg" "Облако")
+          (link "OpenCloud" "https://cloud.${domain}" "sh-opencloud.svg" "Облако")
           (link "Immich" "https://photos.${domain}" "immich.svg" "Фото")
           (link "Vaultwarden" "https://vault.${domain}" "vaultwarden.svg" "Пароли")
           (link "Syncthing" "https://sync.${domain}" "syncthing.svg" "Documents и Downloads с ноутбука")
