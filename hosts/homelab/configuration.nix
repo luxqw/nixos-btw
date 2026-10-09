@@ -140,8 +140,12 @@
     alerts = [{type = "telegram";}];
   };
 
-  link = name: href: icon: description: {
-    ${name} = {inherit href icon description;};
+  loopback = port: "http://127.0.0.1:${toString port}";
+
+  app = port: sub: icon: description: {
+    href = "https://${sub}.${domain}";
+    siteMonitor = loopback port;
+    inherit icon description;
   };
 in {
   imports = [
@@ -389,30 +393,96 @@ in {
     enable = true;
     listenPort = ports.homepage;
     allowedHosts = "home.${domain}";
+    settings = {
+      title = "homelab";
+      language = "ru";
+      theme = "dark";
+      color = "slate";
+      headerStyle = "clean";
+      statusStyle = "dot";
+      hideVersion = true;
+    };
     widgets = [
       {
         resources = {
           cpu = true;
           memory = true;
           disk = ["/" "/srv"];
+          cputemp = true;
+          units = "metric";
+        };
+      }
+      {
+        datetime = {
+          text_size = "xl";
+          format = {
+            dateStyle = "long";
+            timeStyle = "short";
+            hour12 = false;
+          };
         };
       }
     ];
     services = [
       {
         "Медиа" = [
-          (link "Jellyfin" "https://jellyfin.${domain}" "jellyfin.svg" "Фильмы и сериалы")
-          (link "qBittorrent" "https://torrent.${domain}" "qbittorrent.svg" "Загрузки")
-          (link "Jackett" "https://jackett.${domain}" "jackett.svg" "Поиск по трекерам")
-          (link "TorrServer" "https://torrserver.${domain}" "torrserver.png" "Торренты онлайн для Lampa")
+          {Jellyfin = app ports.jellyfin "jellyfin" "jellyfin.svg" "Фильмы и сериалы";}
+          {
+            qBittorrent =
+              app ports.qbittorrent "torrent" "qbittorrent.svg" "Загрузки"
+              // {
+                widget = {
+                  type = "qbittorrent";
+                  url = loopback ports.qbittorrent;
+                };
+              };
+          }
+          {Jackett = app ports.jackett "jackett" "jackett.svg" "Поиск по трекерам";}
+          {TorrServer = app ports.torrserver "torrserver" "torrserver.png" "Торренты онлайн для Lampa";}
         ];
       }
       {
         "Файлы" = [
-          (link "OpenCloud" "https://cloud.${domain}" "sh-opencloud.svg" "Облако")
-          (link "Immich" "https://photos.${domain}" "immich.svg" "Фото")
-          (link "Vaultwarden" "https://vault.${domain}" "vaultwarden.svg" "Пароли")
-          (link "Syncthing" "https://sync.${domain}" "syncthing.svg" "Documents и Downloads с ноутбука")
+          {OpenCloud = app ports.opencloud "cloud" "sh-opencloud.svg" "Облако";}
+          {Immich = app ports.immich "photos" "immich.svg" "Фото";}
+          {Vaultwarden = app ports.vaultwarden "vault" "vaultwarden.svg" "Пароли";}
+          {Syncthing = app ports.syncthing "sync" "syncthing.svg" "Documents и Downloads с ноутбука";}
+        ];
+      }
+      {
+        "Система" = [
+          {
+            AdGuard =
+              app ports.adguard "adguard" "adguard-home.svg" "DNS и блокировка рекламы"
+              // {
+                widget = {
+                  type = "adguard";
+                  url = loopback ports.adguard;
+                  fields = ["queries" "blocked" "latency"];
+                };
+              };
+          }
+          {Beszel = app ports.beszel "beszel" "beszel.svg" "Нагрузка на сервер";}
+          {
+            Gatus =
+              app ports.gatus "status" "gatus.svg" "Живы ли сервисы"
+              // {
+                widget = {
+                  type = "gatus";
+                  url = loopback ports.gatus;
+                };
+              };
+          }
+          {
+            Scrutiny =
+              app ports.scrutiny "disks" "scrutiny.svg" "Здоровье дисков"
+              // {
+                widget = {
+                  type = "scrutiny";
+                  url = loopback ports.scrutiny;
+                };
+              };
+          }
         ];
       }
       {
@@ -430,44 +500,45 @@ in {
           }
         ];
       }
+    ];
+    bookmarks = [
       {
-        "Сеть" = [
+        "Ссылки" = [
           {
-            AdGuard = {
-              href = "https://adguard.${domain}";
-              icon = "adguard-home.svg";
-              description = "DNS и блокировка рекламы";
-            };
-          }
-        ];
-      }
-      {
-        "Мониторинг" = [
-          {
-            Beszel = {
-              href = "https://beszel.${domain}";
-              icon = "beszel.svg";
-              description = "Нагрузка на сервер";
-            };
+            "Роутер" = [
+              {
+                href = "http://192.168.1.1";
+                icon = "huawei.svg";
+              }
+            ];
           }
           {
-            Gatus = {
-              href = "https://status.${domain}";
-              icon = "gatus.svg";
-              description = "Живы ли сервисы";
-            };
+            Cloudflare = [
+              {
+                href = "https://dash.cloudflare.com";
+                icon = "cloudflare.svg";
+              }
+            ];
           }
           {
-            Scrutiny = {
-              href = "https://disks.${domain}";
-              icon = "scrutiny.svg";
-              description = "Здоровье дисков";
-            };
+            GitHub = [
+              {
+                href = "https://github.com/luxqw/nixos-btw";
+                icon = "github-light.svg";
+              }
+            ];
           }
         ];
       }
     ];
   };
+
+  environment.etc."homepage-dashboard/settings.yaml".source = let
+    rows = ["Медиа" "Файлы" "Система" "Игры" "Ссылки"];
+    layout = lib.concatMapStringsSep "," (group: ''${builtins.toJSON group}:{"style":"row","columns":4}'') rows;
+  in
+    lib.mkForce (pkgs.writeText "settings.yaml"
+      (lib.removeSuffix "}" (builtins.toJSON config.services.homepage-dashboard.settings) + '',"layout":{${layout}}}''));
 
   systemd.tmpfiles.settings."10-media" = lib.genAttrs (map (dir: "${media}${dir}") ["" "/downloads" "/movies" "/shows" "/music" "/discs"]) (_: {
     d = {
