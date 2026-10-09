@@ -123,6 +123,7 @@ in {
   ];
 
   boot.loader.systemd-boot.enable = true;
+  boot.loader.systemd-boot.configurationLimit = 10;
   boot.loader.efi.canTouchEfiVariables = true;
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
@@ -146,6 +147,9 @@ in {
     options v4l2loopback devices=1 video_nr=10 card_label="OBS Cam" exclusive_caps=1
 
     options nvidia_modeset vblank_sem_control=0
+
+    options rtw89_pci disable_aspm_l1=y disable_aspm_l1ss=y disable_clkreq=y
+    options rtw89_core disable_ps_mode=y
   '';
 
   security.rtkit.enable = true;

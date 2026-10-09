@@ -646,6 +646,16 @@ in {
         "application/xml"
         "text/xml"
         "application/sql"
+        "text/x-patch"
+        "text/x-diff"
+        "text/x-dockerfile"
+        "text/x-rust"
+        "text/x-java"
+        "text/x-typescript"
+        "text/vnd.trolltech.linguist"
+        "text/x-go-mod"
+        "application/x-bat"
+        "application/x-desktop"
       ]
       // assoc imv [
         "image/png"
@@ -677,6 +687,20 @@ in {
         "audio/mp4"
         "audio/opus"
         "audio/aac"
+        "audio/x-opus+ogg"
+        "audio/x-vorbis+ogg"
+        "audio/x-flac+ogg"
+        "audio/x-m4a"
+        "audio/webm"
+        "audio/x-matroska"
+        "audio/x-flac"
+        "audio/x-aiff"
+        "audio/x-ms-wma"
+        "video/ogg"
+        "video/mp2t"
+        "video/x-flv"
+        "video/3gpp"
+        "video/x-ms-wmv"
       ]
       // assoc zathura [
         "application/pdf"
@@ -796,6 +820,18 @@ in {
       file-roller
       zed-editor
       dbeaver-bin
+      (writeTextDir "share/mime/packages/go-mod.xml" ''
+        <?xml version="1.0" encoding="UTF-8"?>
+        <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+          <mime-type type="text/x-go-mod">
+            <comment>Go module file</comment>
+            <sub-class-of type="text/plain"/>
+            <glob pattern="go.mod"/>
+            <glob pattern="go.sum"/>
+            <glob pattern="go.work"/>
+          </mime-type>
+        </mime-info>
+      '')
     ];
 
     games = [
