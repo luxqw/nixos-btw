@@ -646,6 +646,8 @@ in {
         "text/x-csrc"
         "text/x-chdr"
         "text/x-c++src"
+        "text/x-c++hdr"
+        "text/x-csharp"
         "text/x-go"
         "text/x-lua"
         "text/x-nix"
