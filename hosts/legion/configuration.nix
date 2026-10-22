@@ -401,6 +401,11 @@ in {
     };
     pruneOpts = ["--keep-daily 7" "--keep-weekly 4" "--keep-monthly 6"];
     runCheck = true;
+    backupCleanupCommand = ''
+      if [ "$SERVICE_RESULT" = success ]; then
+        date +%s | ${pkgs.openssh}/bin/ssh homelab 'cat > /var/lib/statusbot-inbox/legion' || true
+      fi
+    '';
   };
 
   systemd.services.restic-backups-laptop.unitConfig.OnFailure = lib.mkIf offsite ["notify-desktop@%N.service"];

@@ -175,6 +175,18 @@ delete legion's backups; the box's own snapshots cover deletion from inside a
 sub-account. Every repo shares one restic password, the one on the printed
 emergency sheet. A failed backup unit triggers `notify-telegram@`.
 
+**statusbot is ours, in Go, in `hosts/homelab/statusbot/`.** It answers
+only `TELEGRAM_CHAT_ID`, on the bot token Gatus already sends with (sending
+and long polling don't conflict). It runs as root: it reads the restic
+password, restarts units and reads every journal. That is why its surface is
+fixed: `/restart` and `/logs` take only names from the allowlist in
+`/etc/statusbot.json`, and there is no shell, deploy or reboot. The 3-2-1 report
+counts a repo as a copy only if its newest snapshot is under 36 h old; legion's
+repo is behind a sub-account homelab can't open, so legion reports success by
+writing a timestamp into `/var/lib/statusbot-inbox` over ssh. The drift line
+compares the running nixpkgs with `flake.lock` on GitHub main, so it is only
+as fresh as the last push. `statusbot print` writes the digest to stdout.
+
 **The host key was generated before install** and is kept encrypted in
 `secrets/homelab/host-key.age`. A reinstall decrypts it into the
 nixos-anywhere `--extra-files` tree, so the secrets keep decrypting.

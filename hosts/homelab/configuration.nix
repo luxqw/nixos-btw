@@ -61,6 +61,15 @@
 
   retention = ["--keep-daily 7" "--keep-weekly 4" "--keep-monthly 6"];
 
+  statusbotInbox = "/var/lib/statusbot-inbox";
+
+  statusbot = pkgs.buildGoModule {
+    pname = "statusbot";
+    version = "1";
+    src = ./statusbot;
+    vendorHash = null;
+  };
+
   pumpkin = {
     port = 41565;
     hostAddress = "10.233.1.1";
@@ -1016,6 +1025,125 @@ in {
   systemd.services.restic-backups-files.unitConfig.OnFailure = ["notify-telegram@%N.service"];
   systemd.services.restic-backups-offsite.unitConfig.OnFailure = lib.mkIf offsite ["notify-telegram@%N.service"];
   systemd.services.backup-vaultwarden.unitConfig.OnFailure = ["notify-telegram@%N.service"];
+
+
+  environment.etc."statusbot.json".text = builtins.toJSON {
+    passwordFile = config.age.secrets.restic.path;
+    repos =
+      {
+        local = {
+          medium = "hdd";
+          repo = "/srv/backup/restic";
+        };
+        photos = {
+          medium = "nvme";
+          repo = photosRepo;
+        };
+        files = {
+          medium = "nvme";
+          repo = filesRepo;
+        };
+        legion = {
+          medium = "offsite";
+          heartbeat = "${statusbotInbox}/legion";
+        };
+      }
+      // lib.optionalAttrs offsite {
+        offsite = {
+          medium = "offsite";
+          repo = "sftp:storagebox:restic";
+        };
+      };
+    classes = [
+      {
+        name = "vaultwarden";
+        live = "nvme";
+        repos = ["local" "offsite"];
+      }
+      {
+        name = "obsidian, tasks, app state";
+        live = "nvme";
+        repos = ["local" "offsite"];
+      }
+      {
+        name = "photos";
+        live = "hdd";
+        repos = ["photos" "offsite"];
+      }
+      {
+        name = "cloud, synced folders";
+        live = "hdd";
+        repos = ["files" "offsite"];
+      }
+      {
+        name = "legion";
+        live = "laptop";
+        repos = ["legion"];
+      }
+    ];
+    backupUnits = ["backup-vaultwarden" "restic-backups-local" "restic-backups-photos" "restic-backups-files"] ++ lib.optional offsite "restic-backups-offsite";
+    services = [
+      "adguardhome"
+      "caddy"
+      "container@pumpkin"
+      "couchdb"
+      "flaresolverr"
+      "gatus"
+      "homepage-dashboard"
+      "immich-machine-learning"
+      "immich-server"
+      "jackett"
+      "jellyfin"
+      "opencloud"
+      "qbittorrent"
+      "scrutiny"
+      "syncthing"
+      "torrserver"
+      "vaultwarden"
+      "webdav"
+    ];
+    disks = ["/" "/srv"];
+    gatus = loopback ports.gatus;
+    scrutiny = loopback ports.scrutiny;
+    flakeLock = "https://raw.githubusercontent.com/luxqw/nixos-btw/main/flake.lock";
+    maxAgeHours = 36;
+  };
+
+  systemd.services.statusbot = {
+    description = "Telegram status bot";
+    wantedBy = ["multi-user.target"];
+    wants = ["network-online.target"];
+    after = ["network-online.target"];
+    path = [pkgs.restic pkgs.openssh config.systemd.package];
+    environment.RESTIC_CACHE_DIR = "/var/cache/statusbot";
+    restartTriggers = [config.environment.etc."statusbot.json".source];
+    serviceConfig = {
+      ExecStart = "${statusbot}/bin/statusbot serve /etc/statusbot.json";
+      EnvironmentFile = config.age.secrets.telegram.path;
+      CacheDirectory = "statusbot";
+      Restart = "always";
+      RestartSec = 10;
+    };
+  };
+
+  systemd.services.statusbot-digest = {
+    description = "Morning digest from the status bot";
+    startAt = "08:00";
+    path = [pkgs.restic pkgs.openssh config.systemd.package];
+    environment.RESTIC_CACHE_DIR = "/var/cache/statusbot";
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${statusbot}/bin/statusbot digest /etc/statusbot.json";
+      EnvironmentFile = config.age.secrets.telegram.path;
+      CacheDirectory = "statusbot";
+    };
+  };
+
+  systemd.tmpfiles.settings."10-statusbot".${statusbotInbox}.d = {
+    user = "root";
+    group = "users";
+    mode = "0775";
+  };
 
   system.stateVersion = "26.11";
 }
