@@ -115,7 +115,6 @@ in `modules/common.nix`.
 | ----------------- | --------------------------------------------- |
 | `bibata-cursors`  | noctalia-greeter runs as its own user         |
 | `ntfs3g`          | mounting the games partition                  |
-| `polkit_gnome`    | authorisation agent for the graphical session |
 | `wireguard-tools` | `wg show`                                     |
 
 ---

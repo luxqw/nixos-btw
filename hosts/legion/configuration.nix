@@ -461,7 +461,6 @@ in {
     tunnelCli
 
     inputs.noctalia.packages.${system}.default
-    pkgs.polkit_gnome
 
     pkgs.ntfs3g
     pkgs.neovim-unwrapped

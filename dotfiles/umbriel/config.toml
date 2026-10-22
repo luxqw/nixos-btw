@@ -8,10 +8,7 @@
 files = ["noctalia.toml"]
 
 [general]
-autostart = [
-  "noctalia",
-  "/run/current-system/sw/libexec/polkit-gnome-authentication-agent-1",
-]
+autostart = ["noctalia"]
 show_cheatsheet = false
 
 # ─────────────────────────────── outputs ───────────────────────────────
