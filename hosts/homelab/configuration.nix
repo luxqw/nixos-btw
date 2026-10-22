@@ -29,6 +29,7 @@
   ports = {
     adguard = 3000;
     beszel = 8090;
+    couchdb = 5984;
     flaresolverr = 8191;
     gatus = 8083;
     harmonia = 5000;
@@ -42,6 +43,7 @@
     syncthing = 8384;
     torrserver = 8091;
     vaultwarden = 8222;
+    webdav = 6065;
   };
 
   media = "/srv/media";
@@ -226,6 +228,8 @@ in {
     restic = secret "restic";
     harmonia = secret "harmonia";
     caddy-auth = secret "caddy-auth";
+    couchdb-admin = secret "couchdb-admin" // {owner = "couchdb";};
+    webdav = secret "webdav";
     rutracker = secret "rutracker";
     syncthing-cert = secret "syncthing-cert" // {owner = "syncthing";};
     syncthing-key = secret "syncthing-key" // {owner = "syncthing";};
@@ -260,6 +264,8 @@ in {
       "vault.${domain}" = proxy ports.vaultwarden;
       "photos.${domain}" = proxy ports.immich;
       "cloud.${domain}" = proxy ports.opencloud;
+      "couch.${domain}" = proxy ports.couchdb;
+      "dav.${domain}" = proxy ports.webdav;
       "jackett.${domain}" = {
         useACMEHost = domain;
         extraConfig = ''
@@ -371,6 +377,8 @@ in {
         (local "vaultwarden" "/alive")
         (local "immich" "/api/server/ping")
         (listening "opencloud")
+        (local "couchdb" "/_up")
+        (listening "webdav")
         {
           name = "pumpkin";
           url = "tcp://${pumpkin.localAddress}:${toString pumpkin.port}";
@@ -734,6 +742,54 @@ in {
     unitConfig.RequiresMountsFor = [cloud];
     serviceConfig.ReadWritePaths = [cloud];
   };
+
+  services.couchdb = {
+    enable = true;
+    bindAddress = "127.0.0.1";
+    port = ports.couchdb;
+    extraConfigFiles = [config.age.secrets.couchdb-admin.path];
+    extraConfig = {
+      couchdb = {
+        single_node = true;
+        max_document_size = 50000000;
+      };
+      chttpd = {
+        require_valid_user_except_for_up = true;
+        max_http_request_size = 4294967296;
+        enable_cors = true;
+      };
+      httpd = {
+        WWW-Authenticate = ''Basic realm="couchdb"'';
+        enable_cors = true;
+      };
+      cors = {
+        origins = "app://obsidian.md,capacitor://localhost,http://localhost";
+        credentials = true;
+        headers = "accept, authorization, content-type, origin, referer";
+        methods = "GET,PUT,POST,HEAD,DELETE";
+        max_age = 3600;
+      };
+    };
+  };
+
+  services.webdav = {
+    enable = true;
+    environmentFile = config.age.secrets.webdav.path;
+    settings = {
+      address = "127.0.0.1";
+      port = ports.webdav;
+      behindProxy = true;
+      directory = "/var/lib/webdav";
+      permissions = "CRUD";
+      users = [
+        {
+          username = "{env}WEBDAV_USERNAME";
+          password = "{env}WEBDAV_PASSWORD";
+        }
+      ];
+    };
+  };
+  systemd.services.webdav.serviceConfig.StateDirectory = "webdav";
 
   systemd.tmpfiles.settings."10-apps" = {
     ${photos}.d = {
