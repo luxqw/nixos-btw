@@ -233,8 +233,10 @@ pause
 stage "Storage Box: one sub-account per machine"
 say "Each machine gets its own sub-account, locked into its own folder, so one"
 say "machine can't touch the other's backups."
-step "Sub-accounts → create one with base directory homelab, SSH support on"
-step "Create a second with base directory legion, SSH support on"
+step "Sub-accounts → create one with base directory homelab: SSH support on, External reachability on"
+step "Create a second with base directory legion: SSH support on, External reachability on"
+note "Without External reachability a sub-account only answers inside Hetzner's network,"
+note "and every password from home is 'Permission denied'."
 step "Give each a password and save both in Vaultwarden (Storage Box homelab / legion)"
 ask SUB_HOMELAB "homelab sub-account username (u123456-sub1):"
 ask SUB_LEGION "legion sub-account username (u123456-sub2):"
@@ -257,6 +259,19 @@ EOF
 printf '  %s✓ wrote%s %s\n' "$GREEN" "$RESET" "$JSON"
 pause
 
+# Installs a public key on a sub-account; a wrong password asks again instead of ending the wizard.
+copy_key() {
+  local pub=$1 sub=$2
+  until ssh-copy-id -p 23 -s -i "$pub" -o StrictHostKeyChecking=accept-new "$sub@$sub.your-storagebox.de"; do
+    warn "login refused: check the password, and that $sub has SSH and External reachability on"
+    note "Hetzner → Storage Box → Sub-accounts → ••• → Edit (or Reset password)"
+    if ! confirm "Try again?"; then
+      SKIPPED+=("key for $sub: rerun wizards/backup.sh")
+      return 0
+    fi
+  done
+}
+
 # ── 3 ────────────────────────────────────────────────────────────────────
 stage "homelab's key for its sub-account"
 if [[ -f $HOMELAB_KEY_AGE ]] && ! confirm "homelab already has a Storage Box key. Make a new one?"; then
@@ -267,7 +282,7 @@ else
   age -R <(recipient lux; recipient homelab) -o "$HOMELAB_KEY_AGE" "$tmp/key"
   printf '  %s✓ wrote%s %s\n' "$GREEN" "$RESET" "$HOMELAB_KEY_AGE"
   say "Now ssh-copy-id asks for the homelab sub-account password once:"
-  ssh-copy-id -p 23 -s -i "$tmp/key.pub" -o StrictHostKeyChecking=accept-new "$SUB_HOMELAB@$SUB_HOMELAB.your-storagebox.de"
+  copy_key "$tmp/key.pub" "$SUB_HOMELAB"
   rm -rf "$tmp"
 fi
 pause
@@ -276,7 +291,7 @@ pause
 stage "legion's key and restic password"
 say "legion signs in with your usual ~/.ssh/id_ed25519."
 say "ssh-copy-id asks for the legion sub-account password once:"
-ssh-copy-id -p 23 -s -i "$KEY.pub" -o StrictHostKeyChecking=accept-new "$SUB_LEGION@$SUB_LEGION.your-storagebox.de"
+copy_key "$KEY.pub" "$SUB_LEGION"
 restic_pass | age -R <(recipient lux) -o "$LEGION_RESTIC_AGE"
 printf '  %s✓ wrote%s %s (same restic password as homelab)\n' "$GREEN" "$RESET" "$LEGION_RESTIC_AGE"
 pause
