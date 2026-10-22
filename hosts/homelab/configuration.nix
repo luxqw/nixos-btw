@@ -444,6 +444,7 @@ in {
         (local "couchdb" "/_up")
         (listening "webdav")
         (local "navidrome" "/ping")
+        (listening "slskd")
         (listening "paperless")
         (listening "karakeep")
         (listening "actual")
@@ -928,6 +929,12 @@ in {
       mode = "2775";
     };
     ${soulseek}.d = {
+      user = "root";
+      group = "media";
+      mode = "2775";
+    };
+    # slskd refuses to start when its incomplete directory is missing.
+    "${soulseek}/.incomplete".d = {
       user = "root";
       group = "media";
       mode = "2775";
