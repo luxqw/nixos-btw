@@ -8,6 +8,7 @@
   domain = "rakhmatullin.dev";
   lan = "eno1";
   wgPort = 51820;
+  publicPort = 8443;
 
   secret = name: {file = ../../secrets/homelab + "/${name}.age";};
 
@@ -35,6 +36,7 @@
     harmonia = 5000;
     homepage = 8082;
     immich = 2283;
+    ipp = 3010;
     jackett = 9117;
     jellyfin = 8096;
     navidrome = 4533;
@@ -306,6 +308,11 @@ in {
       "sync.${domain}" = guarded ports.syncthing;
       "vault.${domain}" = proxy ports.vaultwarden;
       "photos.${domain}" = proxy ports.immich;
+      "share.${domain}" =
+        proxy ports.ipp
+        // {
+          serverAliases = ["share.${domain}:${toString publicPort}"];
+        };
       "cloud.${domain}" = proxy ports.opencloud;
       "couch.${domain}" = proxy ports.couchdb;
       "dav.${domain}" = proxy ports.webdav;
@@ -344,6 +351,11 @@ in {
         rewrites = [
           {
             domain = "wg.${domain}";
+            answer = "192.168.1.10";
+            enabled = true;
+          }
+          {
+            domain = "share.${domain}";
             answer = "192.168.1.10";
             enabled = true;
           }
@@ -421,6 +433,7 @@ in {
         (listening "jackett")
         (local "vaultwarden" "/alive")
         (local "immich" "/api/server/ping")
+        (listening "ipp")
         (listening "opencloud")
         (local "couchdb" "/_up")
         (listening "webdav")
@@ -771,6 +784,12 @@ in {
   };
   users.users.immich.extraGroups = ["render" "video"];
   systemd.services.immich-server.unitConfig.RequiresMountsFor = [photos];
+
+  services.immich-public-proxy = {
+    enable = true;
+    immichUrl = loopback ports.immich;
+    port = ports.ipp;
+  };
 
   services.opencloud = {
     enable = true;

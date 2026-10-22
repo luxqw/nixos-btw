@@ -337,6 +337,17 @@ the original audio (`-x` without `--audio-format`): converting YouTube's
 opus to mp3 would only lose quality. `--download-archive` makes a re-run
 resume instead of starting over.
 
+**Shared albums go out through immich-public-proxy on its own port.** The
+router forwards WAN 443 to 8443, where Caddy serves only `share.` (as an
+alias of the same site); every other site listens on 443, which the router
+never forwards. So a new site can't become public by forgetting an IP
+allowlist. LAN clients reach `share.` on 443 through an AdGuard rewrite,
+since the public A record points at the home IP and the router may not
+hairpin. The proxy shows only what an Immich share link allows — no login,
+no API. Its default port 3000 is AdGuard's, hence 3010. Immich's External
+Domain is set in its admin UI (`wizards/share.sh`), not through
+`services.immich.settings`, which would take over every other admin setting.
+
 ### disc
 
 **`disc` is a script in `hosts/homelab/disc.sh`**, not inline nix: it is
