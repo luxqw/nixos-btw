@@ -330,6 +330,7 @@ in {
       set -g renumber-windows on
 
       bind f display-popup -E -w 60% -h 50% ${lib.getExe tmux-sessionizer}
+      bind -n M-f display-popup -E -w 60% -h 50% ${lib.getExe tmux-sessionizer}
       bind g display-popup -E -w 90% -h 90% -d "#{pane_current_path}" lazygit
 
       bind -n M-r source-file ~/.config/tmux/tmux.conf \; display "Config reloaded!"
@@ -390,9 +391,12 @@ in {
         font = "Iosevka NF:size=15";
         pad = "4x4";
         shell = "${pkgs.writeShellScript "foot-tmux" ''
-          ws=$(umbriel workspaces --json 2>/dev/null \
-            | ${pkgs.jq}/bin/jq -r '(.ok? // .)[] | select(.focused) | if .named then .name else "ws\(.index)" end')
-          exec tmux new -As "''${ws:-main}"
+          s=$(tmux list-sessions -F '#{session_attached} #{session_last_attached} #{session_name}' 2>/dev/null \
+            | awk '$1 == 0' | sort -k2 -nr | head -n1 | cut -d' ' -f3-)
+          [ -n "$s" ] && exec tmux attach -t "=$s"
+          n=1
+          while tmux has-session -t "=scratch-$n" 2>/dev/null; do n=$((n + 1)); done
+          exec tmux new -s "scratch-$n"
         ''}";
         include = "${config.home.homeDirectory}/.config/foot/themes/noctalia";
       };
