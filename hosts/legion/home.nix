@@ -288,7 +288,7 @@ in {
     keyMode = "vi";
     mouse = true;
     escapeTime = 0;
-    historyLimit = 2000;
+    historyLimit = 50000;
 
     plugins = with pkgs.tmuxPlugins; [
       {
@@ -322,6 +322,8 @@ in {
       bind -n MouseDown1Pane select-pane -t = \; send-keys -M
       bind -n MouseDrag1Pane select-pane -t = \; copy-mode -M
       bind -n MouseDrag1Border resize-pane -M
+      bind -n WheelUpPane if -F "#{||:#{pane_in_mode},#{mouse_any_flag}}" "send -M" "copy-mode -e"
+      bind -n S-PPage copy-mode -eu
 
       set -g pane-border-lines "double"
 
