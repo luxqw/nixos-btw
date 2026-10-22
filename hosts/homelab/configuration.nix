@@ -270,10 +270,9 @@ in {
 
   services.adguardhome = {
     enable = true;
-    host = "127.0.0.1";
-    port = ports.adguard;
     mutableSettings = false;
     settings = {
+      http.address = "127.0.0.1:${toString ports.adguard}";
       dns = {
         bind_hosts = ["0.0.0.0"];
         upstream_dns = [
@@ -713,6 +712,7 @@ in {
 
   services.opencloud = {
     enable = true;
+    package = pkgs.opencloud;
     port = ports.opencloud;
     url = "https://cloud.${domain}";
     environment = {
