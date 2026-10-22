@@ -1,11 +1,5 @@
 {
   "hostKey": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIICf9svRenC/PLKIL9nk6K/pxQgoiFC41wTNvoIncOxs",
-  "homelab": {
-    "user": "u698688-sub1",
-    "host": "u698688-sub1.your-storagebox.de"
-  },
-  "legion": {
-    "user": "u698688-sub2",
-    "host": "u698688-sub2.your-storagebox.de"
-  }
+  "homelab": {"user": "u698688-sub1", "host": "u698688-sub1.your-storagebox.de"},
+  "legion": {"user": "u698688-sub2", "host": "u698688-sub2.your-storagebox.de"}
 }
