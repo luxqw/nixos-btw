@@ -502,6 +502,47 @@ in {
     };
   };
 
+  xdg.configFile."voxtype/config.toml".source = (pkgs.formats.toml {}).generate "voxtype.toml" {
+    state_file = "auto";
+    hotkey = {
+      enabled = true;
+      key = "RIGHTCTRL";
+      mode = "push_to_talk";
+    };
+    audio = {
+      device = "default";
+      max_duration_secs = 120;
+      pause_media = true;
+    };
+    whisper = {
+      model = "${pkgs.fetchurl {
+        url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin";
+        hash = "sha256-H8cPd0046xaZk6w5Huo1fvR8iHV+9y7llDh5t+jivGk=";
+      }}";
+      language = "auto";
+      translate = false;
+      gpu_isolation = true;
+    };
+    output = {
+      mode = "type";
+      fallback_to_clipboard = true;
+    };
+  };
+
+  systemd.user.services.voxtype = {
+    Unit = {
+      Description = "Voxtype push-to-talk dictation";
+      PartOf = ["graphical-session.target"];
+      After = ["graphical-session.target" "pipewire.service"];
+    };
+    Service = {
+      ExecStart = "${lib.getExe pkgs.voxtype-vulkan} -q daemon";
+      Restart = "on-failure";
+      RestartSec = 5;
+    };
+    Install.WantedBy = ["graphical-session.target"];
+  };
+
   programs.yazi = {
     enable = true;
     enableZshIntegration = true;
