@@ -40,6 +40,39 @@
     '';
   };
 
+  keyhints = pkgs.writeShellApplication {
+    name = "keyhints";
+    runtimeInputs = with pkgs; [python3 tmux fzf];
+    text = ''
+      python3 ${pkgs.writeText "keyhints.py" ''
+        import os
+        import re
+        import subprocess
+        import tomllib
+
+        def pretty(key):
+            for a, b in (("Mod+", "Super+"), ("M-", "Alt+"), ("C-", "Ctrl+"), ("S-", "Shift+")):
+                key = key.replace(a, b)
+            return key
+
+        with open(os.path.expanduser("~/.config/umbriel/config.toml"), "rb") as f:
+            binds = tomllib.load(f).get("keybinds", {})
+        for key, act in binds.items():
+            if isinstance(act, dict):
+                act = act.get("action", "")
+            print(f"umbriel  {pretty(key):<30} {act}")
+
+        out = subprocess.run(["tmux", "list-keys"], capture_output=True, text=True).stdout
+        for line in out.splitlines():
+            m = re.match(r"bind-key\s+(?:-r\s+)?-T\s+(root|prefix)\s+(\S+)\s+(.*)", line)
+            if not m or re.match(r"(Mouse|Wheel|Double|Triple)", m[2]):
+                continue
+            key = pretty(m[2]) if m[1] == "root" else "Prefix " + pretty(m[2])
+            print(f"tmux     {key:<30} {m[3].strip()}")
+      ''} | fzf --reverse --no-sort --prompt "keys> " --header "Esc to close"
+    '';
+  };
+
   mkObsidianPlugin = pluginId: {
     repo,
     version,
@@ -877,6 +910,7 @@ in {
       grim
       slurp
       tmux-sessionizer
+      keyhints
       wtype
       inputs.clin.packages.${system}.default
       inputs.anicli-ru.packages.${system}.default

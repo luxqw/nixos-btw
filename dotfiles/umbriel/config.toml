@@ -90,6 +90,11 @@ blur_ignore_alpha = 0.5
 blur_popups = true
 blur_optimized = true
 
+[[window_rule]]
+match.app_id = "^keyhints$"
+default_floating = true
+default_floating_size = { width = 0.6, height = 0.7 }
+
 [hot_corners.top_left]
 enabled = true
 delay_ms = 500
@@ -142,6 +147,7 @@ enabled = false
 
 [keybinds]
 "Mod+Shift+Slash" = "cheatsheet-toggle"
+"Mod+F1" = { action = "spawn:foot --app-id=keyhints keyhints", repeat = false }
 "Mod+D" = { action = "spawn:noctalia msg panel-toggle launcher", repeat = false }
 "Mod+T" = { action = "spawn:noctalia msg panel-toggle clipboard", repeat = false }
 "Mod+Return" = { action = "spawn:foot", repeat = false }
