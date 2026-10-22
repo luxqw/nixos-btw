@@ -908,7 +908,9 @@ in {
       keyhints
       wtype
       inputs.clin.packages.${system}.default
-      inputs.anicli-ru.packages.${system}.default
+      (inputs.anicli-ru.packages.${system}.default.overridePythonAttrs (old: {
+        pythonRelaxDeps = (old.pythonRelaxDeps or []) ++ ["typer"];
+      }))
     ];
 
     network = [
