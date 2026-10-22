@@ -1,0 +1,44 @@
+{
+  "opengym_plan": 1,
+  "exported": "2026-10-22",
+  "name": "Home, no equipment, 2 m²",
+  "unit": "kg",
+  "week": {
+    "1": ["a"],
+    "3": ["b"],
+    "5": ["a"]
+  },
+  "routines": [
+    {
+      "id": "a",
+      "name": "Full body A",
+      "emoji": "💪",
+      "prog": "double",
+      "ex": [
+        { "id": "3094", "sets": 1, "mode": "time", "sec": 60, "prog": "off", "note": "Warm-up. Step jacks if the neighbours mind." },
+        { "id": "4633", "sets": 1, "reps": 10, "side": true, "prog": "off", "note": "Warm-up, 5 per side." },
+        { "id": "1197", "sets": 3, "reps": 12, "repsMax": 25, "restSec": 60, "note": "3 s down, no bounce. Past 25: switch to split squat or Bulgarian split squat on a chair (3743)." },
+        { "id": "0662", "sets": 3, "reps": 6, "repsMax": 15, "restSec": 90, "sg": "a-push", "note": "Can't do 6 clean? Swap for push up (on knees) until you can." },
+        { "id": "5822", "sets": 3, "reps": 10, "repsMax": 20, "restSec": 90, "sg": "a-push", "note": "Thumbs up, squeeze the shoulder blades, 1 s hold at the top." },
+        { "id": "0726", "sets": 3, "reps": 16, "repsMax": 30, "side": true, "restSec": 45, "note": "Drive through the heel, 2 s squeeze at the top." },
+        { "id": "0463", "sets": 3, "mode": "time", "sec": 30, "prog": "time", "inc": 5, "restSec": 45, "note": "Ribs down, glutes tight. Stop when the hips sag." }
+      ]
+    },
+    {
+      "id": "b",
+      "name": "Full body B",
+      "emoji": "🔥",
+      "prog": "double",
+      "ex": [
+        { "id": "3094", "sets": 1, "mode": "time", "sec": 60, "prog": "off", "note": "Warm-up." },
+        { "id": "4633", "sets": 1, "reps": 10, "side": true, "prog": "off", "note": "Warm-up, 5 per side." },
+        { "id": "0781", "sets": 3, "reps": 16, "repsMax": 30, "side": true, "restSec": 60, "note": "Back knee almost touches the floor. Past 15/side: Bulgarian split squat on a chair (3743)." },
+        { "id": "2921", "sets": 3, "reps": 5, "repsMax": 12, "restSec": 90, "sg": "b-push", "note": "Head goes in front of the hands, like a triangle." },
+        { "id": "3436", "sets": 3, "reps": 10, "repsMax": 20, "restSec": 90, "sg": "b-push", "note": "Lift chest and thighs together, 2 s hold." },
+        { "id": "3585", "sets": 3, "reps": 16, "repsMax": 30, "side": true, "restSec": 45, "note": "Hinge at the hip, flat back; touch a wall for balance at first." },
+        { "id": "0715", "sets": 3, "mode": "time", "sec": 20, "side": true, "prog": "time", "inc": 5, "restSec": 30, "note": "Straight line from head to heels." }
+      ]
+    }
+  ],
+  "customEx": []
+}
