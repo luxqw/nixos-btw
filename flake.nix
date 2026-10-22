@@ -42,6 +42,11 @@
       url = "github:ElyPrismLauncher/ElyPrismLauncher";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    t3-code-nix = {
+      url = "github:LisaScheers/t3-code-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.home-manager.follows = "home-manager";
+    };
     anicli-ru = {
       url = "github:luxqw/ani-cli-ru/nix-flake";
       inputs.nixpkgs.follows = "nixpkgs";

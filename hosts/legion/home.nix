@@ -124,6 +124,8 @@
     style=Fusion
   '';
 in {
+  imports = [inputs.t3-code-nix.homeModules.t3code];
+
   home.username = "lux";
   home.homeDirectory = "/home/lux";
 
@@ -273,6 +275,12 @@ in {
   };
 
   programs.zoxide.enable = true;
+
+  programs.t3code = {
+    enable = true;
+    channel = "stable";
+    packageVariant = "prebuilt";
+  };
 
   programs.tmux = {
     enable = true;
