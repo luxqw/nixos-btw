@@ -336,17 +336,27 @@ in {
     publicKey = storagebox.hostKey;
   };
 
-  security.polkit.extraConfig = ''
-    polkit.addRule(function(action, subject) {
-      var units = ${builtins.toJSON tunnelUnits};
-      if (action.id == "org.freedesktop.systemd1.manage-units" &&
-          units.indexOf(action.lookup("unit")) >= 0 &&
-          ["start", "stop", "restart"].indexOf(action.lookup("verb")) >= 0 &&
-          subject.user == "lux") {
-        return polkit.Result.YES;
-      }
-    });
-  '';
+  security.polkit.extraConfig =
+    ''
+      polkit.addRule(function(action, subject) {
+        var units = ${builtins.toJSON tunnelUnits};
+        if (action.id == "org.freedesktop.systemd1.manage-units" &&
+            units.indexOf(action.lookup("unit")) >= 0 &&
+            ["start", "stop", "restart"].indexOf(action.lookup("verb")) >= 0 &&
+            subject.user == "lux") {
+          return polkit.Result.YES;
+        }
+      });
+    ''
+    # inhibitsSleep runs the laptop backup under systemd-inhibit; a service has no
+    # session to ask for the password in, so lux may take a sleep lock without one.
+    + lib.optionalString offsite ''
+      polkit.addRule(function(action, subject) {
+        if (action.id == "org.freedesktop.login1.inhibit-block-sleep" && subject.user == "lux") {
+          return polkit.Result.YES;
+        }
+      });
+    '';
 
   age.identityPaths = ["/home/lux/.ssh/id_ed25519"];
 
