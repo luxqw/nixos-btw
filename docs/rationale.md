@@ -158,6 +158,23 @@ depend on which LAN the server is plugged into.
 **btrbk works on `/mnt/pool`**, the btrfs top level, because snapshots of
 `@var-lib` go into the sibling `@snapshots`.
 
+**Backups are 3-2-1 by disk.** Data on the NVMe (`/var/lib`) gets a
+restic repo on the HDD (`local`); data on the HDD (`/srv/photos`,
+`/srv/cloud`, `/srv/sync`) gets repos on the NVMe (`photos`, `files`).
+`offsite` sends all of it, minus `/srv/media` (re-downloadable) and Immich's
+thumbnails, to a Hetzner Storage Box over sftp on port 23. Live Postgres files
+are left out of `offsite`: Immich's own nightly dump under `/srv/photos`
+is the consistent copy. Vaultwarden's SQLite is copied with `.backup` by
+`backup-vaultwarden` at 23:00, before restic runs; the module refuses a
+`backupDir` that merely starts with `/var/lib/vaultwarden`.
+
+**`offsite` exists only once `hosts/storagebox.json` and its key do**, so
+the host builds before `wizards/backup.sh` has run. Each machine has its own
+sub-account, chrooted into its own folder, so a compromised homelab can't
+delete legion's backups; the box's own snapshots cover deletion from inside a
+sub-account. Every repo shares one restic password, the one on the printed
+emergency sheet. A failed backup unit triggers `notify-telegram@`.
+
 **The host key was generated before install** and is kept encrypted in
 `secrets/homelab/host-key.age`. A reinstall decrypts it into the
 nixos-anywhere `--extra-files` tree, so the secrets keep decrypting.

@@ -22,6 +22,26 @@
 
   manualTunnels = ["home"];
 
+  buildDirs = [
+    ".cache"
+    ".direnv"
+    ".gradle"
+    ".venv"
+    ".zig-cache"
+    "__pycache__"
+    "build"
+    "dist"
+    "node_modules"
+    "result"
+    "target"
+  ];
+
+  storagebox = let
+    f = ../storagebox.json;
+  in
+    lib.optionalAttrs (builtins.pathExists f) (lib.importJSON f);
+  offsite = storagebox != {} && builtins.pathExists ../../secrets/legion/restic.age;
+
   tunnelCli = pkgs.writeShellApplication {
     name = "tunnel";
     runtimeInputs = [pkgs.age agenixPackage pkgs.systemd];
@@ -284,12 +304,24 @@ in {
     publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIItAd+Zf3tM9hJbLr+QnBLmcJWB0JFzw9Al8zWLvzepq";
   };
 
-  programs.ssh.extraConfig = ''
-    Host homelab homelab.rakhmatullin.dev
-      HostName homelab.rakhmatullin.dev
-      User lux
-      ConnectTimeout 3
-  '';
+  programs.ssh.extraConfig =
+    ''
+      Host homelab homelab.rakhmatullin.dev
+        HostName homelab.rakhmatullin.dev
+        User lux
+        ConnectTimeout 3
+    ''
+    + lib.optionalString offsite ''
+      Host storagebox
+        HostName ${storagebox.legion.host}
+        User ${storagebox.legion.user}
+        Port 23
+    '';
+
+  programs.ssh.knownHosts.storagebox = lib.mkIf offsite {
+    hostNames = ["[${storagebox.legion.host}]:23"];
+    publicKey = storagebox.hostKey;
+  };
 
   security.polkit.extraConfig = ''
     polkit.addRule(function(action, subject) {
@@ -309,7 +341,7 @@ in {
     lib.genAttrs tunnelNames (name: {
       file = tunnelSecretsDir + "/${name}.age";
     })
-    // lib.genAttrs ["syncthing-cert" "syncthing-key"] (name: {
+    // lib.genAttrs (["syncthing-cert" "syncthing-key"] ++ lib.optional offsite "restic") (name: {
       file = ../../secrets/legion + "/${name}.age";
       owner = "lux";
     });
@@ -337,19 +369,7 @@ in {
         documents = {
           path = "/home/lux/Documents";
           devices = ["homelab"];
-          ignorePatterns = map (dir: "(?d)${dir}") [
-            ".cache"
-            ".direnv"
-            ".gradle"
-            ".venv"
-            ".zig-cache"
-            "__pycache__"
-            "build"
-            "dist"
-            "node_modules"
-            "result"
-            "target"
-          ];
+          ignorePatterns = map (dir: "(?d)${dir}") buildDirs;
         };
         downloads = {
           path = "/home/lux/Downloads";
@@ -357,6 +377,48 @@ in {
         };
       };
     };
+  };
+
+  services.restic.backups.laptop = lib.mkIf offsite {
+    user = "lux";
+    repository = "sftp:storagebox:restic";
+    passwordFile = config.age.secrets.restic.path;
+    initialize = true;
+    inhibitsSleep = true;
+    paths = map (p: "/home/lux/${p}") [
+      "Documents"
+      "Pictures"
+      "Notes"
+      ".ssh"
+      ".config/noctalia"
+      ".local/state/noctalia"
+    ];
+    exclude = buildDirs;
+    timerConfig = {
+      OnCalendar = "daily";
+      Persistent = true;
+      RandomizedDelaySec = "1h";
+    };
+    pruneOpts = ["--keep-daily 7" "--keep-weekly 4" "--keep-monthly 6"];
+    runCheck = true;
+  };
+
+  systemd.services.restic-backups-laptop.unitConfig.OnFailure = lib.mkIf offsite ["notify-desktop@%N.service"];
+
+  systemd.services."notify-desktop@" = {
+    description = "Tell the desktop that %i failed";
+    environment.DBUS_SESSION_BUS_ADDRESS = "unix:path=/run/user/1000/bus";
+    serviceConfig = {
+      Type = "oneshot";
+      User = "lux";
+      ExecStart = "${pkgs.libnotify}/bin/notify-send -u critical -a backup \"%i failed\" \"journalctl -u %i\"";
+    };
+  };
+
+  systemd.tmpfiles.settings."10-notes"."/home/lux/Notes".d = {
+    user = "lux";
+    group = "users";
+    mode = "0755";
   };
 
   systemd.services.photos-backup = {

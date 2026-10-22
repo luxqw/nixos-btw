@@ -50,6 +50,16 @@
   photos = "/srv/photos";
   cloud = "/srv/cloud";
   photosRepo = "/var/backup/photos";
+  filesRepo = "/var/backup/files";
+  vaultwardenBackup = "/var/lib/backups/vaultwarden";
+
+  storagebox = let
+    f = ../storagebox.json;
+  in
+    lib.optionalAttrs (builtins.pathExists f) (lib.importJSON f);
+  offsite = storagebox != {} && builtins.pathExists ../../secrets/homelab/storagebox-key.age;
+
+  retention = ["--keep-daily 7" "--keep-weekly 4" "--keep-monthly 6"];
 
   pumpkin = {
     port = 41565;
@@ -705,6 +715,7 @@ in {
   services.vaultwarden = {
     enable = true;
     domain = "vault.${domain}";
+    backupDir = vaultwardenBackup;
     config = {
       ROCKET_ADDRESS = "127.0.0.1";
       ROCKET_PORT = ports.vaultwarden;
@@ -806,6 +817,11 @@ in {
       user = "root";
       group = "users";
       mode = "0750";
+    };
+    ${vaultwardenBackup}.d = {
+      user = "vaultwarden";
+      group = "vaultwarden";
+      mode = "0700";
     };
   };
 
@@ -918,7 +934,7 @@ in {
       OnCalendar = "03:00";
       Persistent = true;
     };
-    pruneOpts = ["--keep-daily 7" "--keep-weekly 4" "--keep-monthly 6"];
+    pruneOpts = retention;
   };
 
   services.restic.backups.photos = {
@@ -933,6 +949,73 @@ in {
       Persistent = true;
     };
   };
+
+
+  services.restic.backups.files = {
+    repository = filesRepo;
+    passwordFile = config.age.secrets.restic.path;
+    initialize = true;
+    paths = [cloud "/srv/sync"];
+    timerConfig = {
+      OnCalendar = "04:15";
+      Persistent = true;
+    };
+    pruneOpts = retention;
+  };
+
+  services.restic.backups.offsite = lib.mkIf offsite {
+    repository = "sftp:storagebox:restic";
+    passwordFile = config.age.secrets.restic.path;
+    initialize = true;
+    paths = ["/var/lib" photos cloud "/srv/sync"];
+    exclude = [
+      "/var/lib/systemd/coredump"
+      "/var/lib/postgresql"
+      "${photos}/thumbs"
+      "${photos}/encoded-video"
+    ];
+    timerConfig = {
+      OnCalendar = "04:30";
+      Persistent = true;
+    };
+    pruneOpts = retention;
+    runCheck = true;
+  };
+
+  age.secrets.storagebox-key = lib.mkIf offsite (secret "storagebox-key");
+
+  programs.ssh = lib.mkIf offsite {
+    extraConfig = ''
+      Host storagebox
+        HostName ${storagebox.homelab.host}
+        User ${storagebox.homelab.user}
+        Port 23
+        IdentityFile ${config.age.secrets.storagebox-key.path}
+    '';
+    knownHosts.storagebox = {
+      hostNames = ["[${storagebox.homelab.host}]:23"];
+      publicKey = storagebox.hostKey;
+    };
+  };
+
+  systemd.services."notify-telegram@" = {
+    description = "Tell Telegram that %i failed";
+    path = [pkgs.curl];
+    scriptArgs = "%i";
+    script = ''
+      curl -sf -o /dev/null "https://api.telegram.org/bot$TELEGRAM_TOKEN/sendMessage" \
+        -d chat_id="$TELEGRAM_CHAT_ID" --data-urlencode text="❌ $1 failed on homelab: journalctl -u $1"
+    '';
+    serviceConfig = {
+      Type = "oneshot";
+      EnvironmentFile = config.age.secrets.telegram.path;
+    };
+  };
+  systemd.services.restic-backups-local.unitConfig.OnFailure = ["notify-telegram@%N.service"];
+  systemd.services.restic-backups-photos.unitConfig.OnFailure = ["notify-telegram@%N.service"];
+  systemd.services.restic-backups-files.unitConfig.OnFailure = ["notify-telegram@%N.service"];
+  systemd.services.restic-backups-offsite.unitConfig.OnFailure = lib.mkIf offsite ["notify-telegram@%N.service"];
+  systemd.services.backup-vaultwarden.unitConfig.OnFailure = ["notify-telegram@%N.service"];
 
   system.stateVersion = "26.11";
 }
