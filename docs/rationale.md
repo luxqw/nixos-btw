@@ -53,8 +53,8 @@ XWayland and screen sharing never starts.
 
 ### network
 
-**v2raya and throne** solve the same problem and both want the default
-route; throne's tun mode fights v2raya.
+**v2raya is the only proxy client.** throne solved the same problem, and its
+tun mode fought v2raya for the default route.
 
 **The tunnel list is written down nowhere.** It is derived from
 `secrets/wg/`; a filename is both the interface and the unit name. See
@@ -106,9 +106,6 @@ loader never points at a garbage-collected store path.
 `dumpcap` wrapper with `cap_net_raw`/`cap_net_admin` and the `wireshark`
 group, both from the module. The default package is `wireshark-cli`, which
 has no GUI.
-
-**jellyfin runs as `lux`** so it can read media in the home directory
-without loosening its permissions.
 
 **`neovim-unwrapped` is in the system packages** so root has an editor when
 home-manager is unavailable.
@@ -383,6 +380,11 @@ folders and zips opened in zathura, images and PDFs in chromium, torrents in
 mpv. `mimeapps.list` is `force`d, so "set as default" in an app doesn't
 stick — add the type here.
 
+**Torrents and magnets go to homelab, not the local qBittorrent.**
+`torrent-add` pipes them over ssh to `curl` on homelab, against qBittorrent's
+API on 127.0.0.1, where `LocalHostAuth = false` — so no password lives on the
+laptop. The local qBittorrent stays installed for the odd one-off.
+
 ### editor
 
 **The neovim config is a raw dotfile**, symlinked past the store. It is
@@ -407,9 +409,6 @@ binaries expect an FHS layout. The LazyVim lang extras name some of them
 
 **`bitwarden-cli` and `super-productivity`** are there for the noctalia
 plugins of the same names (`bw serve`, the REST API).
-
-**`python3` with numpy/onnxruntime/pillow** is for noctalia's
-`wallpaper_depth`, which can't use its own venv on NixOS.
 
 **`obsidian-plugins` is a command, not an activation step.** The plugins are
 pinned by hash but *copied* into `<vault>/.obsidian/plugins/` on demand:

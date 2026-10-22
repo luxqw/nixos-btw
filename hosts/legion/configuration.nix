@@ -171,6 +171,7 @@ in {
   ];
 
   services.printing.enable = true;
+  services.fwupd.enable = true;
   services.udisks2.enable = true;
   services.gvfs.enable = true;
   services.libinput.enable = true;
@@ -250,11 +251,6 @@ in {
   services.v2raya = {
     enable = true;
     cliPackage = pkgs.xray;
-  };
-
-  programs.throne = {
-    enable = true;
-    tunMode.enable = true;
   };
 
   networking.wg-quick.interfaces = lib.genAttrs tunnelNames (name: {
@@ -430,12 +426,6 @@ in {
   };
 
   virtualisation.docker.enable = true;
-
-  services.jellyfin = {
-    enable = true;
-    openFirewall = true;
-    user = "lux";
-  };
 
   programs.gamemode.enable = true;
   programs.gamescope.enable = true;

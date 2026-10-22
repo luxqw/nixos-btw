@@ -89,6 +89,27 @@
     '';
   };
 
+  torrent-add = pkgs.writeShellApplication {
+    name = "torrent-add";
+    runtimeInputs = with pkgs; [openssh libnotify];
+    text = ''
+      send() {
+        case $1 in
+          magnet:*) printf '%s' "$1" | ssh homelab 'curl -sf --data-urlencode urls@- http://127.0.0.1:8080/api/v2/torrents/add' ;;
+          *) ssh homelab 'curl -sf -F "torrents=@-;filename=upload.torrent" http://127.0.0.1:8080/api/v2/torrents/add' <"$1" ;;
+        esac >/dev/null
+      }
+
+      for arg in "$@"; do
+        if send "$arg"; then
+          notify-send -a torrent "Sent to homelab" "''${arg:0:80}"
+        else
+          notify-send -a torrent -u critical "homelab rejected the torrent" "''${arg:0:80}"
+        fi
+      done
+    '';
+  };
+
   keyhints = pkgs.writeShellApplication {
     name = "keyhints";
     runtimeInputs = with pkgs; [python3 fzf];
@@ -142,15 +163,6 @@
         "main.js" = "sha256-zR6F8WZLB1/WHRdWWNUEOQ+Nnx+VyebHyN8byw0V+m4=";
         "manifest.json" = "sha256-oSEnQ8RXtiXlhJEsuYS1nnVuqZTjllKhQup4Wc/lUIY=";
         "styles.css" = "sha256-S6AL70F+6Y2aYt2f67eS3GVVlJz8no4GlFCtaZqyufA=";
-      };
-    };
-    tasknotes = {
-      repo = "callumalpass/tasknotes";
-      version = "4.12.5";
-      hashes = {
-        "main.js" = "sha256-f4K2u//l/0sDxrFYGqGT8SBM1ZcHAO+WQfCV4MJ3vE4=";
-        "manifest.json" = "sha256-m+yYiTjGejvKIkJNlGaA4CsOodLDn9hgz8rvNcNyBI0=";
-        "styles.css" = "sha256-ILc5tmv0VZYhBJ0dS4BovtgWJwoSdzHka7Yg/zFNWNg=";
       };
     };
   };
@@ -353,6 +365,11 @@ in {
   };
 
   programs.zoxide.enable = true;
+
+  programs.direnv = {
+    enable = true;
+    nix-direnv.enable = true;
+  };
 
   programs.t3code = {
     enable = true;
@@ -560,9 +577,9 @@ in {
         ];
         torrent = [
           {
-            run = ''qbittorrent "$@"'';
+            run = ''torrent-add "$@"'';
             orphan = true;
-            desc = "Open in qBittorrent";
+            desc = "Send to homelab qBittorrent";
           }
         ];
       };
@@ -793,7 +810,7 @@ in {
         "application/x-iso9660-image"
         "application/x-cd-image"
       ]
-      // assoc "org.qbittorrent.qBittorrent.desktop" ["application/x-bittorrent" "x-scheme-handler/magnet"]
+      // assoc "torrent-add.desktop" ["application/x-bittorrent" "x-scheme-handler/magnet"]
       // assoc "thunar.desktop" ["inode/directory"]
       // assoc "dbeaver.desktop" ["application/x-sqlite3" "application/vnd.sqlite3"]
       // assoc browser [
@@ -819,6 +836,13 @@ in {
   };
   xdg.configFile."mimeapps.list".force = true;
 
+  xdg.desktopEntries.torrent-add = {
+    name = "Send to homelab qBittorrent";
+    exec = "torrent-add %U";
+    mimeType = ["application/x-bittorrent" "x-scheme-handler/magnet"];
+    noDisplay = true;
+  };
+
   xdg.configFile."nvim" = {
     source = config.lib.file.mkOutOfStoreSymlink "/etc/nixos/dotfiles/nvim";
     force = true;
@@ -842,6 +866,9 @@ in {
     settings = {
       gui.nerdFontsVersion = "3";
       os.editPreset = "nvim-remote";
+      git.diffRenderers = [
+        {command = "delta --{{colorScheme}} --paging=never";}
+      ];
     };
   };
 
@@ -856,7 +883,6 @@ in {
       obsidian
       obsidian-plugins
       onlyoffice-desktopeditors
-      keepassxc
       bitwarden-cli
       super-productivity
       localsend
@@ -910,12 +936,14 @@ in {
       zellij
       zellij-pick
       zellij-scratch
+      torrent-add
+      tealdeer
+      delta
+      restic
+      yubikey-manager
       keyhints
       wtype
       inputs.clin.packages.${system}.default
-      (inputs.anicli-ru.packages.${system}.default.overridePythonAttrs (old: {
-        pythonRelaxDeps = (old.pythonRelaxDeps or []) ++ ["typer"];
-      }))
     ];
 
     network = [
@@ -930,10 +958,8 @@ in {
       gopls
       goimports
       nodejs_22
-      (python3.withPackages (ps: with ps; [numpy onnxruntime pillow]))
       gcc
       gh
-      nil
       alejandra
       stylua
       lua-language-server
