@@ -28,6 +28,7 @@
   };
 
   ports = {
+    actual = 5006;
     adguard = 3000;
     beszel = 8090;
     couchdb = 5984;
@@ -39,8 +40,10 @@
     ipp = 3010;
     jackett = 9117;
     jellyfin = 8096;
+    karakeep = 3020;
     navidrome = 4533;
     opencloud = 9200;
+    paperless = 28981;
     qbittorrent = 8080;
     scrutiny = 8081;
     slskd = 5030;
@@ -318,6 +321,9 @@ in {
       "dav.${domain}" = proxy ports.webdav;
       "music.${domain}" = proxy ports.navidrome;
       "slskd.${domain}" = proxy ports.slskd;
+      "docs.${domain}" = proxy ports.paperless;
+      "keep.${domain}" = proxy ports.karakeep;
+      "budget.${domain}" = proxy ports.actual;
       "jackett.${domain}" = {
         useACMEHost = domain;
         extraConfig = ''
@@ -438,6 +444,9 @@ in {
         (local "couchdb" "/_up")
         (listening "webdav")
         (local "navidrome" "/ping")
+        (listening "paperless")
+        (listening "karakeep")
+        (listening "actual")
         {
           name = "pumpkin";
           url = "tcp://${pumpkin.localAddress}:${toString pumpkin.port}";
@@ -520,6 +529,13 @@ in {
           {Immich = app ports.immich "photos" "immich.svg" "Фото";}
           {Vaultwarden = app ports.vaultwarden "vault" "vaultwarden.svg" "Пароли";}
           {Syncthing = app ports.syncthing "sync" "syncthing.svg" "Documents и Downloads с ноутбука";}
+        ];
+      }
+      {
+        "Личное" = [
+          {Paperless = app ports.paperless "docs" "paperless-ngx.svg" "Документы и сканы";}
+          {Karakeep = app ports.karakeep "keep" "karakeep.svg" "Закладки и статьи";}
+          {Actual = app ports.actual "budget" "actual-budget.svg" "Бюджет";}
         ];
       }
       {
@@ -607,7 +623,7 @@ in {
   };
 
   environment.etc."homepage-dashboard/settings.yaml".source = let
-    rows = ["Медиа" "Файлы" "Система" "Игры" "Ссылки"];
+    rows = ["Медиа" "Файлы" "Личное" "Система" "Игры" "Ссылки"];
     layout = lib.concatMapStringsSep "," (group: ''${builtins.toJSON group}:{"style":"row","columns":4}'') rows;
   in
     lib.mkForce (pkgs.writeText "settings.yaml"
@@ -809,6 +825,37 @@ in {
     path = [pkgs.inotify-tools];
     unitConfig.RequiresMountsFor = [cloud];
     serviceConfig.ReadWritePaths = [cloud];
+  };
+
+  services.paperless = {
+    enable = true;
+    port = ports.paperless;
+    domain = "docs.${domain}";
+    exporter.enable = true;
+    settings = {
+      PAPERLESS_OCR_LANGUAGE = "srp+srp_latn+rus+eng";
+      PAPERLESS_TIME_ZONE = config.time.timeZone;
+      PAPERLESS_FILENAME_FORMAT = "{{ created_year }}/{{ correspondent }}/{{ title }}";
+    };
+  };
+
+  services.karakeep = {
+    enable = true;
+    extraEnvironment = {
+      PORT = toString ports.karakeep;
+      NEXTAUTH_URL = "https://keep.${domain}";
+      DISABLE_NEW_RELEASE_CHECK = "true";
+      CRAWLER_FULL_PAGE_ARCHIVE = "true";
+      CRAWLER_STORE_SCREENSHOT = "true";
+    };
+  };
+
+  services.actual = {
+    enable = true;
+    settings = {
+      hostname = "127.0.0.1";
+      port = ports.actual;
+    };
   };
 
   services.couchdb = {
@@ -1027,7 +1074,6 @@ in {
     };
   };
 
-
   services.restic.backups.files = {
     repository = filesRepo;
     passwordFile = config.age.secrets.restic.path;
@@ -1093,7 +1139,7 @@ in {
   systemd.services.restic-backups-files.unitConfig.OnFailure = ["notify-telegram@%N.service"];
   systemd.services.restic-backups-offsite.unitConfig.OnFailure = lib.mkIf offsite ["notify-telegram@%N.service"];
   systemd.services.backup-vaultwarden.unitConfig.OnFailure = ["notify-telegram@%N.service"];
-
+  systemd.services.paperless-exporter.unitConfig.OnFailure = lib.mkAfter ["notify-telegram@%N.service"];
 
   environment.etc."statusbot.json".text = builtins.toJSON {
     passwordFile = config.age.secrets.restic.path;
@@ -1134,6 +1180,11 @@ in {
         repos = ["local" "offsite"];
       }
       {
+        name = "documents, bookmarks, budget";
+        live = "nvme";
+        repos = ["local" "offsite"];
+      }
+      {
         name = "photos";
         live = "hdd";
         repos = ["photos" "offsite"];
@@ -1151,6 +1202,7 @@ in {
     ];
     backupUnits = ["backup-vaultwarden" "restic-backups-local" "restic-backups-photos" "restic-backups-files"] ++ lib.optional offsite "restic-backups-offsite";
     services = [
+      "actual"
       "adguardhome"
       "caddy"
       "container@pumpkin"
@@ -1162,8 +1214,12 @@ in {
       "immich-server"
       "jackett"
       "jellyfin"
+      "karakeep-web"
+      "karakeep-workers"
       "navidrome"
       "opencloud"
+      "paperless-consumer"
+      "paperless-web"
       "qbittorrent"
       "scrutiny"
       "slskd"
@@ -1214,7 +1270,6 @@ in {
     group = "users";
     mode = "0775";
   };
-
 
   services.navidrome = {
     enable = true;
