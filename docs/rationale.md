@@ -15,6 +15,12 @@ own nixpkgs; following ours breaks the hash.
 
 ### boot
 
+**`v4l2loopback` deletes its own `modules.*` files.** Since kernel 7.3
+`modules_install` runs depmod even for out-of-tree modules, and the index it
+writes into the package collides with the kernel's in the merged module tree.
+Fixed in nixpkgs by #575861/#577221; drop the override once they reach
+`nixos-unstable`.
+
 **`options nvidia_modeset vblank_sem_control=0`** works around flicker and a
 black screen on resume, first seen under niri.
 <https://github.com/niri-wm/niri/issues/3384>

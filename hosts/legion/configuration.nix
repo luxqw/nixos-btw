@@ -128,7 +128,9 @@ in {
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
   boot.extraModulePackages = with config.boot.kernelPackages; [
-    v4l2loopback
+    (v4l2loopback.overrideAttrs (old: {
+      postInstall = (old.postInstall or "") + "rm -f $out/lib/modules/*/modules.*";
+    }))
   ];
 
   boot.kernelModules = [
