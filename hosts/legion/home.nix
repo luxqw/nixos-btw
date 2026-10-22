@@ -23,31 +23,62 @@
     install -Dm755 ${pkgs.gotools}/bin/.goimports-wrapped $out/bin/goimports
   '';
 
-  tmux-sessionizer = pkgs.writeShellApplication {
-    name = "tmux-sessionizer";
-    runtimeInputs = with pkgs; [tmux fzf findutils coreutils];
+  zellij-pick = pkgs.writeShellApplication {
+    name = "zellij-pick";
+    runtimeInputs = with pkgs; [zellij fzf zoxide findutils coreutils gawk];
     text = ''
-      dir=$(find "$HOME/Documents/projects" -mindepth 1 -maxdepth 1 -type d | sort | fzf --reverse) || exit 0
-      name=$(basename "$dir" | tr .: __)
+      out=$(
+        {
+          zellij ls -s 2>/dev/null | sed 's/^/@/'
+          find "$HOME/Documents/projects" -mindepth 1 -maxdepth 1 -type d | sort
+          zoxide query -l
+        } | awk '!seen[$0]++' \
+          | fzf --reverse --print-query --prompt "session> " \
+              --header "@ = session · dir = project session · type a new name + Enter"
+      ) || [ -n "$out" ] || exit 0
 
-      tmux has-session -t "=$name" 2>/dev/null || tmux new-session -ds "$name" -c "$dir"
+      query=$(sed -n 1p <<<"$out")
+      pick=$(sed -n 2p <<<"$out")
+      pick=''${pick:-$query}
+      [ -n "$pick" ] || exit 0
 
-      if [ -n "''${TMUX-}" ]; then
-        tmux switch-client -t "=$name"
+      if [[ $pick == @* ]]; then
+        name=''${pick#@}
+        dir=$HOME
+      elif [ -d "$pick" ]; then
+        name=$(basename "$pick" | tr .: __)
+        dir=$pick
       else
-        tmux attach-session -t "=$name"
+        name=$pick
+        dir=$HOME
       fi
+
+      if [ -n "''${ZELLIJ-}" ]; then
+        zellij ls -s 2>/dev/null | grep -qxF "$name" || (cd "$dir" && zellij attach -b "$name")
+        zellij action switch-session "$name"
+      else
+        cd "$dir" && exec zellij attach -c "$name"
+      fi
+    '';
+  };
+
+  zellij-scratch = pkgs.writeShellApplication {
+    name = "zellij-scratch";
+    runtimeInputs = with pkgs; [zellij gnugrep];
+    text = ''
+      n=1
+      while zellij ls -s 2>/dev/null | grep -qxF "s-$n"; do n=$((n + 1)); done
+      exec zellij attach -c "s-$n"
     '';
   };
 
   keyhints = pkgs.writeShellApplication {
     name = "keyhints";
-    runtimeInputs = with pkgs; [python3 tmux fzf];
+    runtimeInputs = with pkgs; [python3 fzf];
     text = ''
       python3 ${pkgs.writeText "keyhints.py" ''
         import os
         import re
-        import subprocess
         import tomllib
 
         def pretty(key):
@@ -62,13 +93,10 @@
                 act = act.get("action", "")
             print(f"umbriel  {pretty(key):<30} {act}")
 
-        out = subprocess.run(["tmux", "list-keys"], capture_output=True, text=True).stdout
-        for line in out.splitlines():
-            m = re.match(r"bind-key\s+(?:-r\s+)?-T\s+(root|prefix)\s+(\S+)\s+(.*)", line)
-            if not m or re.match(r"(Mouse|Wheel|Double|Triple)", m[2]):
-                continue
-            key = pretty(m[2]) if m[1] == "root" else "Prefix " + pretty(m[2])
-            print(f"tmux     {key:<30} {m[3].strip()}")
+        with open(os.path.expanduser("~/.config/zellij/config.kdl")) as f:
+            for m in re.finditer(r'bind "(Alt [^"]+)" \{\s*(\w+)\s*"?([^";]*)', f.read()):
+                act = f"{m[2]} {m[3]}".strip()
+                print(f"zellij   {pretty(m[1].replace('Alt ', 'M-')):<30} {act}")
       ''} | fzf --reverse --no-sort --prompt "keys> " --header "Esc to close"
     '';
   };
@@ -315,101 +343,25 @@ in {
     packageVariant = "prebuilt";
   };
 
-  programs.tmux = {
-    enable = true;
-    baseIndex = 1;
-    keyMode = "vi";
-    mouse = true;
-    escapeTime = 0;
-    historyLimit = 50000;
+  xdg.configFile."zellij/config.kdl" = {
+    source = config.lib.file.mkOutOfStoreSymlink "/etc/nixos/dotfiles/zellij/config.kdl";
+    force = true;
+  };
 
-    plugins = with pkgs.tmuxPlugins; [
-      {
-        plugin = resurrect;
-        extraConfig = ''
-          set -g @resurrect-processes ':all:'
-        '';
-      }
-      {
-        plugin = continuum;
-        extraConfig = ''
-          set -g status-left-length 40
-          set -g status-left "#[bg=#{@noctalia_primary},fg=#{@noctalia_on_primary},bold] #S #[default] "
-          set -g status-right-length 80
-          set -g status-right "#[fg=#{@noctalia_on_surface_variant}] #{=/-40/…:pane_current_path} #[bg=#{@noctalia_primary_container},fg=#{@noctalia_on_primary_container}] #H "
-          set -g window-status-format " #I #W "
-          set -g window-status-current-format " #I #W "
-          set -g @continuum-restore 'on'
-          set -g @continuum-save-interval '15'
-        '';
-      }
-    ];
-
-    extraConfig = ''
-      set -g extended-keys always
-
-      set-hook -g pane-mode-changed 'if -F "#{pane_in_mode}" "display-message \"-- COPY MODE (q/Escape to exit) --\"" "display-message \"-- copy mode exited --\""'
-
-      unbind-key -a -T root
-
-      bind -n MouseDown1Pane select-pane -t = \; send-keys -M
-      bind -n MouseDrag1Pane select-pane -t = \; copy-mode -M
-      bind -n MouseDrag1Border resize-pane -M
-      bind -n WheelUpPane if -F "#{||:#{pane_in_mode},#{mouse_any_flag}}" "send -M" "copy-mode -e"
-      bind -n S-PPage copy-mode -eu
-
-      set -g pane-border-lines "double"
-
-      set -g renumber-windows on
-
-      bind f display-popup -E -w 60% -h 50% ${lib.getExe tmux-sessionizer}
-      bind -n M-f display-popup -E -w 60% -h 50% ${lib.getExe tmux-sessionizer}
-      bind g display-popup -E -w 90% -h 90% -d "#{pane_current_path}" lazygit
-
-      bind -n M-r source-file ~/.config/tmux/tmux.conf \; display "Config reloaded!"
-      bind -n M-s choose-tree -s
-
-      bind -n M-1 select-window -t 1
-      bind -n M-2 select-window -t 2
-      bind -n M-3 select-window -t 3
-      bind -n M-4 select-window -t 4
-      bind -n M-5 select-window -t 5
-      bind -n M-6 select-window -t 6
-      bind -n M-7 select-window -t 7
-      bind -n M-8 select-window -t 8
-      bind -n M-9 select-window -t 9
-
-      bind -n 'M-S-<' swap-window -d -t -1
-      bind -n 'M-S->' swap-window -d -t +1
-      bind -n 'M-S-{' swap-pane -U
-      bind -n 'M-S-}' swap-pane -D
-
-      bind -n M-Left select-pane -L
-      bind -n M-Right select-pane -R
-      bind -n M-Up select-pane -U
-      bind -n M-Down select-pane -D
-
-      bind -n M-S-Left resize-pane -L 5
-      bind -n M-S-Right resize-pane -R 5
-      bind -n M-S-Up resize-pane -U 3
-      bind -n M-S-Down resize-pane -D 3
-
-      bind -n M-h split-window -v
-      bind -n M-v split-window -h
-
-      bind -n M-Enter new-window
-      bind -n M-c kill-pane
-      bind -n M-q kill-window
-      bind -n M-d detach
-      bind -n M-Q confirm-before -p "Kill entire session? (y/n)" kill-session
-
-      bind -T copy-mode-vi v send -X begin-selection
-      bind -T copy-mode-vi y send -X copy-pipe-and-cancel "wl-copy || xclip -in -selection clipboard"
-      bind -n M-/ copy-mode \; command-prompt -p "(search down)" "send -X search-forward '%%%'"
-      bind -n M-? copy-mode \; command-prompt -p "(search up)"   "send -X search-backward '%%%'"
-
-      source-file -q "$HOME/.config/tmux/themes/noctalia.conf"
-    '';
+  systemd.user.services.zellij-prune = {
+    Unit = {
+      Description = "Delete exited zellij scratch sessions";
+      After = ["graphical-session.target"];
+    };
+    Service = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.writeShellScript "zellij-prune" ''
+        ${lib.getExe pkgs.zellij} ls -n 2>/dev/null \
+          | ${lib.getExe pkgs.gawk} '/EXITED/ && $1 ~ /^s-/ {print $1}' \
+          | while read -r s; do ${lib.getExe pkgs.zellij} delete-session "$s"; done
+      ''}";
+    };
+    Install.WantedBy = ["graphical-session.target"];
   };
 
   xdg.configFile."umbriel" = {
@@ -423,14 +375,7 @@ in {
       main = {
         font = "Iosevka NF:size=15";
         pad = "4x4";
-        shell = "${pkgs.writeShellScript "foot-tmux" ''
-          s=$(tmux list-sessions -F '#{session_attached} #{session_last_attached} #{session_name}' 2>/dev/null \
-            | awk '$1 == 0' | sort -k2 -nr | head -n1 | cut -d' ' -f3-)
-          [ -n "$s" ] && exec tmux attach -t "=$s"
-          n=1
-          while tmux has-session -t "=scratch-$n" 2>/dev/null; do n=$((n + 1)); done
-          exec tmux new -s "scratch-$n"
-        ''}";
+        shell = lib.getExe zellij-scratch;
         include = "${config.home.homeDirectory}/.config/foot/themes/noctalia";
       };
       colors-dark = {
@@ -945,7 +890,9 @@ in {
       wl-clipboard
       grim
       slurp
-      tmux-sessionizer
+      zellij
+      zellij-pick
+      zellij-scratch
       keyhints
       wtype
       inputs.clin.packages.${system}.default
