@@ -362,6 +362,14 @@ include always resolves, and leaves the file alone once noctalia writes it.
 **lazygit opens from `Alt+g` and `<leader>gg`.** `os.editPreset =
 "nvim-remote"` makes `e` inside nvim's float open the file in that nvim.
 
+**Mod+F1 is `dotfiles/keyhints/`.** umbriel and zellij binds are parsed
+from their configs and skills from each `SKILL.md`, so those never go stale;
+apps whose binds are defaults (nvim, yazi, lazygit, the shell, Claude Code)
+are hand-written `<app>.toml`. A curated entry with the same keys overrides a
+parsed one, which is how stars and better descriptions reach parsed binds.
+Every row starts with `★` or `·` so fzf's `--nth=2..` always lands on the app
+name.
+
 **`selection-clipboard = "clipboard"`** in zathura, so Ctrl+C copies.
 
 ### theme

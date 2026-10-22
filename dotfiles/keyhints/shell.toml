@@ -1,0 +1,71 @@
+# zsh (emacs keys) with atuin, fzf, zoxide, autosuggestions and our aliases.
+
+[[key]]
+keys = "Ctrl+r"
+desc = "search shell history (atuin)"
+star = true
+
+[[key]]
+keys = "→"
+desc = "accept the grey autosuggestion"
+star = true
+
+[[key]]
+keys = "Ctrl+→"
+desc = "accept one word of the suggestion"
+
+[[key]]
+keys = "Ctrl+t"
+desc = "fzf: insert a file path"
+star = true
+
+[[key]]
+keys = "Alt+c"
+desc = "fzf: cd into a subdirectory"
+
+[[key]]
+keys = "z NAME"
+desc = "cd to the best match from history (zi: pick from a list)"
+star = true
+
+[[key]]
+keys = "tldr CMD"
+desc = "examples for any command"
+star = true
+
+[[key]]
+keys = "Ctrl+a / Ctrl+e"
+desc = "start / end of line"
+
+[[key]]
+keys = "Ctrl+w / Ctrl+u"
+desc = "delete word / delete to line start"
+
+[[key]]
+keys = "Alt+."
+desc = "insert last argument of the previous command"
+
+[[key]]
+keys = "cd -"
+desc = "back to the previous directory"
+
+[[key]]
+keys = "rebuild"
+desc = "nh os switch (rebuild-test: try without a boot entry)"
+star = true
+
+[[key]]
+keys = "update"
+desc = "update flake inputs and switch"
+
+[[key]]
+keys = "deploy-homelab"
+desc = "deploy homelab; on error recover with nh os boot + reboot"
+
+[[key]]
+keys = "nx / edit"
+desc = "cd /etc/nixos / open it in nvim"
+
+[[key]]
+keys = "tunnel list"
+desc = "WireGuard tunnels and their state (up, down, edit…)"

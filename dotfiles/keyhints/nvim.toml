@@ -1,0 +1,121 @@
+# LazyVim. Space and wait shows every next key; dotfiles/nvim/README.md has more.
+
+[[key]]
+keys = "Space (wait)"
+desc = "which-key: every bind that follows"
+star = true
+
+[[key]]
+keys = "Space Space"
+desc = "find file in project"
+star = true
+
+[[key]]
+keys = "Space /"
+desc = "grep the project"
+star = true
+
+[[key]]
+keys = "Space ,"
+desc = "open buffers"
+star = true
+
+[[key]]
+keys = "Space e"
+desc = "file tree"
+star = true
+
+[[key]]
+keys = "Space f r"
+desc = "recent files"
+
+[[key]]
+keys = "Space s k"
+desc = "search all keymaps"
+
+[[key]]
+keys = "gd / gr"
+desc = "go to definition / references"
+star = true
+
+[[key]]
+keys = "K"
+desc = "docs for the symbol under the cursor"
+star = true
+
+[[key]]
+keys = "Space c a"
+desc = "code action"
+star = true
+
+[[key]]
+keys = "Space c r"
+desc = "rename symbol"
+
+[[key]]
+keys = "Space c f"
+desc = "format (also happens on save)"
+
+[[key]]
+keys = "]d / [d"
+desc = "next / previous diagnostic"
+star = true
+
+[[key]]
+keys = "Space x x"
+desc = "all diagnostics in a list"
+
+[[key]]
+keys = "Shift+h / Shift+l"
+desc = "previous / next buffer"
+star = true
+
+[[key]]
+keys = "Space b d"
+desc = "close buffer"
+
+[[key]]
+keys = "Ctrl+h j k l"
+desc = "move between windows"
+
+[[key]]
+keys = "Space - / Space |"
+desc = "split below / right"
+
+[[key]]
+keys = "s + 2 letters"
+desc = "flash: jump anywhere on screen"
+star = true
+
+[[key]]
+keys = "ciw / ci\" / cit"
+desc = "change word / inside quotes / inside tag"
+
+[[key]]
+keys = "gcc / gc"
+desc = "comment line / selection"
+
+[[key]]
+keys = "Alt+j / Alt+k"
+desc = "move line down / up"
+
+[[key]]
+keys = "Ctrl+/"
+desc = "terminal"
+
+[[key]]
+keys = "Space g g"
+desc = "lazygit"
+star = true
+
+[[key]]
+keys = "Space g b"
+desc = "blame line"
+
+[[key]]
+keys = "]h / [h"
+desc = "next / previous git hunk"
+
+[[key]]
+keys = "Space q q"
+desc = "quit all"

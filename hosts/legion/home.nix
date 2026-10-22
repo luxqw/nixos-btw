@@ -114,28 +114,9 @@
     name = "keyhints";
     runtimeInputs = with pkgs; [python3 fzf];
     text = ''
-      python3 ${pkgs.writeText "keyhints.py" ''
-        import os
-        import re
-        import tomllib
-
-        def pretty(key):
-            for a, b in (("Mod+", "Super+"), ("M-", "Alt+"), ("C-", "Ctrl+"), ("S-", "Shift+")):
-                key = key.replace(a, b)
-            return key
-
-        with open(os.path.expanduser("~/.config/umbriel/config.toml"), "rb") as f:
-            binds = tomllib.load(f).get("keybinds", {})
-        for key, act in binds.items():
-            if isinstance(act, dict):
-                act = act.get("action", "")
-            print(f"umbriel  {pretty(key):<30} {act}")
-
-        with open(os.path.expanduser("~/.config/zellij/config.kdl")) as f:
-            for m in re.finditer(r'bind "(Alt [^"]+)" \{\s*(\w+)\s*"?([^";]*)', f.read()):
-                act = f"{m[2]} {m[3]}".strip()
-                print(f"zellij   {pretty(m[1].replace('Alt ', 'M-')):<30} {act}")
-      ''} | fzf --reverse --no-sort --prompt "keys> " --header "Esc to close"
+      python3 "''${XDG_CONFIG_HOME:-$HOME/.config}/keyhints/keyhints.py" \
+        | fzf --ansi --reverse --no-sort --nth=2.. --prompt "keys> " \
+            --header "★ first · type an app (nvim, yazi, zellij, skills…) to filter · Esc closes"
     '';
   };
 
@@ -377,6 +358,11 @@ in {
     packageVariant = "prebuilt";
   };
 
+  xdg.configFile."keyhints" = {
+    source = config.lib.file.mkOutOfStoreSymlink "/etc/nixos/dotfiles/keyhints";
+    force = true;
+  };
+
   xdg.configFile."zellij/config.kdl" = {
     source = config.lib.file.mkOutOfStoreSymlink "/etc/nixos/dotfiles/zellij/config.kdl";
     force = true;
@@ -610,11 +596,6 @@ in {
           on = "l";
           run = "plugin smart-enter";
           desc = "Enter the child directory, or open the file";
-        }
-        {
-          on = "Z";
-          run = "shell 'ya emit cd \"$(zoxide query -i)\"' --block --confirm";
-          desc = "cd via zoxide";
         }
         {
           on = ["c" "m"];

@@ -1,0 +1,11 @@
+# Binds that live outside any app config.
+
+[[key]]
+keys = "hold Right Ctrl"
+desc = "dictate: speak, release, text is typed (voxtype, ru/en)"
+star = true
+
+[[key]]
+keys = "Super+Space"
+desc = "switch keyboard layout us / ru"
+star = true

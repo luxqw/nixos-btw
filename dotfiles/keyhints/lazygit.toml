@@ -1,0 +1,80 @@
+# lazygit 0.66 defaults. Alt+g in zellij, Space g g in nvim; ? lists every key.
+
+[[key]]
+keys = "Space"
+desc = "stage / unstage file (branches: checkout)"
+star = true
+
+[[key]]
+keys = "a"
+desc = "stage / unstage everything"
+star = true
+
+[[key]]
+keys = "c"
+desc = "commit (C: in nvim)"
+star = true
+
+[[key]]
+keys = "P / p"
+desc = "push / pull"
+star = true
+
+[[key]]
+keys = "Enter"
+desc = "open: file diff, commit's files, branch's commits"
+star = true
+
+[[key]]
+keys = "z / Z"
+desc = "undo / redo the last git action"
+star = true
+
+[[key]]
+keys = "A"
+desc = "amend the last commit with what's staged"
+
+[[key]]
+keys = "d"
+desc = "discard changes in file"
+
+[[key]]
+keys = "s / S"
+desc = "stash all / stash options"
+
+[[key]]
+keys = "e / o"
+desc = "edit file in nvim / open it"
+
+[[key]]
+keys = "n"
+desc = "new branch (branches panel)"
+
+[[key]]
+keys = "r"
+desc = "reword commit (commits panel)"
+
+[[key]]
+keys = "s / f (commits)"
+desc = "squash / fixup into the commit below"
+
+[[key]]
+keys = "i"
+desc = "interactive rebase (commits panel)"
+
+[[key]]
+keys = "1…5 / [ ]"
+desc = "jump to panel / previous-next tab"
+
+[[key]]
+keys = "/"
+desc = "filter the current list"
+
+[[key]]
+keys = "|"
+desc = "switch diff renderer (delta / plain)"
+
+[[key]]
+keys = "?"
+desc = "every key for the current panel"
+star = true

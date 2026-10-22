@@ -1,0 +1,97 @@
+# zellij is locked by default; Ctrl+g unlocks, Esc locks again.
+
+[[key]]
+keys = "Alt p"
+desc = "project picker: sessions, project dirs, zoxide; type a new name to create"
+star = true
+
+[[key]]
+keys = "Alt s"
+desc = "session manager: switch, resurrect, delete"
+star = true
+
+[[key]]
+keys = "Alt g"
+desc = "lazygit in a floating pane"
+star = true
+
+[[key]]
+keys = "Alt n"
+desc = "new pane"
+star = true
+
+[[key]]
+keys = "Alt x"
+desc = "close pane"
+star = true
+
+[[key]]
+keys = "Alt Left"
+desc = "focus pane left (at the edge: previous tab)"
+star = true
+
+[[key]]
+keys = "Alt Right"
+desc = "focus pane right (at the edge: next tab)"
+
+[[key]]
+keys = "Alt Up"
+desc = "focus pane up"
+
+[[key]]
+keys = "Alt Down"
+desc = "focus pane down"
+
+[[key]]
+keys = "Alt t"
+desc = "new tab"
+star = true
+
+[[key]]
+keys = "Alt 1"
+desc = "go to tab 1 (2…9 likewise)"
+
+[[key]]
+keys = "Alt z"
+desc = "zoom pane"
+
+[[key]]
+keys = "Alt f"
+desc = "show / hide floating panes"
+
+[[key]]
+keys = "Ctrl+g"
+desc = "unlock: then p pane · t tab · r resize · m move · s scroll · o session"
+star = true
+
+[[key]]
+keys = "Ctrl+g s /"
+desc = "search the scrollback"
+
+[[key]]
+keys = "Ctrl+g s e"
+desc = "open scrollback in nvim"
+
+[[key]]
+keys = "Ctrl+g s c"
+desc = "copy last command's output"
+
+[[key]]
+keys = "Ctrl+g p r"
+desc = "split pane right (d: down, s: stacked)"
+
+[[key]]
+keys = "Ctrl+g p e"
+desc = "float pane ↔ embed it"
+
+[[key]]
+keys = "Ctrl+g t r"
+desc = "rename tab"
+
+[[key]]
+keys = "Ctrl+g r"
+desc = "resize mode: hjkl grow, HJKL shrink"
+
+[[key]]
+keys = "zellij action rename-session NAME"
+desc = "rename session; dropping the s- prefix keeps it after the window closes"

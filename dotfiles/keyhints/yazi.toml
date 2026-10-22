@@ -1,0 +1,100 @@
+# yazi 26.9 defaults plus ours (c m, c a, smart l). `y` in the shell starts it
+# and cds to where you quit; ~ shows every bind.
+
+[[key]]
+keys = "y (in shell)"
+desc = "open yazi; q quits into that directory, Q stays put"
+star = true
+
+[[key]]
+keys = "h / l"
+desc = "parent dir / enter dir or open file"
+star = true
+
+[[key]]
+keys = "Space"
+desc = "select file (v: visual select)"
+star = true
+
+[[key]]
+keys = "y / x / p"
+desc = "copy / cut / paste"
+star = true
+
+[[key]]
+keys = "d / D"
+desc = "trash / delete for good"
+star = true
+
+[[key]]
+keys = "a"
+desc = "create file (end with / for a dir)"
+star = true
+
+[[key]]
+keys = "r"
+desc = "rename"
+star = true
+
+[[key]]
+keys = "Z"
+desc = "jump to a dir via zoxide"
+star = true
+
+[[key]]
+keys = "z"
+desc = "jump to a file/dir via fzf"
+
+[[key]]
+keys = "s / S"
+desc = "search by name (fd) / by content (rg)"
+star = true
+
+[[key]]
+keys = "f"
+desc = "filter the listing"
+
+[[key]]
+keys = "."
+desc = "show / hide hidden files"
+star = true
+
+[[key]]
+keys = "o / O"
+desc = "open / open with…"
+
+[[key]]
+keys = "Tab"
+desc = "file info"
+
+[[key]]
+keys = "c c / c d / c f"
+desc = "copy path / dir path / file name"
+
+[[key]]
+keys = "c m"
+desc = "chmod selected"
+
+[[key]]
+keys = "c a"
+desc = "compress selected into an archive"
+
+[[key]]
+keys = "g h / g d / g c"
+desc = "go home / ~/Downloads / ~/.config"
+
+[[key]]
+keys = "t t / 1…9"
+desc = "new tab / switch tab"
+
+[[key]]
+keys = ";"
+desc = "run a shell command here"
+
+[[key]]
+keys = ", m / , s / , a"
+desc = "sort by modified / size / name"
+
+[[key]]
+keys = "~"
+desc = "all yazi binds"

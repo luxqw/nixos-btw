@@ -1,0 +1,41 @@
+# Claude Code. Skills are listed separately, under skills.
+
+[[key]]
+keys = "! CMD"
+desc = "run a shell command, its output lands in the chat"
+star = true
+
+[[key]]
+keys = "@ PATH"
+desc = "mention a file"
+star = true
+
+[[key]]
+keys = "Shift+Tab"
+desc = "cycle permission mode (normal / auto-accept / plan)"
+star = true
+
+[[key]]
+keys = "Esc"
+desc = "interrupt Claude"
+star = true
+
+[[key]]
+keys = "Esc Esc"
+desc = "rewind to an earlier message"
+
+[[key]]
+keys = "Ctrl+v"
+desc = "paste an image"
+
+[[key]]
+keys = "/clear"
+desc = "start a fresh conversation"
+
+[[key]]
+keys = "/resume"
+desc = "pick up an earlier conversation"
+
+[[key]]
+keys = "/compact"
+desc = "summarize the conversation to free context"

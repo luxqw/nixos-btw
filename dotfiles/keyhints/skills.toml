@@ -1,0 +1,29 @@
+# Stars for skills; names and descriptions come from each SKILL.md.
+
+[[key]]
+keys = "/grill-me"
+star = true
+
+[[key]]
+keys = "/grilling"
+star = true
+
+[[key]]
+keys = "/diagnosing-bugs"
+star = true
+
+[[key]]
+keys = "/tdd"
+star = true
+
+[[key]]
+keys = "/wizard"
+star = true
+
+[[key]]
+keys = "/code-review"
+star = true
+
+[[key]]
+keys = "/handoff"
+star = true
