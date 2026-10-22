@@ -79,7 +79,12 @@
       findutils
       gnugrep
       gnused
-      handbrake
+      (handbrake.override {
+        ffmpeg_8-full = ffmpeg_8-full.override {
+          version = "8.1.2";
+          hash = "sha256-wJ3c8VVo/tK84K7bKYs/UWcln4mSO+tf/w5NLNjKhiI=";
+        };
+      })
       systemd
       util-linux
       xorriso
