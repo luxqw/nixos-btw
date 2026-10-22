@@ -1,0 +1,132 @@
+// noctalia template (~/.config/noctalia/zellij.toml renders it to
+// ~/.config/zellij/themes/noctalia-ui.kdl). Zellij's UI in the shell's colors:
+// the active tab and mode in the accent, everything else on a quiet surface
+// with only the keys picked out.
+themes {
+  noctalia-ui {
+    text_unselected {
+      base "{{colors.on_surface.default.hex | darken 30}}"
+      background "{{colors.surface.default.hex}}"
+      emphasis_0 "{{colors.primary.default.hex}}"
+      emphasis_1 "{{colors.primary.default.hex}}"
+      emphasis_2 "{{colors.tertiary.default.hex}}"
+      emphasis_3 "{{colors.error.default.hex}}"
+    }
+    text_selected {
+      base "{{colors.on_surface.default.hex}}"
+      background "{{colors.surface_container_high.default.hex}}"
+      emphasis_0 "{{colors.primary.default.hex}}"
+      emphasis_1 "{{colors.primary.default.hex}}"
+      emphasis_2 "{{colors.tertiary.default.hex}}"
+      emphasis_3 "{{colors.error.default.hex}}"
+    }
+    ribbon_unselected {
+      base "{{colors.on_surface.default.hex | darken 30}}"
+      background "{{colors.surface_container_high.default.hex}}"
+      emphasis_0 "{{colors.primary.default.hex}}"
+      emphasis_1 "{{colors.on_surface.default.hex}}"
+      emphasis_2 "{{colors.tertiary.default.hex}}"
+      emphasis_3 "{{colors.error.default.hex}}"
+    }
+    ribbon_selected {
+      base "{{colors.on_primary.default.hex}}"
+      background "{{colors.primary.default.hex}}"
+      emphasis_0 "{{colors.surface.default.hex}}"
+      emphasis_1 "{{colors.surface.default.hex}}"
+      emphasis_2 "{{colors.surface.default.hex}}"
+      emphasis_3 "{{colors.error.default.hex}}"
+    }
+    table_title {
+      base "{{colors.primary.default.hex}}"
+      background "{{colors.surface.default.hex}}"
+      emphasis_0 "{{colors.tertiary.default.hex}}"
+      emphasis_1 "{{colors.on_surface.default.hex}}"
+      emphasis_2 "{{colors.tertiary.default.hex}}"
+      emphasis_3 "{{colors.error.default.hex}}"
+    }
+    table_cell_unselected {
+      base "{{colors.on_surface.default.hex}}"
+      background "{{colors.surface.default.hex}}"
+      emphasis_0 "{{colors.primary.default.hex}}"
+      emphasis_1 "{{colors.tertiary.default.hex}}"
+      emphasis_2 "{{colors.on_surface_variant.default.hex}}"
+      emphasis_3 "{{colors.error.default.hex}}"
+    }
+    table_cell_selected {
+      base "{{colors.on_surface.default.hex}}"
+      background "{{colors.surface_container_high.default.hex}}"
+      emphasis_0 "{{colors.primary.default.hex}}"
+      emphasis_1 "{{colors.tertiary.default.hex}}"
+      emphasis_2 "{{colors.on_surface_variant.default.hex}}"
+      emphasis_3 "{{colors.error.default.hex}}"
+    }
+    list_unselected {
+      base "{{colors.on_surface.default.hex}}"
+      background "{{colors.surface.default.hex}}"
+      emphasis_0 "{{colors.primary.default.hex}}"
+      emphasis_1 "{{colors.tertiary.default.hex}}"
+      emphasis_2 "{{colors.on_surface_variant.default.hex}}"
+      emphasis_3 "{{colors.error.default.hex}}"
+    }
+    list_selected {
+      base "{{colors.on_surface.default.hex}}"
+      background "{{colors.surface_container_high.default.hex}}"
+      emphasis_0 "{{colors.primary.default.hex}}"
+      emphasis_1 "{{colors.tertiary.default.hex}}"
+      emphasis_2 "{{colors.on_surface_variant.default.hex}}"
+      emphasis_3 "{{colors.error.default.hex}}"
+    }
+    frame_unselected {
+      base "{{colors.outline.default.hex}}"
+      background "{{colors.surface.default.hex}}"
+      emphasis_0 "{{colors.primary.default.hex}}"
+      emphasis_1 "{{colors.on_surface_variant.default.hex}}"
+      emphasis_2 "{{colors.tertiary.default.hex}}"
+      emphasis_3 "{{colors.error.default.hex}}"
+    }
+    frame_selected {
+      base "{{colors.primary.default.hex}}"
+      background "{{colors.surface.default.hex}}"
+      emphasis_0 "{{colors.tertiary.default.hex}}"
+      emphasis_1 "{{colors.on_surface.default.hex}}"
+      emphasis_2 "{{colors.tertiary.default.hex}}"
+      emphasis_3 "{{colors.error.default.hex}}"
+    }
+    frame_highlight {
+      base "{{colors.tertiary.default.hex}}"
+      background "{{colors.surface.default.hex}}"
+      emphasis_0 "{{colors.primary.default.hex}}"
+      emphasis_1 "{{colors.on_surface.default.hex}}"
+      emphasis_2 "{{colors.tertiary.default.hex}}"
+      emphasis_3 "{{colors.error.default.hex}}"
+    }
+    exit_code_success {
+      base "{{colors.terminal_normal_green.default.hex}}"
+      background "{{colors.surface.default.hex}}"
+      emphasis_0 "{{colors.primary.default.hex}}"
+      emphasis_1 "{{colors.on_surface.default.hex}}"
+      emphasis_2 "{{colors.tertiary.default.hex}}"
+      emphasis_3 "{{colors.error.default.hex}}"
+    }
+    exit_code_error {
+      base "{{colors.terminal_normal_red.default.hex}}"
+      background "{{colors.surface.default.hex}}"
+      emphasis_0 "{{colors.primary.default.hex}}"
+      emphasis_1 "{{colors.on_surface.default.hex}}"
+      emphasis_2 "{{colors.tertiary.default.hex}}"
+      emphasis_3 "{{colors.error.default.hex}}"
+    }
+    multiplayer_user_colors {
+      player_1 "{{colors.primary.default.hex}}"
+      player_2 "{{colors.tertiary.default.hex}}"
+      player_3 "{{colors.terminal_normal_green.default.hex}}"
+      player_4 "{{colors.terminal_normal_yellow.default.hex}}"
+      player_5 "{{colors.terminal_normal_cyan.default.hex}}"
+      player_6 "{{colors.terminal_normal_magenta.default.hex}}"
+      player_7 "{{colors.terminal_normal_red.default.hex}}"
+      player_8 "{{colors.terminal_normal_blue.default.hex}}"
+      player_9 "{{colors.secondary.default.hex}}"
+      player_10 "{{colors.on_surface.default.hex}}"
+    }
+  }
+}
