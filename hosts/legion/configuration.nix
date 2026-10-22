@@ -42,6 +42,9 @@
     lib.optionalAttrs (builtins.pathExists f) (lib.importJSON f);
   offsite = storagebox != {} && builtins.pathExists ../../secrets/legion/restic.age;
 
+  u2fKeys = ./u2f_keys;
+  yubikey = builtins.pathExists u2fKeys;
+
   tunnelCli = pkgs.writeShellApplication {
     name = "tunnel";
     runtimeInputs = [pkgs.age agenixPackage pkgs.systemd];
@@ -191,6 +194,16 @@ in {
   ];
 
   services.printing.enable = true;
+
+  services.udev.packages = [pkgs.yubikey-personalization];
+
+  security.pam.u2f.settings = lib.mkIf yubikey {
+    authfile = "${u2fKeys}";
+    origin = "pam://legion";
+    appid = "pam://legion";
+    cue = true;
+  };
+  security.pam.services.sudo.u2f.enable = yubikey;
   services.fwupd.enable = true;
   services.udisks2.enable = true;
   services.gvfs.enable = true;
@@ -516,6 +529,7 @@ in {
 
     pkgs.age
     agenixPackage
+    pkgs.pam_u2f
     pkgs.wireguard-tools
     tunnelCli
 

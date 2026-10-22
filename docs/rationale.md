@@ -458,6 +458,15 @@ binaries expect an FHS layout. The LazyVim lang extras name some of them
 
 ### packages
 
+**The YubiKey is `sufficient` for sudo only**, before `pam_unix`: a touch
+skips the password, and without the key the password prompt follows as
+before. It is not on login or the greeter, where a misconfigured PAM stack
+locks you out of the desktop. `hosts/legion/u2f_keys` is the public half
+that `pamu2fcfg` prints — a key handle and a public key, nothing secret —
+and sudo only asks for it once that file exists. `origin`/`appid` are pinned
+to `pam://legion` so the registration doesn't depend on the hostname.
+`wizards/yubikey.sh` registers it, and the key on the websites that matter.
+
 **`bitwarden-cli` and `super-productivity`** are there for the noctalia
 plugins of the same names (`bw serve`, the REST API).
 
