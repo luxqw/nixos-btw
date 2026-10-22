@@ -222,9 +222,11 @@ say "Everything happens on the phone; scan the QR codes with its camera."
 
 # ── 1 ────────────────────────────────────────────────────────────────────
 stage "Install openGym"
-say "openGym isn't on the Play Store or F-Droid: it's an APK from its site."
-qr "https://opengym.ch/"
-step "Download the Android APK; allow the browser to install apps when asked"
+say "openGym isn't on the Play Store or F-Droid: it's an APK from its GitHub releases."
+qr "https://github.com/DuarteSantos8/openGym/releases/latest"
+step "Download openGym-<version>.apk; allow the browser to install apps when asked"
+warn "It must be 1.4.0 or newer (Settings → About): older versions know only 1 of the"
+warn "plan's 14 exercises and import the routines nearly empty."
 note "Each APK has a .sha256 next to it. Updates install over the old one, data stays."
 step "Open openGym → no account needed, data stays on the phone"
 pause

@@ -1,7 +1,9 @@
 # Home workout
 
 `plan.json` is an openGym plan file (Plan → Share your plan → Import).
-`wizards/opengym.sh` installs the app and imports it.
+`wizards/opengym.sh` installs the app and imports it. It needs openGym 1.4.0 or
+newer: the exercise ids come from the 5,632-exercise catalogue that release
+introduced, and older apps drop all but one of them on import.
 
 No equipment, 2 m² of floor, three full-body sessions a week, about 30
 minutes each: **Mon A · Wed B · Fri A**. Every session opens with a minute
