@@ -9,12 +9,29 @@
     name = "nvim-treesitter-parsers";
     paths = with pkgs.vimPlugins.nvim-treesitter.grammarPlugins; [
       bash
+      c
+      diff
       go
+      gomod
+      gosum
+      gowork
+      html
+      javascript
       json
       lua
+      luadoc
+      luap
       markdown
       markdown_inline
       nix
+      printf
+      python
+      query
+      regex
+      toml
+      vim
+      vimdoc
+      xml
       yaml
     ];
   };
@@ -808,7 +825,7 @@ in {
   };
 
   xdg.dataFile."nvim/site/parser".source = "${nvimGrammars}/parser";
-  xdg.dataFile."nvim/site/pack/nix/start/nvim-treesitter".source = pkgs.vimPlugins.nvim-treesitter;
+  xdg.dataFile."nvim/nix/nvim-treesitter".source = pkgs.vimPlugins.nvim-treesitter;
 
   programs.git = {
     enable = true;
@@ -920,6 +937,11 @@ in {
       alejandra
       stylua
       lua-language-server
+      marksman
+      markdownlint-cli2
+      gofumpt
+      golangci-lint
+      statix
       vscode-langservers-extracted
       yaml-language-server
     ];

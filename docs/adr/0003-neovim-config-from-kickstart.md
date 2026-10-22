@@ -1,5 +1,7 @@
 # The neovim config starts over from kickstart.nvim
 
+**Superseded by [0005](0005-neovim-config-is-lazyvim.md).**
+
 The previous `dotfiles/nvim` was borrowed from someone else: a hand-rolled plugin manager, custom treesitter queries for nine languages, harpoon, fugitive and a set of home-grown `tony*` plugins. It worked, but its owner could not use it — there was no way to learn vim from a config whose every keybind was someone else's habit.
 
 It is replaced by [kickstart.nvim](https://github.com/nvim-lua/kickstart.nvim) (the `vim.pack` edition): one `init.lua` meant to be read top to bottom, with stock vim motions and a which-key popup for discovery. hardtime.nvim runs in hint mode, so bad habits get named but nothing is blocked. The old config survives only in git history.

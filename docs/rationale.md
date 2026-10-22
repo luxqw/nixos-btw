@@ -315,7 +315,7 @@ flake refs like `/etc/nixos#legion`.
 
 **`stty -ixon`** disables XON/XOFF, so a stray Ctrl+S doesn't freeze the
 terminal. **The Ctrl+Left/Right `bindkey`s** exist because the emacs keymap
-only binds Alt+B/F, and foot and tmux send the CSI sequences.
+only binds Alt+B/F, and foot and zellij send the CSI sequences.
 
 **`historyWidget.command = ""`** gives fzf's Ctrl-R to Atuin.
 
@@ -327,28 +327,21 @@ full audit runs once a day.
 
 **`initContent` carries `lib.mkOrder 950`** — see [Merge order](#merge-order).
 
-### tmux
+### zellij
 
-**Colors come from noctalia's `tmux` template**, which writes
-`themes/noctalia.conf`. The `source-file` line must stay last and verbatim,
-or the template's `apply.sh` tries to rewrite the read-only `tmux.conf`.
-`status-left`/`status-right` sit in continuum's block because continuum
-appends its autosave hook to `status-right` when it loads.
+**`config.kdl` is a raw dotfile**, but only the file is symlinked: noctalia's
+`zellij` template writes `themes/noctalia.kdl` next to it, and that must not
+land in the repo.
 
-**`extended-keys always`.** nvim negotiates the kitty keyboard protocol with
-foot; without this, root-table Alt binds stop matching once nvim has touched
-the pane.
+**Unlock-first, by hand.** `default_mode "locked"` and `clear-defaults=true`:
+locked mode owns only Ctrl+g, so no Ctrl key is taken from the shell or nvim.
+The everyday actions sit in `shared` on Alt so they work in every mode.
 
-**The `pane-mode-changed` hook** flashes a message on entering copy mode:
-with `mouse` on and vi keys, any scroll drops into copy-mode-vi, which
-rebinds the whole keytable.
-
-**`unbind-key -a -T root` wipes the default mouse binds too**, so the three
-`Mouse*` entry points are re-added. copy-mode-vi's own drag binds are
-untouched.
-
-**`M-S-<` rather than `M-<`.** With extended keys foot reports Alt+Shift+<
-as CSI 27;4;60~, which tmux names `M-S-<`.
+**`on_force_close "quit"`.** Closing a foot window ends its session instead of
+detaching, so nothing runs in the background; serialization keeps it
+resurrectable from the session manager. `zellij-prune` deletes exited `s-*`
+sessions at login; a renamed session survives because only the prefix is
+matched.
 
 ### desktop
 
@@ -356,23 +349,20 @@ as CSI 27;4;60~, which tmux names `M-S-<`.
 includes `noctalia.toml`, written by noctalia's template. Edits hot-reload.
 
 **Workspaces are named "1" "2" "3"**, pinned to DP-2. The names are what the
-bar shows and what foot's tmux sessions are called.
+bar shows.
 
 **`blur_optimized = true`** on the noctalia layer rule. Unoptimized blur
 re-blurs everything under the bar each frame: 5 s of workspace flipping cost
 ~3.5 s CPU against ~2.0 s, and animations stuttered.
 
-**foot's `shell` attaches to one tmux session per umbriel workspace** (`main`
-outside umbriel) instead of piling up numbered sessions that continuum
-restores. The jq filter uses `.ok?`, not `.ok`: the reply is a bare array,
-and `.ok` on an array errors in a way `//` doesn't catch. Per-project
-sessions come from the sessionizer on `prefix f`.
+**foot's `shell` is `zellij-scratch`**, a fresh `s-N` session per window.
+Older and per-project sessions come from `Alt+p` (`zellij-pick`).
 
 **foot's `include` points at noctalia's matugen output** and overrides only
 the palette keys. `home.activation.seedFootTheme` seeds a fallback so the
 include always resolves, and leaves the file alone once noctalia writes it.
 
-**lazygit opens from `prefix g` and `<leader>gg`.** `os.editPreset =
+**lazygit opens from `Alt+g` and `<leader>gg`.** `os.editPreset =
 "nvim-remote"` makes `e` inside nvim's float open the file in that nvim.
 
 **`selection-clipboard = "clipboard"`** in zathura, so Ctrl+C copies.
@@ -395,15 +385,20 @@ stick — add the type here.
 
 ### editor
 
-**The neovim config is a raw dotfile**, symlinked past the store.
+**The neovim config is a raw dotfile**, symlinked past the store. It is
+LazyVim (ADR 0005); `lua/plugins/nix.lua` is where it meets Nix.
 
 **Treesitter parsers and nvim-treesitter both come from nixpkgs**, so
 queries and parsers stay on the same revision. `grammarPlugins`, not
 `withPlugins`, which yields no `.so`. `:TSInstall` can't work: `site/parser`
-is a store path. A new language is a line in `nvimGrammars`.
+is a store path. A new language is a line in `nvimGrammars`. nvim-treesitter
+sits in `nvim/nix/`, not under `pack/`, because lazy.nvim loads it by `dir`
+and resets the packpath anyway; `site/` is added to its rtp for the parsers.
 
-**LSP servers and formatters come from Nix, not Mason** — Mason's binaries
-expect an FHS layout.
+**LSP servers, formatters and linters come from Nix, not Mason** — Mason's
+binaries expect an FHS layout. The LazyVim lang extras name some of them
+(marksman, markdownlint-cli2, gofumpt, golangci-lint, statix), so they are in
+`home.packages` even though nothing else calls them.
 
 **`goimports` is copied out of `gotools`** (254 MiB, forty-odd binaries);
 `go` is already in `home.packages`.
