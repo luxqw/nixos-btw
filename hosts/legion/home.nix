@@ -812,11 +812,6 @@ in {
         "x-scheme-handler/discord" = "vesktop.desktop";
         "x-scheme-handler/claude-cli" = "claude-code-url-handler.desktop";
         "application/vnd.microsoft.portable-executable" = "steam.desktop";
-        "x-scheme-handler/pttp" = "CiscoPacketTracerPtsa-9.0.1.desktop";
-        "application/x-pka" = "CiscoPacketTracer-9.0.1.desktop";
-        "application/x-pkt" = "CiscoPacketTracer-9.0.1.desktop";
-        "application/x-pkz" = "CiscoPacketTracer-9.0.1.desktop";
-        "application/x-pksz" = "CiscoPacketTracer-9.0.1.desktop";
       };
   };
   xdg.configFile."mimeapps.list".force = true;
