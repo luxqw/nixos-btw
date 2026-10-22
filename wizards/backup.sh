@@ -242,8 +242,8 @@ ask SUB_HOMELAB "homelab sub-account username (u123456-sub1):"
 ask SUB_LEGION "legion sub-account username (u123456-sub2):"
 write_env SUB_HOMELAB "$SUB_HOMELAB"
 write_env SUB_LEGION "$SUB_LEGION"
-host_key=$(ssh-keyscan -p 23 -t ed25519 "$SUB_HOMELAB.your-storagebox.de" 2>/dev/null | awk '{print $2" "$3}')
-legion_key=$(ssh-keyscan -p 23 -t ed25519 "$SUB_LEGION.your-storagebox.de" 2>/dev/null | awk '{print $2" "$3}')
+host_key=$(ssh-keyscan -p 23 -t ed25519 "$SUB_HOMELAB.your-storagebox.de" 2>/dev/null | grep -v "^#" | awk '{print $2" "$3}')
+legion_key=$(ssh-keyscan -p 23 -t ed25519 "$SUB_LEGION.your-storagebox.de" 2>/dev/null | grep -v "^#" | awk '{print $2" "$3}')
 if [[ -z $host_key ]]; then
   warn "no answer from $SUB_HOMELAB.your-storagebox.de:23 — is SSH on and the name right?"
   exit 1
