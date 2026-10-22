@@ -316,6 +316,27 @@ keeps every request behind the password except `/_up`, which Gatus polls.
 The `[cors]` origins are the Obsidian desktop and mobile app schemes.
 `wizards/sync.sh` creates both secrets and walks through the app setup.
 
+### music
+
+**Navidrome streams `/srv/music`; nothing streams from Google.** Discovery
+comes from ListenBrainz, which Navidrome scrobbles to; new music comes from
+Soulseek through slskd, or Bandcamp. The phone reaches Navidrome through the
+WireGuard tunnel, so it stays off the internet.
+
+**slskd downloads into `/srv/media/downloads/soulseek`** (outside the
+backups, like all downloads) and shares `/srv/music`. `beets-import` runs
+hourly as `lux` and moves what it can match with confidence into
+`/srv/music`, tagged and with covers; `quiet_fallback = skip` leaves the
+rest for a manual `beet import`. Everything runs with group `media` and
+umask 0002, so slskd, beets and Navidrome can all touch the same files.
+slskd only exists once `secrets/homelab/slskd.age` does.
+
+**`ytm-export` is a one-time unit**, not a timer: `wizards/music.sh` copies
+cookies and a URL list into `/var/lib/ytm-export` and starts it. yt-dlp keeps
+the original audio (`-x` without `--audio-format`): converting YouTube's
+opus to mp3 would only lose quality. `--download-archive` makes a re-run
+resume instead of starting over.
+
 ### disc
 
 **`disc` is a script in `hosts/homelab/disc.sh`**, not inline nix: it is

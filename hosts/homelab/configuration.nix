@@ -37,9 +37,11 @@
     immich = 2283;
     jackett = 9117;
     jellyfin = 8096;
+    navidrome = 4533;
     opencloud = 9200;
     qbittorrent = 8080;
     scrutiny = 8081;
+    slskd = 5030;
     syncthing = 8384;
     torrserver = 8091;
     vaultwarden = 8222;
@@ -49,6 +51,28 @@
   media = "/srv/media";
   photos = "/srv/photos";
   cloud = "/srv/cloud";
+  music = "/srv/music";
+  soulseek = "${media}/downloads/soulseek";
+  slskdSecret = ../../secrets/homelab/slskd.age;
+  ytmExport = "/var/lib/ytm-export";
+
+  beetsConfig = (pkgs.formats.yaml {}).generate "beets.yaml" {
+    directory = music;
+    library = "/var/lib/beets/library.db";
+    statefile = "/var/lib/beets/state.pickle";
+    import = {
+      move = true;
+      write = true;
+      quiet_fallback = "skip";
+      log = "/var/lib/beets/import.log";
+    };
+    paths = {
+      default = "$albumartist/$album%aunique{}/$track $title";
+      singleton = "$artist/Singles/$title";
+      comp = "Compilations/$album%aunique{}/$track $title";
+    };
+    plugins = ["fetchart" "embedart"];
+  };
   photosRepo = "/var/backup/photos";
   filesRepo = "/var/backup/files";
   vaultwardenBackup = "/var/lib/backups/vaultwarden";
@@ -285,6 +309,8 @@ in {
       "cloud.${domain}" = proxy ports.opencloud;
       "couch.${domain}" = proxy ports.couchdb;
       "dav.${domain}" = proxy ports.webdav;
+      "music.${domain}" = proxy ports.navidrome;
+      "slskd.${domain}" = proxy ports.slskd;
       "jackett.${domain}" = {
         useACMEHost = domain;
         extraConfig = ''
@@ -398,6 +424,7 @@ in {
         (listening "opencloud")
         (local "couchdb" "/_up")
         (listening "webdav")
+        (local "navidrome" "/ping")
         {
           name = "pumpkin";
           url = "tcp://${pumpkin.localAddress}:${toString pumpkin.port}";
@@ -458,6 +485,8 @@ in {
       {
         "Медиа" = [
           {Jellyfin = app ports.jellyfin "jellyfin" "jellyfin.svg" "Фильмы и сериалы";}
+          {Navidrome = app ports.navidrome "music" "navidrome.svg" "Музыка";}
+          {slskd = app ports.slskd "slskd" "slskd.svg" "Поиск и загрузка музыки (Soulseek)";}
           {
             qBittorrent =
               app ports.qbittorrent "torrent" "qbittorrent.svg" "Загрузки"
@@ -827,6 +856,26 @@ in {
       group = "users";
       mode = "0750";
     };
+    ${music}.d = {
+      user = "root";
+      group = "media";
+      mode = "2775";
+    };
+    ${soulseek}.d = {
+      user = "root";
+      group = "media";
+      mode = "2775";
+    };
+    "/var/lib/beets".d = {
+      user = "root";
+      group = "media";
+      mode = "2775";
+    };
+    ${ytmExport}.d = {
+      user = "lux";
+      group = "media";
+      mode = "0770";
+    };
     ${vaultwardenBackup}.d = {
       user = "vaultwarden";
       group = "vaultwarden";
@@ -964,7 +1013,7 @@ in {
     repository = filesRepo;
     passwordFile = config.age.secrets.restic.path;
     initialize = true;
-    paths = [cloud "/srv/sync"];
+    paths = [cloud "/srv/sync" music];
     timerConfig = {
       OnCalendar = "04:15";
       Persistent = true;
@@ -976,7 +1025,7 @@ in {
     repository = "sftp:storagebox:restic";
     passwordFile = config.age.secrets.restic.path;
     initialize = true;
-    paths = ["/var/lib" photos cloud "/srv/sync"];
+    paths = ["/var/lib" photos cloud "/srv/sync" music];
     exclude = [
       "/var/lib/systemd/coredump"
       "/var/lib/postgresql"
@@ -1071,7 +1120,7 @@ in {
         repos = ["photos" "offsite"];
       }
       {
-        name = "cloud, synced folders";
+        name = "cloud, synced folders, music";
         live = "hdd";
         repos = ["files" "offsite"];
       }
@@ -1094,9 +1143,11 @@ in {
       "immich-server"
       "jackett"
       "jellyfin"
+      "navidrome"
       "opencloud"
       "qbittorrent"
       "scrutiny"
+      "slskd"
       "syncthing"
       "torrserver"
       "vaultwarden"
@@ -1143,6 +1194,87 @@ in {
     user = "root";
     group = "users";
     mode = "0775";
+  };
+
+
+  services.navidrome = {
+    enable = true;
+    group = "media";
+    settings = {
+      Address = "127.0.0.1";
+      Port = ports.navidrome;
+      MusicFolder = music;
+      BaseUrl = "https://music.${domain}";
+      Scanner.Schedule = "@every 1h";
+      ListenBrainz.Enabled = true;
+      EnableInsightsCollector = false;
+    };
+  };
+  systemd.services.navidrome.unitConfig.RequiresMountsFor = [music];
+
+  services.slskd = lib.mkIf (builtins.pathExists slskdSecret) {
+    enable = true;
+    group = "media";
+    environmentFile = config.age.secrets.slskd.path;
+    settings = {
+      web.port = ports.slskd;
+      directories = {
+        downloads = soulseek;
+        incomplete = "${soulseek}/.incomplete";
+      };
+      shares.directories = [music];
+      soulseek.description = "homelab of a music fan; sharing what I listen to";
+    };
+  };
+  age.secrets.slskd = lib.mkIf (builtins.pathExists slskdSecret) (secret "slskd");
+  systemd.services.slskd = lib.mkIf (builtins.pathExists slskdSecret) {
+    unitConfig.RequiresMountsFor = [media music];
+    serviceConfig.UMask = "0002";
+  };
+
+  environment.etc."beets/config.yaml".source = beetsConfig;
+  environment.variables.BEETSDIR = "/etc/beets";
+
+  systemd.services.beets-import = {
+    description = "Import finished Soulseek downloads into the music library";
+    startAt = "hourly";
+    path = [pkgs.beets];
+    environment.BEETSDIR = "/etc/beets";
+    unitConfig.RequiresMountsFor = [media music];
+    script = ''
+      shopt -s nullglob
+      dirs=(${soulseek}/*/)
+      dirs=("''${dirs[@]%/}")
+      for d in "''${dirs[@]}"; do
+        [[ $d == */.incomplete ]] && continue
+        beet import -q "$d"
+      done
+    '';
+    serviceConfig = {
+      Type = "oneshot";
+      User = "lux";
+      Group = "media";
+      UMask = "0002";
+    };
+  };
+
+  systemd.services.ytm-export = {
+    description = "One-time export of a YouTube Music library";
+    path = [pkgs.yt-dlp];
+    unitConfig.RequiresMountsFor = [music];
+    script = ''
+      yt-dlp --cookies ${ytmExport}/cookies.txt -a ${ytmExport}/urls.txt \
+        -f bestaudio -x --embed-metadata --embed-thumbnail --convert-thumbnails jpg \
+        -o "${music}/YouTube Music/%(artist,uploader)s/%(album,playlist_title)s/%(track,title)s.%(ext)s" \
+        --download-archive ${ytmExport}/archive.txt --ignore-errors --no-overwrites \
+        --sleep-requests 1 --sleep-interval 2 --max-sleep-interval 8
+    '';
+    serviceConfig = {
+      Type = "oneshot";
+      User = "lux";
+      Group = "media";
+      UMask = "0002";
+    };
   };
 
   system.stateVersion = "26.11";
