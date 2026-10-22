@@ -928,14 +928,16 @@ in {
       group = "media";
       mode = "2775";
     };
+    # lux like the rest of ${media}: tmpfiles won't create a root-owned dir
+    # under lux's downloads ("unsafe path transition").
     ${soulseek}.d = {
-      user = "root";
+      user = "lux";
       group = "media";
       mode = "2775";
     };
     # slskd refuses to start when its incomplete directory is missing.
     "${soulseek}/.incomplete".d = {
-      user = "root";
+      user = "lux";
       group = "media";
       mode = "2775";
     };
