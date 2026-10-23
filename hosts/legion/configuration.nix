@@ -196,6 +196,9 @@ in {
   services.printing.enable = true;
 
   services.udev.packages = [pkgs.yubikey-personalization];
+  # The key's smart-card side (OATH codes, PIV) goes through pcscd; FIDO2 and
+  # sudo don't need it, but ykman warns on every call without it.
+  services.pcscd.enable = true;
 
   security.pam.u2f.settings = lib.mkIf yubikey {
     authfile = "${u2fKeys}";
