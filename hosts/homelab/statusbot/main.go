@@ -220,20 +220,39 @@ func run(name string, args ...string) (string, error) {
 	return strings.TrimSpace(string(out)), err
 }
 
-func pre(s string) string { return "<pre>" + html.EscapeString(s) + "</pre>" }
+// pre keeps the end of s, the newest lines, well under Telegram's 4096 limit:
+// send's own cut would drop the closing tag and Telegram rejects the message.
+func pre(s string) string {
+	if len(s) > 3000 {
+		s = s[len(s)-3000:]
+		if i := strings.IndexByte(s, '\n'); i >= 0 {
+			s = s[i+1:]
+		}
+		s = "…\n" + s
+	}
+	return "<pre>" + html.EscapeString(s) + "</pre>"
+}
 
-func (b *Bot) allowed(svc string) string {
+// unit resolves svc against the allowlist, also by instance name ("pumpkin"
+// for container@pumpkin), and returns the unit or else the reply to send.
+func (b *Bot) unit(svc string) (string, string) {
 	if svc == "" {
-		return "which one? " + strings.Join(b.cfg.Services, ", ")
+		return "", "which one? " + strings.Join(b.cfg.Services, ", ")
 	}
-	if !slices.Contains(b.cfg.Services, svc) {
-		return "not on the list: " + strings.Join(b.cfg.Services, ", ")
+	if slices.Contains(b.cfg.Services, svc) {
+		return svc, ""
 	}
-	return ""
+	for _, s := range b.cfg.Services {
+		if strings.HasSuffix(s, "@"+svc) {
+			return s, ""
+		}
+	}
+	return "", "not on the list: " + strings.Join(b.cfg.Services, ", ")
 }
 
 func (b *Bot) logs(svc string) string {
-	if msg := b.allowed(svc); msg != "" {
+	svc, msg := b.unit(svc)
+	if msg != "" {
 		return html.EscapeString(msg)
 	}
 	out, _ := run("journalctl", "-u", svc, "-n", "25", "--no-pager", "-o", "short-iso")
@@ -241,7 +260,8 @@ func (b *Bot) logs(svc string) string {
 }
 
 func (b *Bot) restart(svc string) string {
-	if msg := b.allowed(svc); msg != "" {
+	svc, msg := b.unit(svc)
+	if msg != "" {
 		return html.EscapeString(msg)
 	}
 	if out, err := run("systemctl", "restart", svc); err != nil {
