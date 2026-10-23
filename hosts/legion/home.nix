@@ -542,28 +542,28 @@ in {
       opener = {
         edit = [
           {
-            run = ''nvim "$@"'';
+            run = ''nvim %s'';
             block = true;
             desc = "Edit in nvim";
           }
         ];
         image = [
           {
-            run = ''imv "$@"'';
+            run = ''imv %s'';
             orphan = true;
             desc = "Open image in imv";
           }
         ];
         pdf = [
           {
-            run = ''zathura "$@"'';
+            run = ''zathura %s'';
             orphan = true;
             desc = "Open PDF in zathura";
           }
         ];
         torrent = [
           {
-            run = ''torrent-add "$@"'';
+            run = ''torrent-add %s'';
             orphan = true;
             desc = "Send to homelab qBittorrent";
           }
