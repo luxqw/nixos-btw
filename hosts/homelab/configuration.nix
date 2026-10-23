@@ -68,7 +68,9 @@
     import = {
       move = true;
       write = true;
-      quiet_fallback = "skip";
+      # No confident MusicBrainz match: import with the file's own tags rather
+      # than leave the album in downloads, where nothing plays it.
+      quiet_fallback = "asis";
       log = "/var/lib/beets/import.log";
     };
     paths = {
@@ -76,7 +78,8 @@
       singleton = "$artist/Singles/$title";
       comp = "Compilations/$album%aunique{}/$track $title";
     };
-    plugins = ["fetchart" "embedart"];
+    # beets 2.x looks nothing up unless the musicbrainz plugin is listed.
+    plugins = ["musicbrainz" "fetchart" "embedart"];
   };
   photosRepo = "/var/backup/photos";
   filesRepo = "/var/backup/files";
