@@ -354,8 +354,16 @@ in {
 
   programs.t3code = {
     enable = true;
-    channel = "stable";
-    packageVariant = "prebuilt";
+    # The AppImage runs in bwrap with only a fixed list of /etc mounted, so
+    # projects under /etc/nixos need their own bind.
+    package = inputs.t3-code-nix.packages.${pkgs.stdenv.hostPlatform.system}.t3code.override {
+      appimageTools =
+        pkgs.appimageTools
+        // {
+          wrapType2 = args:
+            pkgs.appimageTools.wrapType2 (args // {extraBwrapArgs = ["--bind /etc/nixos /etc/nixos"];});
+        };
+    };
   };
 
   xdg.configFile."keyhints" = {
