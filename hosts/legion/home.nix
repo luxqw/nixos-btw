@@ -909,7 +909,7 @@ in {
       chromium
       inputs.zen-browser.packages.${system}.default
       telegram-desktop
-      vesktop
+      discord
       obsidian
       obsidian-plugins
       onlyoffice-desktopeditors
