@@ -1,6 +1,6 @@
 # nvim
 
-[LazyVim](https://lazyvim.org) (почему — `docs/adr/0005`). Плагины ставит lazy.nvim, версии
+[LazyVim](https://lazyvim.org). Плагины ставит lazy.nvim, версии
 зафиксированы в `lazy-lock.json`. LSP, форматтеры, линтеры и treesitter-парсеры ставит Nix
 (`home.nix`), поэтому Mason выключен. Наши правки — в `lua/plugins/`.
 

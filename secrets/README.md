@@ -58,6 +58,6 @@ into a QR code. `host-key.age` is homelab's ssh host key, for reinstalls.
 
 Update the public key in `secrets.nix`, then `agenix -r -i <old key>`. Until
 then the tunnels don't come up, and only `journalctl -u wg-quick-<name>`
-says so. See `docs/adr/0001`.
+says so.
 
 Decrypted `.conf` files are gitignored, but don't leave them on disk.
