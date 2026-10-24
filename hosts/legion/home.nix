@@ -367,6 +367,18 @@ in {
     };
   };
 
+  # The package copies only usr/share out of the AppImage, and its .desktop
+  # sits at the root, so the launcher never sees T3 Code without this.
+  xdg.desktopEntries.t3code = {
+    name = "T3 Code";
+    exec = "t3code %U";
+    icon = "t3code";
+    comment = "Desktop app for coding agents";
+    categories = ["Development"];
+    mimeType = ["x-scheme-handler/t3code"];
+    settings.StartupWMClass = "t3code";
+  };
+
   xdg.configFile."keyhints" = {
     source = config.lib.file.mkOutOfStoreSymlink "/etc/nixos/dotfiles/keyhints";
     force = true;
