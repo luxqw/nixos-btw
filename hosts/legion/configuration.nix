@@ -295,6 +295,12 @@ in {
 
   networking.hostName = "legion";
   networking.networkmanager.enable = true;
+  # The phone on the home LAN: LocalSend (53317, UDP for discovery) and T3 Code's
+  # network access (3773). Physical links only, not the tunnels.
+  networking.firewall.interfaces = lib.genAttrs ["wlp4s0" "eno1"] (_: {
+    allowedTCPPorts = [53317 3773];
+    allowedUDPPorts = [53317];
+  });
 
   services.zerotierone = {
     enable = true;
