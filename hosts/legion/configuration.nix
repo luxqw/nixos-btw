@@ -207,6 +207,25 @@ in {
     cue = true;
   };
   security.pam.services.sudo.u2f.enable = yubikey;
+  # login is the stack Noctalia's lock screen authenticates against.
+  security.pam.services.login.u2f.enable = yubikey;
+  security.pam.services.polkit-1.u2f.enable = yubikey;
+
+  # Holds only the YubiKey's SSH key, forwarded to homelab, where pam_rssh
+  # takes a touch for sudo.
+  programs.ssh.startAgent = true;
+  systemd.user.services.ssh-add-yubikey = {
+    description = "Load the YubiKey SSH key into the agent";
+    after = ["ssh-agent.service"];
+    requires = ["ssh-agent.service"];
+    wantedBy = ["default.target"];
+    unitConfig.ConditionPathExists = "%h/.ssh/id_ed25519_sk";
+    environment.SSH_AUTH_SOCK = "%t/ssh-agent";
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${config.programs.ssh.package}/bin/ssh-add %h/.ssh/id_ed25519_sk";
+    };
+  };
   services.fwupd.enable = true;
   services.udisks2.enable = true;
   services.gvfs.enable = true;
@@ -326,6 +345,7 @@ in {
         HostName homelab.rakhmatullin.dev
         User lux
         ConnectTimeout 3
+        ForwardAgent yes
     ''
     + lib.optionalString offsite ''
       Host storagebox

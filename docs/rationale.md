@@ -512,14 +512,24 @@ binaries expect an FHS layout. The LazyVim lang extras name some of them
 
 ### packages
 
-**The YubiKey is `sufficient` for sudo only**, before `pam_unix`: a touch
-skips the password, and without the key the password prompt follows as
-before. It is not on login or the greeter, where a misconfigured PAM stack
-locks you out of the desktop. `hosts/legion/u2f_keys` is the public half
+**The YubiKey is `sufficient` for sudo, `login` and `polkit-1`**, before
+`pam_unix`: a touch skips the password, and without the key the password
+prompt follows as before. `login` is the stack Noctalia's lock screen uses.
+It stays off the greeter, where a misconfigured PAM stack locks you out of the
+desktop. `hosts/legion/u2f_keys` is the public half
 that `pamu2fcfg` prints — a key handle and a public key, nothing secret —
 and sudo only asks for it once that file exists. `origin`/`appid` are pinned
 to `pam://legion` so the registration doesn't depend on the hostname.
 `wizards/yubikey.sh` registers it, and the key on the websites that matter.
+
+**sudo on homelab takes a touch too, over SSH.** A resident `ed25519-sk` key
+sits in legion's `ssh-agent` (loaded by `ssh-add-yubikey`, nothing else goes
+in) and `ForwardAgent` carries it to homelab only, where `pam_rssh` accepts a
+signature from the key in `hosts/homelab/sudo_keys` — deliberately not
+`authorized_keys`, or the plain login key would pass sudo with no touch.
+`deploy-homelab` uses nh's `passwordless` strategy, which never prompts;
+`noninteractive_auth` for lux lets `sudo -n` still run PAM, so the agent can
+answer. `deploy-homelab-pw` is the password path.
 
 **`bitwarden-cli` and `super-productivity`** are there for the noctalia
 plugins of the same names (`bw serve`, the REST API).

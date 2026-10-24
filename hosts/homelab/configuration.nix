@@ -11,6 +11,7 @@
   publicPort = 8443;
 
   secret = name: {file = ../../secrets/homelab + "/${name}.age";};
+  sudoKeys = ./sudo_keys;
 
   proxy = port: {
     useACMEHost = domain;
@@ -268,6 +269,18 @@ in {
       PermitRootLogin = "no";
     };
   };
+
+  # A touch on the YubiKey, through the agent legion forwards, stands in for
+  # the password. Only the key in sudo_keys counts, not every authorized key.
+  security.pam.rssh = lib.mkIf (builtins.pathExists sudoKeys) {
+    enable = true;
+    settings.auth_key_file = "${sudoKeys}";
+  };
+  security.pam.services.sudo.rssh = builtins.pathExists sudoKeys;
+  # Without this, sudo -n refuses before PAM can ask the agent.
+  security.sudo.extraConfig = lib.mkIf (builtins.pathExists sudoKeys) ''
+    Defaults:lux noninteractive_auth
+  '';
 
   users.mutableUsers = false;
   users.users.lux = {

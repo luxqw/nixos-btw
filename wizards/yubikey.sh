@@ -200,10 +200,12 @@ finish() {
 
 run_wizard() {
 
-TOTAL_STAGES=9
+TOTAL_STAGES=10
 
 REPO=/etc/nixos
 KEYS=$REPO/hosts/legion/u2f_keys
+SK=$HOME/.ssh/id_ed25519_sk
+SUDO_KEYS=$REPO/hosts/homelab/sudo_keys
 
 # site NAME URL STEP... — one website: register the key, keep a way back in.
 site() {
@@ -271,9 +273,42 @@ if confirm "Commit and rebuild legion now?"; then
 else
   SKIPPED+=("commit hosts/legion/u2f_keys and rebuild")
 fi
+note "The same registration unlocks the lock screen and password pop-ups:"
+note "Enter on the empty field, then touch. Unplug the key to type the password."
 pause
 
 # ── 4 ────────────────────────────────────────────────────────────────────
+stage "Touch instead of a password for sudo on homelab"
+say "An SSH key that lives on the YubiKey. legion's agent holds it and forwards"
+say "it to homelab, whose sudo accepts a touch through it; the password still works."
+if [[ -f $SK ]] && ! confirm "$SK exists already. Make a new one?"; then
+  note "keeping the existing key"
+else
+  rm -f "$SK" "$SK.pub"
+  say "Enter the FIDO2 PIN, then touch the key:"
+  ssh-keygen -t ed25519-sk -O resident -O application=ssh:homelab-sudo \
+    -C "lux@legion yubikey" -N "" -f "$SK"
+  note "Resident: on a new laptop, ssh-keygen -K pulls it back off the key."
+fi
+cp "$SK.pub" "$SUDO_KEYS"
+printf '  %s✓ wrote%s %s\n' "$GREEN" "$RESET" "$SUDO_KEYS"
+if confirm "Commit, rebuild legion and deploy homelab (asks the homelab password once)?"; then
+  git -C "$REPO" add "$SUDO_KEYS"
+  git -C "$REPO" diff --cached --quiet || git -C "$REPO" commit -q -m "feat(homelab): yubikey touch for sudo"
+  nh os switch "$REPO"
+  systemctl --user start ssh-add-yubikey
+  nh os switch "$REPO" -H homelab --target-host homelab --build-host homelab
+  say "Test: touch the key when it blinks."
+  SSH_AUTH_SOCK=$XDG_RUNTIME_DIR/ssh-agent ssh homelab 'sudo -k; sudo -n true' \
+    && printf '  %s✓ sudo on homelab works with a touch%s\n' "$GREEN" "$RESET" \
+    || warn "didn't work; the password path (deploy-homelab-pw) still does"
+  note "From now on: deploy-homelab asks for touches, deploy-homelab-pw for the password."
+else
+  SKIPPED+=("commit hosts/homelab/sudo_keys, rebuild legion, deploy homelab")
+fi
+pause
+
+# ── 5 ────────────────────────────────────────────────────────────────────
 stage "Vaultwarden"
 site Vaultwarden "https://vault.rakhmatullin.dev" \
   "Log in → Account settings → Security → Two-step login" \
@@ -282,37 +317,38 @@ site Vaultwarden "https://vault.rakhmatullin.dev" \
 note "The Bitwarden phone app keeps you logged in; a fresh login there needs the key over"
 note "NFC/USB-C, or the recovery code."
 
-# ── 5 ────────────────────────────────────────────────────────────────────
+# ── 6 ────────────────────────────────────────────────────────────────────
 stage "GitHub"
 site GitHub "https://github.com/settings/security" \
   "Two-factor authentication → Security keys → Register new security key" \
   "Also Passkeys → Add a passkey, if you want password-less logins" \
   "Recovery codes → Download or print"
 
-# ── 6 ────────────────────────────────────────────────────────────────────
+# ── 7 ────────────────────────────────────────────────────────────────────
 stage "Tuta"
 site Tuta "https://app.tuta.com" \
   "Settings → Login → Second factor authentication → Add" \
   "Choose Security key, touch it" \
   "Tuta shows a recovery code when 2FA is first set up; note it"
 
-# ── 7 ────────────────────────────────────────────────────────────────────
+# ── 8 ────────────────────────────────────────────────────────────────────
 stage "Cloudflare (controls the domain, every cert and DNS record)"
 site Cloudflare "https://dash.cloudflare.com/profile/authentication" \
   "Two-factor authentication: if it's off, turn on the authenticator app first (Bitwarden)" \
   "Security keys → Add, touch the key" \
   "Backup codes → save them"
 
-# ── 8 ────────────────────────────────────────────────────────────────────
+# ── 9 ────────────────────────────────────────────────────────────────────
 stage "Hetzner (the Storage Box with every backup)"
 site Hetzner "https://accounts.hetzner.com/" \
   "Security → Two-factor authentication" \
   "Add the security key if Hetzner offers it; otherwise an authenticator code in Bitwarden" \
   "Save the recovery codes it shows"
 
-# ── 9 ────────────────────────────────────────────────────────────────────
+# ── 10 ────────────────────────────────────────────────────────────────────
 stage "If the key is lost"
-say "  • sudo on legion: your password still works"
+say "  • sudo on legion, the lock screen: your password still works"
+say "  • sudo on homelab: deploy-homelab-pw, with the password"
 say "  • every site: the authenticator code in Bitwarden, or a recovery code"
 say "  • Vaultwarden itself: the recovery code on paper"
 say "Then buy a new key, re-run this wizard, and remove the old key from every site."
