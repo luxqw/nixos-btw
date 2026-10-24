@@ -267,7 +267,7 @@ printf '  %-20s %-30s %s\n' "Obsidian" "couch.rakhmatullin.dev" "sync.sh"
 printf '  %-20s %-30s %s\n' "Super Productivity" "dav.rakhmatullin.dev" "sync.sh"
 printf '  %-20s %-30s %s\n' "Tempo" "music.rakhmatullin.dev" "music.sh"
 printf '  %-20s %-30s %s\n' "Karakeep" "keep.rakhmatullin.dev" "apps.sh"
-printf '  %-20s %-30s %s\n' "Actual (home screen)" "budget.rakhmatullin.dev" "apps.sh"
+printf '  %-20s %-30s %s\n' "Firefly (home screen)" "budget.rakhmatullin.dev" "apps.sh"
 printf '  %-20s %-30s %s\n' "PipePipe" "YouTube" "this wizard"
 printf '  %-20s %-30s %s\n' "openGym" "workouts" "next step"
 printf '\n'

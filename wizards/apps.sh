@@ -205,15 +205,24 @@ TOTAL_STAGES=5
 REPO=/etc/nixos
 D=rakhmatullin.dev
 
-banner "Paperless, Karakeep, Actual: documents, bookmarks, budget"
+FIREFLY_AGE=$REPO/secrets/homelab/firefly-app-key.age
+
+recipient() { grep -oP "^\s*$1 = \"\K[^\"]+" "$REPO/secrets/secrets.nix"; }
+
+banner "Paperless, Karakeep, Firefly III: documents, bookmarks, budget"
 
 # ── 1 ────────────────────────────────────────────────────────────────────
 stage "Deploy homelab"
-say "Adds docs.$D (Paperless), keep.$D (Karakeep), budget.$D (Actual)."
+say "Adds docs.$D (Paperless), keep.$D (Karakeep), budget.$D (Firefly III)."
 say "All three are LAN-only: from mobile data, turn on the home tunnel first."
 if [[ ! -e $REPO/secrets/homelab/couchdb-admin.age ]]; then
   warn "homelab doesn't build until wizards/sync.sh has made its secrets"
   note "run $REPO/wizards/sync.sh first, then come back"
+fi
+if [[ ! -e $FIREFLY_AGE ]]; then
+  printf 'base64:%s' "$(openssl rand -base64 32)" | age -R <(recipient lux; recipient homelab) -o "$FIREFLY_AGE"
+  git -C "$REPO" add "$FIREFLY_AGE"
+  printf '  %s✓ wrote%s %s\n' "$GREEN" "$RESET" "$FIREFLY_AGE"
 fi
 note "The first build compiles Paperless with Serbian and Russian OCR: give it a while."
 if confirm "Deploy homelab now? (skip if another wizard just did)"; then
@@ -252,23 +261,25 @@ note "Pages are archived in full with a screenshot, so they survive link rot."
 pause
 
 # ── 4 ────────────────────────────────────────────────────────────────────
-stage "Actual: budget"
+stage "Firefly III: budget in dinars and euros"
 open_url "https://budget.$D"
-step "Set the server password (save it in Vaultwarden)"
-step "Create a new budget (or import from YNAB / a CSV from your bank)"
-step "Settings → End-to-end encryption → Enable; save the key in Vaultwarden"
-say "With encryption on, even homelab's disk and the offsite copy hold only ciphertext."
-step "Phone: open budget.$D in the browser → Add to Home screen (works offline, syncs later)"
+step "Register (save the login in Vaultwarden); the first account is the only one allowed"
+step "Primary currency: RSD. Options → Currencies → enable EUR"
+step "Accounts: one per real wallet, each in its own currency: Cash (RSD), Cash (EUR), …"
+step "Options → Preferences → Display amounts in your primary currency"
+say "Rates for RSD and EUR download weekly through the daily cron job, so"
+say "totals and net worth show euros converted to dinars."
+step "Phone: open budget.$D in the browser → Add to Home screen"
 pause
 
 # ── 5 ────────────────────────────────────────────────────────────────────
 stage "Check"
 say "The status bot now lists these under 'documents, bookmarks, budget' in /backups,"
-say "and /restart paperless-web, karakeep-web or actual works from Telegram."
+say "and /restart paperless-web, karakeep-web or phpfpm-firefly-iii works from Telegram."
 if confirm "Do docs., keep. and budget. all open and log in?"; then
   printf '  %s✓ all three work%s\n' "$GREEN" "$RESET"
 else
-  SKIPPED+=("an app didn't open: ssh homelab journalctl -u paperless-web -u karakeep-web -u actual -n 50")
+  SKIPPED+=("an app didn't open: ssh homelab journalctl -u paperless-web -u karakeep-web -u phpfpm-firefly-iii -u firefly-iii-setup -n 50")
 fi
 
 finish

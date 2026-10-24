@@ -28,10 +28,10 @@
   };
 
   ports = {
-    actual = 5006;
     adguard = 3000;
     beszel = 8090;
     couchdb = 5984;
+    firefly = 8084;
     flaresolverr = 8191;
     gatus = 8083;
     harmonia = 5000;
@@ -200,6 +200,13 @@
 
   loopback = port: "http://127.0.0.1:${toString port}";
 
+  # Firefly is PHP-FPM with no port of its own; the loopback copy is for Gatus and Homepage.
+  firefly = ''
+    root * ${config.services.firefly-iii.package}/public
+    php_fastcgi unix/${config.services.phpfpm.pools.firefly-iii.socket}
+    file_server
+  '';
+
   app = port: sub: icon: description: {
     href = "https://${sub}.${domain}";
     siteMonitor = loopback port;
@@ -284,6 +291,7 @@ in {
     rutracker = secret "rutracker";
     syncthing-cert = secret "syncthing-cert" // {owner = "syncthing";};
     syncthing-key = secret "syncthing-key" // {owner = "syncthing";};
+    firefly-app-key = secret "firefly-app-key" // {owner = "firefly-iii";};
   };
 
   security.acme = {
@@ -326,7 +334,11 @@ in {
       "slskd.${domain}" = proxy ports.slskd;
       "docs.${domain}" = proxy ports.paperless;
       "keep.${domain}" = proxy ports.karakeep;
-      "budget.${domain}" = proxy ports.actual;
+      "budget.${domain}" = {
+        useACMEHost = domain;
+        extraConfig = firefly;
+      };
+      "http://127.0.0.1:${toString ports.firefly}".extraConfig = firefly;
       "jackett.${domain}" = {
         useACMEHost = domain;
         extraConfig = ''
@@ -450,7 +462,7 @@ in {
         (listening "slskd")
         (listening "paperless")
         (listening "karakeep")
-        (listening "actual")
+        (local "firefly" "/health")
         {
           name = "pumpkin";
           url = "tcp://${pumpkin.localAddress}:${toString pumpkin.port}";
@@ -539,7 +551,7 @@ in {
         "Личное" = [
           {Paperless = app ports.paperless "docs" "paperless-ngx.svg" "Документы и сканы";}
           {Karakeep = app ports.karakeep "keep" "karakeep.svg" "Закладки и статьи";}
-          {Actual = app ports.actual "budget" "actual-budget.svg" "Бюджет";}
+          {"Firefly III" = app ports.firefly "budget" "firefly-iii.svg" "Бюджет";}
         ];
       }
       {
@@ -854,11 +866,19 @@ in {
     };
   };
 
-  services.actual = {
+  services.firefly-iii = {
     enable = true;
+    poolConfig = {
+      "listen.owner" = config.services.caddy.user;
+      "listen.group" = config.services.caddy.group;
+    };
     settings = {
-      hostname = "127.0.0.1";
-      port = ports.actual;
+      APP_URL = "https://budget.${domain}";
+      APP_KEY_FILE = config.age.secrets.firefly-app-key.path;
+      TZ = config.time.timeZone;
+      MAIL_MAILER = "log";
+      ENABLE_EXCHANGE_RATES = "true";
+      ENABLE_EXTERNAL_RATES = "true";
     };
   };
 
@@ -1214,7 +1234,6 @@ in {
     ];
     backupUnits = ["backup-vaultwarden" "restic-backups-local" "restic-backups-photos" "restic-backups-files"] ++ lib.optional offsite "restic-backups-offsite";
     services = [
-      "actual"
       "adguardhome"
       "caddy"
       "container@pumpkin"
@@ -1232,6 +1251,7 @@ in {
       "opencloud"
       "paperless-consumer"
       "paperless-web"
+      "phpfpm-firefly-iii"
       "qbittorrent"
       "scrutiny"
       "slskd"

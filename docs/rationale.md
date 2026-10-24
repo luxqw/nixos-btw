@@ -316,10 +316,10 @@ keeps every request behind the password except `/_up`, which Gatus polls.
 The `[cors]` origins are the Obsidian desktop and mobile app schemes.
 `wizards/sync.sh` creates both secrets and walks through the app setup.
 
-**Paperless, Karakeep and Actual need no agenix secrets.** The Paperless
+**Paperless and Karakeep need no agenix secrets.** The Paperless
 admin is made once with `paperless-manage createsuperuser`; Karakeep
-generates its own `settings.env`; Actual asks for a server password on first
-visit. All three default to port 3000, AdGuard's, so each gets its own.
+generates its own `settings.env`. Both default to port 3000, AdGuard's, so
+each gets its own.
 Paperless stays on SQLite rather than Postgres: the offsite backup excludes
 `/var/lib/postgresql`, and the nightly `paperless-exporter` (01:30, before the
 03:00 restic run) writes a consistent copy of every document and its metadata
@@ -327,7 +327,16 @@ into `/var/lib/paperless/export` either way. OCR covers Serbian in both
 scripts, Russian and English; the module rebuilds tesseract with exactly
 those. Karakeep's sign-up stays open: the site is LAN and tunnel only.
 `wizards/apps.sh` walks through the accounts, the browser extension and
-Actual's end-to-end encryption.
+Firefly's currencies.
+
+**Firefly III replaced Actual for the budget**, because the money is in both
+dinars and euros: Actual has no currencies at all, Firefly gives each account
+its own and converts totals to RSD with weekly rates its cron job downloads
+(the feed covers RSD). It's PHP-FPM with no port, so Caddy serves it with
+`php_fastcgi` on `budget.` and again on a loopback port that Gatus and
+Homepage poll. SQLite for the same offsite reason as Paperless. The app key
+is the one agenix secret. Mail goes to the log, so a password-reset link is
+read from `/var/lib/firefly-iii/storage/logs` on homelab, not an inbox.
 
 ### music
 
