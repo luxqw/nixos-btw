@@ -397,6 +397,34 @@ in {
     force = true;
   };
 
+  # Umbriel has no hotplug hooks, but takes wlr-output-management: with any
+  # external monitor plugged in, the laptop panel drops to 60 Hz so the
+  # compositor drives one 165 Hz screen instead of two.
+  services.kanshi = {
+    enable = true;
+    settings = [
+      {
+        profile.name = "docked";
+        profile.outputs = [
+          {
+            criteria = "eDP-1";
+            mode = "2560x1600@60.002Hz";
+          }
+          {criteria = "*";}
+        ];
+      }
+      {
+        profile.name = "laptop";
+        profile.outputs = [
+          {
+            criteria = "eDP-1";
+            mode = "2560x1600@165.004Hz";
+          }
+        ];
+      }
+    ];
+  };
+
   programs.foot = {
     enable = true;
     settings = {

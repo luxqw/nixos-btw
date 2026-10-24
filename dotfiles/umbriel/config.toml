@@ -65,6 +65,12 @@ prefer_no_csd = true
 border_width = 2
 corner_radius = 4
 
+# Two wider passes look like the default three and cost a third less GPU per
+# blurred frame.
+[appearance.blur]
+passes = 2
+radius = 7
+
 # Pinned to the ultrawide by position, not by name: noctalia's bar labels a
 # named workspace with its name, which then travels with workspace-move-*.
 [[workspace]]
