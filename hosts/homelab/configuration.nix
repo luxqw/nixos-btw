@@ -1040,6 +1040,7 @@ in {
         settings = {
           white_list = false;
           enforce_whitelist = false;
+          spawn_protection = 0;
           networking = {
             query.enabled = false;
             java = {
