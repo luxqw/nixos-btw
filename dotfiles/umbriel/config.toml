@@ -159,7 +159,6 @@ enabled = false
 "Mod+D" = { action = "spawn:noctalia msg panel-toggle launcher", repeat = false }
 "Mod+T" = { action = "spawn:noctalia msg panel-toggle clipboard", repeat = false }
 "Mod+Return" = { action = "spawn:foot", repeat = false }
-"Super+Alt+S" = { action = "spawn:pkill orca || exec orca", allow_when_locked = true, repeat = false }
 
 "XF86AudioRaiseVolume" = { action = "spawn:wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1+", allow_when_locked = true }
 "XF86AudioLowerVolume" = { action = "spawn:wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1-", allow_when_locked = true }

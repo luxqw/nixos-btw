@@ -202,7 +202,7 @@ in {
 
   services.printing.enable = true;
 
-  services.udev.packages = [pkgs.yubikey-personalization];
+  services.udev.packages = [pkgs.yubikey-personalization pkgs.brightnessctl];
   # The key's smart-card side (OATH codes, PIV) goes through pcscd; FIDO2 and
   # sudo don't need it, but ykman warns on every call without it.
   services.pcscd.enable = true;
@@ -579,6 +579,7 @@ in {
     pkgs.wireguard-tools
     tunnelCli
     nixosCheck
+    pkgs.brightnessctl
 
     inputs.noctalia.packages.${system}.default
 
@@ -599,7 +600,7 @@ in {
   nixpkgs.overlays = [inputs.claude-code.overlays.default];
 
   users.users.lux = {
-    extraGroups = ["networkmanager" "wheel" "docker" "input" "lenovoctl" "wireshark"];
+    extraGroups = ["networkmanager" "wheel" "docker" "input" "video" "lenovoctl" "wireshark"];
     linger = true;
   };
 
