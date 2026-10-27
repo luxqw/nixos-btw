@@ -671,7 +671,6 @@ in {
       unar
       ffmpegthumbnailer
       poppler-utils
-      imagemagick
     ];
   };
 

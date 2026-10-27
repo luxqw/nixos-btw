@@ -2,7 +2,6 @@ AGENTS.md
 .claude/
 result
 secrets/**/*.conf
-dotfiles/nvim/parser/
 CLAUDE.md
 wizards/
 docs/
