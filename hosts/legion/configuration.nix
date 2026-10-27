@@ -40,6 +40,17 @@
 
   u2fKeys = ./u2f_keys;
 
+  nixosCheck = pkgs.writeShellApplication {
+    name = "nixos-check";
+    runtimeInputs = [pkgs.alejandra pkgs.deadnix pkgs.statix pkgs.nix];
+    text = ''
+      cd /etc/nixos
+      alejandra --check .
+      deadnix --fail .
+      statix check .
+      nix flake check --no-build --all-systems
+    '';
+  };
 
   tunnelCli = pkgs.writeShellApplication {
     name = "tunnel";
@@ -567,6 +578,7 @@ in {
     pkgs.pam_u2f
     pkgs.wireguard-tools
     tunnelCli
+    nixosCheck
 
     inputs.noctalia.packages.${system}.default
 
