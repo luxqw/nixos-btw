@@ -59,7 +59,6 @@
   cloud = "/srv/cloud";
   music = "/srv/music";
   soulseek = "${media}/downloads/soulseek";
-  slskdSecret = ../../secrets/homelab/slskd.age;
   ytmExport = "/var/lib/ytm-export";
 
   beetsConfig = (pkgs.formats.yaml {}).generate "beets.yaml" {
@@ -86,11 +85,7 @@
   filesRepo = "/var/backup/files";
   vaultwardenBackup = "/var/lib/backups/vaultwarden";
 
-  storagebox = let
-    f = ../storagebox.json;
-  in
-    lib.optionalAttrs (builtins.pathExists f) (lib.importJSON f);
-  offsite = storagebox != {} && builtins.pathExists ../../secrets/homelab/storagebox-key.age;
+  storagebox = lib.importJSON ../storagebox.json;
 
   retention = ["--keep-daily 7" "--keep-weekly 4" "--keep-monthly 6"];
 
@@ -272,13 +267,13 @@ in {
 
   # A touch on the YubiKey, through the agent legion forwards, stands in for
   # the password. Only the key in sudo_keys counts, not every authorized key.
-  security.pam.rssh = lib.mkIf (builtins.pathExists sudoKeys) {
+  security.pam.rssh = {
     enable = true;
     settings.auth_key_file = "${sudoKeys}";
   };
-  security.pam.services.sudo.rssh = builtins.pathExists sudoKeys;
+  security.pam.services.sudo.rssh = true;
   # Without this, sudo -n refuses before PAM can ask the agent.
-  security.sudo.extraConfig = lib.mkIf (builtins.pathExists sudoKeys) ''
+  security.sudo.extraConfig = ''
     Defaults:lux noninteractive_auth
   '';
 
@@ -1132,7 +1127,7 @@ in {
     pruneOpts = retention;
   };
 
-  services.restic.backups.offsite = lib.mkIf offsite {
+  services.restic.backups.offsite = {
     repository = "sftp:storagebox:restic";
     passwordFile = config.age.secrets.restic.path;
     initialize = true;
@@ -1151,9 +1146,9 @@ in {
     runCheck = true;
   };
 
-  age.secrets.storagebox-key = lib.mkIf offsite (secret "storagebox-key");
+  age.secrets.storagebox-key = secret "storagebox-key";
 
-  programs.ssh = lib.mkIf offsite {
+  programs.ssh = {
     extraConfig = ''
       Host storagebox
         HostName ${storagebox.homelab.host}
@@ -1183,37 +1178,34 @@ in {
   systemd.services.restic-backups-local.unitConfig.OnFailure = ["notify-telegram@%N.service"];
   systemd.services.restic-backups-photos.unitConfig.OnFailure = ["notify-telegram@%N.service"];
   systemd.services.restic-backups-files.unitConfig.OnFailure = ["notify-telegram@%N.service"];
-  systemd.services.restic-backups-offsite.unitConfig.OnFailure = lib.mkIf offsite ["notify-telegram@%N.service"];
+  systemd.services.restic-backups-offsite.unitConfig.OnFailure = ["notify-telegram@%N.service"];
   systemd.services.backup-vaultwarden.unitConfig.OnFailure = ["notify-telegram@%N.service"];
   systemd.services.paperless-exporter.unitConfig.OnFailure = lib.mkAfter ["notify-telegram@%N.service"];
 
   environment.etc."statusbot.json".text = builtins.toJSON {
     passwordFile = config.age.secrets.restic.path;
-    repos =
-      {
-        local = {
-          medium = "hdd";
-          repo = "/srv/backup/restic";
-        };
-        photos = {
-          medium = "nvme";
-          repo = photosRepo;
-        };
-        files = {
-          medium = "nvme";
-          repo = filesRepo;
-        };
-        legion = {
-          medium = "offsite";
-          heartbeat = "${statusbotInbox}/legion";
-        };
-      }
-      // lib.optionalAttrs offsite {
-        offsite = {
-          medium = "offsite";
-          repo = "sftp:storagebox:restic";
-        };
+    repos = {
+      local = {
+        medium = "hdd";
+        repo = "/srv/backup/restic";
       };
+      photos = {
+        medium = "nvme";
+        repo = photosRepo;
+      };
+      files = {
+        medium = "nvme";
+        repo = filesRepo;
+      };
+      legion = {
+        medium = "offsite";
+        heartbeat = "${statusbotInbox}/legion";
+      };
+      offsite = {
+        medium = "offsite";
+        repo = "sftp:storagebox:restic";
+      };
+    };
     classes = [
       {
         name = "vaultwarden";
@@ -1246,7 +1238,7 @@ in {
         repos = ["legion"];
       }
     ];
-    backupUnits = ["backup-vaultwarden" "restic-backups-local" "restic-backups-photos" "restic-backups-files"] ++ lib.optional offsite "restic-backups-offsite";
+    backupUnits = ["backup-vaultwarden" "restic-backups-local" "restic-backups-photos" "restic-backups-files" "restic-backups-offsite"];
     services = [
       "adguardhome"
       "caddy"
@@ -1332,7 +1324,7 @@ in {
   };
   systemd.services.navidrome.unitConfig.RequiresMountsFor = [music];
 
-  services.slskd = lib.mkIf (builtins.pathExists slskdSecret) {
+  services.slskd = {
     enable = true;
     group = "media";
     environmentFile = config.age.secrets.slskd.path;
@@ -1346,8 +1338,8 @@ in {
       soulseek.description = "homelab of a music fan; sharing what I listen to";
     };
   };
-  age.secrets.slskd = lib.mkIf (builtins.pathExists slskdSecret) (secret "slskd");
-  systemd.services.slskd = lib.mkIf (builtins.pathExists slskdSecret) {
+  age.secrets.slskd = secret "slskd";
+  systemd.services.slskd = {
     unitConfig.RequiresMountsFor = [media music];
     serviceConfig.UMask = "0002";
   };

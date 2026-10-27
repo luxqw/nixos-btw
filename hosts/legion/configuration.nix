@@ -36,14 +36,10 @@
     "target"
   ];
 
-  storagebox = let
-    f = ../storagebox.json;
-  in
-    lib.optionalAttrs (builtins.pathExists f) (lib.importJSON f);
-  offsite = storagebox != {} && builtins.pathExists ../../secrets/legion/restic.age;
+  storagebox = lib.importJSON ../storagebox.json;
 
   u2fKeys = ./u2f_keys;
-  yubikey = builtins.pathExists u2fKeys;
+
 
   tunnelCli = pkgs.writeShellApplication {
     name = "tunnel";
@@ -200,16 +196,16 @@ in {
   # sudo don't need it, but ykman warns on every call without it.
   services.pcscd.enable = true;
 
-  security.pam.u2f.settings = lib.mkIf yubikey {
+  security.pam.u2f.settings = {
     authfile = "${u2fKeys}";
     origin = "pam://legion";
     appid = "pam://legion";
     cue = true;
   };
-  security.pam.services.sudo.u2f.enable = yubikey;
+  security.pam.services.sudo.u2f.enable = true;
   # login is the stack Noctalia's lock screen authenticates against.
-  security.pam.services.login.u2f.enable = yubikey;
-  security.pam.services.polkit-1.u2f.enable = yubikey;
+  security.pam.services.login.u2f.enable = true;
+  security.pam.services.polkit-1.u2f.enable = true;
 
   # Holds only the YubiKey's SSH key, forwarded to homelab, where pam_rssh
   # takes a touch for sudo.
@@ -353,14 +349,14 @@ in {
         ConnectTimeout 3
         ForwardAgent yes
     ''
-    + lib.optionalString offsite ''
+    + ''
       Host storagebox
         HostName ${storagebox.legion.host}
         User ${storagebox.legion.user}
         Port 23
     '';
 
-  programs.ssh.knownHosts.storagebox = lib.mkIf offsite {
+  programs.ssh.knownHosts.storagebox = {
     hostNames = ["[${storagebox.legion.host}]:23"];
     publicKey = storagebox.hostKey;
   };
@@ -379,7 +375,7 @@ in {
     ''
     # inhibitsSleep runs the laptop backup under systemd-inhibit; a service has no
     # session to ask for the password in, so lux may take a sleep lock without one.
-    + lib.optionalString offsite ''
+    + ''
       polkit.addRule(function(action, subject) {
         if (action.id == "org.freedesktop.login1.inhibit-block-sleep" && subject.user == "lux") {
           return polkit.Result.YES;
@@ -393,7 +389,7 @@ in {
     lib.genAttrs tunnelNames (name: {
       file = tunnelSecretsDir + "/${name}.age";
     })
-    // lib.genAttrs (["syncthing-cert" "syncthing-key"] ++ lib.optional offsite "restic") (name: {
+    // lib.genAttrs ["syncthing-cert" "syncthing-key" "restic"] (name: {
       file = ../../secrets/legion + "/${name}.age";
       owner = "lux";
     });
@@ -431,7 +427,7 @@ in {
     };
   };
 
-  services.restic.backups.laptop = lib.mkIf offsite {
+  services.restic.backups.laptop = {
     user = "lux";
     repository = "sftp:storagebox:restic";
     passwordFile = config.age.secrets.restic.path;
@@ -460,7 +456,7 @@ in {
     '';
   };
 
-  systemd.services.restic-backups-laptop.unitConfig.OnFailure = lib.mkIf offsite ["notify-desktop@%N.service"];
+  systemd.services.restic-backups-laptop.unitConfig.OnFailure = ["notify-desktop@%N.service"];
 
   systemd.services."notify-desktop@" = {
     description = "Tell the desktop that %i failed";
