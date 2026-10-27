@@ -410,6 +410,12 @@ in {
     force = true;
   };
 
+  # One rules file for Claude and Codex; the ~/.agents repo is its source.
+  home.file = lib.genAttrs [".claude/CLAUDE.md" ".codex/AGENTS.md"] (_: {
+    source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.agents/CLAUDE.md";
+    force = true;
+  });
+
   # Umbriel has no hotplug hooks, but takes wlr-output-management: with any
   # external monitor plugged in, the laptop panel drops to 60 Hz so the
   # compositor drives one 165 Hz screen instead of two.
