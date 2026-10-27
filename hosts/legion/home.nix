@@ -265,7 +265,7 @@ in {
       edit = "nvim /etc/nixos/";
       rebuild = "nh os switch";
       rebuild-test = "nh os test";
-      update = "nh os switch --update";
+      update = "nh os build --update --diff always";
       deploy-homelab = "nh os switch -H homelab --target-host homelab --build-host homelab -e passwordless";
       deploy-homelab-pw = "nh os switch -H homelab --target-host homelab --build-host homelab";
       nx = "cd /etc/nixos";
