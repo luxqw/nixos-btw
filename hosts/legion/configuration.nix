@@ -451,6 +451,8 @@ in {
       ".ssh"
       ".config/noctalia"
       ".local/state/noctalia"
+      ".agents"
+      ".claude/projects"
     ];
     exclude = buildDirs;
     timerConfig = {
