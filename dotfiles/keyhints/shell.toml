@@ -56,11 +56,11 @@ star = true
 
 [[key]]
 keys = "update"
-desc = "update flake inputs and switch"
+desc = "nh os build --update --diff always; review diff, commit lock, then switch separately"
 
 [[key]]
 keys = "deploy-homelab"
-desc = "deploy homelab; on error recover with nh os boot + reboot"
+desc = "deploy homelab; on failure inspect activation before manual boot recovery"
 
 [[key]]
 keys = "nx / edit"

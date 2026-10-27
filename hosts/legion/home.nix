@@ -89,8 +89,7 @@
     '';
   };
 
-  # If activation fails, nh does not register the generation and the next
-  # reboot boots the old one; `nh os boot` registers it anyway.
+  # A switch failure does not identify the failed stage; leave recovery manual.
   mkDeploy = name: elevation:
     pkgs.writeShellApplication {
       inherit name;
@@ -98,12 +97,14 @@
       text = ''
         flags=(-H homelab --target-host homelab --build-host homelab${elevation})
         status=0
-        nh os switch "''${flags[@]}" || status=$?
+        nh os switch "''${flags[@]}" "$@" || status=$?
         if [ "$status" -eq 0 ]; then
           exit 0
         fi
-        echo "warning: switch failed (exit $status); registering the generation for the next boot" >&2
-        nh os boot "''${flags[@]}" || true
+        echo "warning: switch failed (exit $status); no boot recovery was attempted" >&2
+        echo "Only after inspecting an actual activation failure, register the generation manually with:" >&2
+        printf ' %q' nh os boot "''${flags[@]}" "$@" >&2
+        printf '\n' >&2
         exit "$status"
       '';
     };
