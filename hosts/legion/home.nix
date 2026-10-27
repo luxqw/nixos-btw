@@ -89,6 +89,28 @@
     '';
   };
 
+  # If activation fails, nh does not register the generation and the next
+  # reboot boots the old one; `nh os boot` registers it anyway.
+  mkDeploy = name: elevation:
+    pkgs.writeShellApplication {
+      inherit name;
+      runtimeInputs = [pkgs.nh];
+      text = ''
+        flags=(-H homelab --target-host homelab --build-host homelab${elevation})
+        status=0
+        nh os switch "''${flags[@]}" || status=$?
+        if [ "$status" -eq 0 ]; then
+          exit 0
+        fi
+        echo "warning: switch failed (exit $status); registering the generation for the next boot" >&2
+        nh os boot "''${flags[@]}" || true
+        exit "$status"
+      '';
+    };
+
+  deploy-homelab = mkDeploy "deploy-homelab" " -e passwordless";
+  deploy-homelab-pw = mkDeploy "deploy-homelab-pw" "";
+
   torrent-add = pkgs.writeShellApplication {
     name = "torrent-add";
     runtimeInputs = with pkgs; [openssh libnotify];
@@ -266,8 +288,6 @@ in {
       rebuild = "nh os switch";
       rebuild-test = "nh os test";
       update = "nh os build --update --diff always";
-      deploy-homelab = "nh os switch -H homelab --target-host homelab --build-host homelab -e passwordless";
-      deploy-homelab-pw = "nh os switch -H homelab --target-host homelab --build-host homelab";
       nx = "cd /etc/nixos";
     };
 
@@ -972,6 +992,8 @@ in {
       zellij-pick
       zellij-scratch
       torrent-add
+      deploy-homelab
+      deploy-homelab-pw
       tealdeer
       delta
       restic
