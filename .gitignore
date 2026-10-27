@@ -5,3 +5,6 @@ secrets/**/*.conf
 dotfiles/nvim/parser/
 CLAUDE.md
 wizards/
+docs/
+.scratch/
+GLOSSARY.md
