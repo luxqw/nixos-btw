@@ -588,6 +588,13 @@ in {
   ];
 
   programs.nh.flake = "/etc/nixos";
+  # 16 generations in 5 days filled /nix; keep the last 3 and nothing older than 2 days.
+  programs.nh.clean.extraArgs = lib.mkForce "--keep 3 --keep-since 2d";
+
+  # Free space during a build instead of dying at zero: below 5 GiB free the
+  # daemon collects garbage until 15 GiB are free.
+  nix.settings.min-free = 5 * 1024 * 1024 * 1024;
+  nix.settings.max-free = 15 * 1024 * 1024 * 1024;
 
   nixpkgs.overlays = [inputs.claude-code.overlays.default];
 
