@@ -115,7 +115,7 @@
           [ -f "$3" ] || { echo "no such file: $3" >&2; exit 1; }
           age -R "$key.pub" -o "$dir/wg/$name.age" "$3"
           echo "created $dir/wg/$name.age"
-          echo "next: sudo nixos-rebuild switch --flake /etc/nixos"
+          echo "next: git -C /etc/nixos add secrets/wg/$name.age, then rebuild (the flake only sees tracked files)"
           ;;
 
         edit)
