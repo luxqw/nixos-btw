@@ -15,7 +15,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 HOME = Path.home()
 CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", HOME / ".config"))
-ORDER = ["system", "umbriel", "zellij", "shell", "nvim", "yazi", "lazygit", "claude", "skills"]
+ORDER = ["system", "umbriel", "niri", "zellij", "shell", "nvim", "yazi", "lazygit", "claude", "skills"]
 
 YELLOW, DIM, CYAN, RESET = "\033[33m", "\033[2m", "\033[36m", "\033[0m"
 
@@ -40,6 +40,133 @@ def umbriel():
         if act.startswith("spawn:"):
             act = "run " + act[6:].split(";")[0][:60]
         yield key, act.replace("-", " ")
+
+
+def kdl_nodes(text):
+    """Nodes of a KDL document: {name, args, props, children, off}. Comments are
+    skipped, `/-` marks the next node off, quoted and raw strings are values."""
+    toks, i, n = [], 0, len(text)
+    while i < n:
+        c = text[i]
+        if c in " \t\r":
+            i += 1
+        elif c == "\n":
+            toks.append(("nl", ""))
+            i += 1
+        elif text.startswith("//", i):
+            j = text.find("\n", i)
+            i = n if j < 0 else j
+        elif text.startswith("/*", i):
+            j = text.find("*/", i + 2)
+            i = n if j < 0 else j + 2
+        elif text.startswith("/-", i):
+            toks.append(("off", ""))
+            i += 2
+        elif c in "{};":
+            toks.append((c, c))
+            i += 1
+        elif c == '"':
+            j, out = i + 1, []
+            while j < n and text[j] != '"':
+                if text[j] == "\\" and j + 1 < n:
+                    j += 1
+                out.append(text[j])
+                j += 1
+            toks.append(("str", "".join(out)))
+            i = j + 1
+        elif (m := re.match(r'r(#*)"', text[i:i + 40])):
+            end = '"' + m[1]
+            j = text.find(end, i + m.end())
+            j = n if j < 0 else j
+            toks.append(("str", text[i + m.end():j]))
+            i = j + len(end)
+        else:
+            j = i
+            while j < n and text[j] not in ' \t\r\n{};"':
+                j += 1
+            toks.append(("word", text[i:j]))
+            i = j
+    pos = 0
+
+    def level():
+        nonlocal pos
+        found, off = [], False
+        while pos < len(toks):
+            kind, val = toks[pos]
+            if kind in ("nl", ";"):
+                pos += 1
+            elif kind == "}":
+                pos += 1
+                return found
+            elif kind == "off":
+                off = True
+                pos += 1
+            else:
+                node = {"name": val, "args": [], "props": {}, "children": [], "off": off}
+                off = False
+                pos += 1
+                while pos < len(toks) and toks[pos][0] not in ("nl", ";", "{", "}"):
+                    kind, val = toks[pos]
+                    pos += 1
+                    if kind == "word" and val.endswith("=") and pos < len(toks) and toks[pos][0] in ("str", "word"):
+                        node["props"][val[:-1]] = toks[pos][1]
+                        pos += 1
+                    elif kind == "word" and "=" in val:
+                        k, _, v = val.partition("=")
+                        node["props"][k] = v
+                    else:
+                        node["args"].append(val)
+                if pos < len(toks) and toks[pos][0] == "{":
+                    pos += 1
+                    node["children"] = level()
+                found.append(node)
+        return found
+
+    return level()
+
+
+def kdl_binds(path, seen=None):
+    """The enabled binds of a niri config and everything it includes, in niri's
+    order: a later bind on the same key replaces an earlier one."""
+    seen = set() if seen is None else seen
+    try:
+        path = Path(path).expanduser().resolve()
+        text = path.read_text()
+    except OSError:
+        return {}
+    if path in seen:
+        return {}
+    seen.add(path)
+    binds = {}
+    for node in kdl_nodes(text):
+        if node["off"]:
+            continue
+        if node["name"] == "include" and node["args"]:
+            target = Path(node["args"][0]).expanduser()
+            binds.update(kdl_binds(target if target.is_absolute() else path.parent / target, seen))
+        elif node["name"] == "binds":
+            for bind in node["children"]:
+                if bind["off"]:
+                    continue
+                binds[bind["name"]] = bind
+    return binds
+
+
+def niri():
+    for key, bind in kdl_binds(CONFIG / "niri/config.kdl").items():
+        actions = [a for a in bind["children"] if not a["off"]]
+        if not actions or "Wheel" in key or key.startswith("XF86") or bind["props"].get("hotkey-overlay-hidden") == "true":
+            continue
+        act = actions[0]
+        if bind["props"].get("hotkey-overlay-title"):
+            desc = bind["props"]["hotkey-overlay-title"]
+        elif act["name"] == "spawn":
+            desc = "run " + " ".join([Path(act["args"][0]).name] + act["args"][1:])[:60] if act["args"] else "run"
+        elif act["name"] == "spawn-sh":
+            desc = "run " + (act["args"][0].split(";")[-1].strip()[:60] if act["args"] else "script")
+        else:
+            desc = " ".join([act["name"]] + act["args"]).replace("-", " ")
+        yield key, desc
 
 
 def zellij():
@@ -105,12 +232,18 @@ def skills():
         yield "/" + meta.get("name", d.name), desc
 
 
-PARSED = {"umbriel": umbriel, "zellij": zellij, "skills": skills}
+PARSED = {"umbriel": umbriel, "niri": niri, "zellij": zellij, "skills": skills}
+
+# Each compositor lists its own binds; a plain terminal shows both.
+COMPOSITORS = {"umbriel", "niri"}
 
 
 def entries():
     rows = {}
+    desktop = os.environ.get("XDG_CURRENT_DESKTOP", "").lower()
     for app in ORDER:
+        if app in COMPOSITORS and desktop in COMPOSITORS and app != desktop:
+            continue
         for keys, desc in PARSED.get(app, lambda: [])():
             rows[(app, keys)] = {"app": app, "keys": keys, "desc": desc, "star": False}
         path = HERE / f"{app}.toml"
