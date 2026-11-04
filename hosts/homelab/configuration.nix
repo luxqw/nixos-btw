@@ -346,7 +346,7 @@ in {
         useACMEHost = domain;
         extraConfig = firefly;
       };
-      "http://127.0.0.1:${toString ports.firefly}".extraConfig = firefly;
+      "http://127.0.0.1:${toString ports.firefly}".extraConfig = firefly + "bind 127.0.0.1\n";
       "jackett.${domain}" = {
         useACMEHost = domain;
         extraConfig = ''
@@ -425,11 +425,16 @@ in {
   services.scrutiny = {
     enable = true;
     collector.enable = true;
-    settings.web.listen = {
-      host = "127.0.0.1";
-      port = ports.scrutiny;
+    settings.web = {
+      listen = {
+        host = "127.0.0.1";
+        port = ports.scrutiny;
+      };
+      influxdb.host = "127.0.0.1";
     };
   };
+  # Its only client is Scrutiny, which connects over loopback.
+  services.influxdb2.settings.http-bind-address = "127.0.0.1:8086";
 
   services.gatus = {
     enable = true;
@@ -698,6 +703,8 @@ in {
       };
       Preferences = {
         General.Locale = "ru";
+        # Only 8443 and Pumpkin are forwarded; UPnP would open a port on its own.
+        Connection.UPnP = false;
         WebUI = {
           Address = "127.0.0.1";
           LocalHostAuth = false;
@@ -716,6 +723,8 @@ in {
     enable = true;
     port = ports.flaresolverr;
   };
+  # Only Jackett and Gatus use it, both over loopback.
+  systemd.services.flaresolverr.environment.HOST = "127.0.0.1";
 
   services.jackett = {
     enable = true;
@@ -869,6 +878,9 @@ in {
       PORT = toString ports.karakeep;
       NEXTAUTH_URL = "https://keep.${domain}";
       DISABLE_NEW_RELEASE_CHECK = "true";
+      DISABLE_SIGNUPS = "true";
+      # Caddy, Gatus and Homepage reach it over loopback; NEXTAUTH_URL leaves no direct clients.
+      HOSTNAME = "127.0.0.1";
       CRAWLER_FULL_PAGE_ARCHIVE = "true";
       CRAWLER_STORE_SCREENSHOT = "true";
     };
