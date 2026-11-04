@@ -484,6 +484,13 @@ in {
           alerts = [{type = "telegram";}];
         }
         {
+          name = "certificate";
+          url = "https://home.${domain}";
+          interval = "1h";
+          conditions = ["[CERTIFICATE_EXPIRATION] > 240h"];
+          alerts = [{type = "telegram";}];
+        }
+        {
           name = "dns";
           url = "127.0.0.1";
           interval = "1m";
@@ -1155,7 +1162,7 @@ in {
       Persistent = true;
     };
     pruneOpts = retention;
-    runCheck = true;
+    checkOpts = ["--read-data-subset=5%"];
   };
 
   age.secrets.storagebox-key = secret "storagebox-key";
@@ -1166,6 +1173,8 @@ in {
         HostName ${storagebox.homelab.host}
         User ${storagebox.homelab.user}
         Port 23
+        ServerAliveInterval 15
+        ServerAliveCountMax 4
         IdentityFile ${config.age.secrets.storagebox-key.path}
     '';
     knownHosts.storagebox = {
@@ -1187,12 +1196,59 @@ in {
       EnvironmentFile = config.age.secrets.telegram.path;
     };
   };
-  systemd.services.restic-backups-local.unitConfig.OnFailure = ["notify-telegram@%N.service"];
-  systemd.services.restic-backups-photos.unitConfig.OnFailure = ["notify-telegram@%N.service"];
-  systemd.services.restic-backups-files.unitConfig.OnFailure = ["notify-telegram@%N.service"];
-  systemd.services.restic-backups-offsite.unitConfig.OnFailure = ["notify-telegram@%N.service"];
+  # /srv is nofail: without it a job would back up (or initialise a repo in) an empty mount point.
+  systemd.services.restic-backups-local.unitConfig = {
+    OnFailure = ["notify-telegram@%N.service"];
+    RequiresMountsFor = ["/srv"];
+  };
+  systemd.services.restic-backups-photos.unitConfig = {
+    OnFailure = ["notify-telegram@%N.service"];
+    RequiresMountsFor = ["/srv"];
+  };
+  systemd.services.restic-backups-files.unitConfig = {
+    OnFailure = ["notify-telegram@%N.service"];
+    RequiresMountsFor = ["/srv"];
+  };
+  systemd.services.restic-backups-offsite.unitConfig = {
+    OnFailure = ["notify-telegram@%N.service"];
+    RequiresMountsFor = ["/srv"];
+  };
   systemd.services.backup-vaultwarden.unitConfig.OnFailure = ["notify-telegram@%N.service"];
   systemd.services.paperless-exporter.unitConfig.OnFailure = lib.mkAfter ["notify-telegram@%N.service"];
+  systemd.services.btrbk-local.unitConfig.OnFailure = ["notify-telegram@%N.service"];
+  systemd.services.statusbot-digest.unitConfig.OnFailure = ["notify-telegram@%N.service"];
+  systemd.services.beets-import.unitConfig.OnFailure = ["notify-telegram@%N.service"];
+  systemd.services.scrutiny-collector.unitConfig.OnFailure = ["notify-telegram@%N.service"];
+
+  # Restores the newest offsite copy of Vaultwarden's database and opens it, so a
+  # backup that can't be restored shows up here and not on the day it's needed.
+  systemd.services.restore-test = {
+    description = "Restore Vaultwarden from the offsite backup and check it";
+    after = ["network-online.target"];
+    wants = ["network-online.target"];
+    startAt = "monthly";
+    path = [pkgs.restic pkgs.openssh pkgs.sqlite];
+    environment = {
+      RESTIC_REPOSITORY = "sftp:storagebox:restic";
+      RESTIC_PASSWORD_FILE = config.age.secrets.restic.path;
+    };
+    unitConfig.OnFailure = ["notify-telegram@%N.service"];
+    script = ''
+      dir=$(mktemp -d)
+      trap 'rm -rf "$dir"' EXIT
+      # System units have no HOME for a cache, and a test should not trust local state.
+      restic --no-cache restore latest --target "$dir" --include ${vaultwardenBackup}
+      db=$dir${vaultwardenBackup}/db.sqlite3
+      [ "$(sqlite3 "$db" 'PRAGMA integrity_check')" = ok ]
+      [ "$(sqlite3 "$db" 'SELECT count(*) FROM users')" -gt 0 ]
+    '';
+    serviceConfig = {
+      Type = "oneshot";
+      PrivateTmp = true;
+      TimeoutStartSec = "30min";
+    };
+  };
+  systemd.timers.restore-test.timerConfig.Persistent = true;
 
   environment.etc."statusbot.json".text = builtins.toJSON {
     passwordFile = config.age.secrets.restic.path;
