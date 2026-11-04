@@ -1304,6 +1304,8 @@ in {
         name = "legion";
         live = "laptop";
         repos = ["legion"];
+        # One offsite repo is all the laptop has.
+        copies = 2;
       }
     ];
     backupUnits = ["backup-vaultwarden" "restic-backups-local" "restic-backups-photos" "restic-backups-files" "restic-backups-offsite"];
@@ -1368,6 +1370,7 @@ in {
       ExecStart = "${statusbot}/bin/statusbot digest /etc/statusbot.json";
       EnvironmentFile = config.age.secrets.telegram.path;
       CacheDirectory = "statusbot";
+      TimeoutStartSec = "5min";
     };
   };
 

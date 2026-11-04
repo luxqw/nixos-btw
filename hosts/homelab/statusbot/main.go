@@ -8,7 +8,9 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html"
 	"log"
@@ -32,6 +34,8 @@ type Class struct {
 	Name  string   `json:"name"`
 	Live  string   `json:"live"`
 	Repos []string `json:"repos"`
+	// Copies is how many copies count as enough; 0 means the usual 3.
+	Copies int `json:"copies,omitempty"`
 }
 
 type Config struct {
@@ -93,7 +97,12 @@ func main() {
 func (b *Bot) api(method string, form url.Values, out any) error {
 	resp, err := b.http.PostForm("https://api.telegram.org/bot"+b.token+"/"+method, form)
 	if err != nil {
-		return err
+		// *url.Error carries the request URL, which contains the bot token.
+		var ue *url.Error
+		if errors.As(err, &ue) {
+			err = ue.Err
+		}
+		return fmt.Errorf("%s: %w", method, err)
 	}
 	defer resp.Body.Close()
 	var body struct {
@@ -215,22 +224,41 @@ func (b *Bot) help() string {
 
 // ── commands ──────────────────────────────────────────────────────────────
 
+// run kills a command that hangs, so one stuck SFTP or journal read can't
+// freeze the poll loop. WaitDelay covers children (ssh under restic) that keep
+// the output pipe open after the kill.
 func run(name string, args ...string) (string, error) {
-	out, err := exec.Command(name, args...).CombinedOutput()
+	return runFor(90*time.Second, name, args...)
+}
+
+func runFor(timeout time.Duration, name string, args ...string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, name, args...)
+	cmd.WaitDelay = 5 * time.Second
+	out, err := cmd.CombinedOutput()
 	return strings.TrimSpace(string(out)), err
 }
 
-// pre keeps the end of s, the newest lines, well under Telegram's 4096 limit:
-// send's own cut would drop the closing tag and Telegram rejects the message.
+// pre keeps the newest lines of s, well under Telegram's 4096 limit: send's
+// own cut would drop the closing tag and Telegram rejects the message. It
+// escapes first and trims after, on a line boundary, so neither an entity nor
+// a tag is ever cut in half. A newest line too long for that is cut by runes
+// before escaping; no rune escapes to more than 5 bytes.
 func pre(s string) string {
-	if len(s) > 3000 {
-		s = s[len(s)-3000:]
-		if i := strings.IndexByte(s, '\n'); i >= 0 {
-			s = s[i+1:]
+	const limit = 3000
+	esc := html.EscapeString(s)
+	if len(esc) > limit {
+		tail := esc[len(esc)-limit-1:]
+		if i := strings.IndexByte(tail, '\n'); i >= 0 && i+1 < len(tail) {
+			esc = tail[i+1:]
+		} else {
+			r := []rune(s)
+			esc = html.EscapeString(string(r[len(r)-limit/5:]))
 		}
-		s = "…\n" + s
+		esc = "…\n" + esc
 	}
-	return "<pre>" + html.EscapeString(s) + "</pre>"
+	return "<pre>" + esc + "</pre>"
 }
 
 // unit resolves svc against the allowlist, also by instance name ("pumpkin"
@@ -264,7 +292,8 @@ func (b *Bot) restart(svc string) string {
 	if msg != "" {
 		return html.EscapeString(msg)
 	}
-	if out, err := run("systemctl", "restart", svc); err != nil {
+	// Longer than a slow stop (90 s for several units) plus the start.
+	if out, err := runFor(5*time.Minute, "systemctl", "restart", svc); err != nil {
 		return "❌ restart failed\n" + pre(out)
 	}
 	time.Sleep(3 * time.Second)

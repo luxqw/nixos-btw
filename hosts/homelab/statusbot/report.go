@@ -158,6 +158,34 @@ func machine() string {
 	return fmt.Sprintf("🌡 CPU %.0f°C · load %.2f · RAM %.0f%% · up %s\n", cpu, load, used, ago(up))
 }
 
+type lockedRev struct {
+	Rev          string `json:"rev"`
+	LastModified int64  `json:"lastModified"`
+}
+
+type flakeLock struct {
+	Root  string `json:"root"`
+	Nodes map[string]struct {
+		Inputs map[string]any `json:"inputs"`
+		Locked lockedRev      `json:"locked"`
+	} `json:"nodes"`
+}
+
+// nixpkgs returns the pin of the root flake's own nixpkgs input. The node
+// named "nixpkgs" is whichever one came first, often another input's copy.
+func (l flakeLock) nixpkgs() (lockedRev, bool) {
+	root := l.Root
+	if root == "" {
+		root = "root"
+	}
+	name, ok := l.Nodes[root].Inputs["nixpkgs"].(string)
+	if !ok {
+		return lockedRev{}, false
+	}
+	node, ok := l.Nodes[name]
+	return node.Locked, ok
+}
+
 // drift compares the nixpkgs homelab runs with the one pinned on GitHub main,
 // so "flake updated but never deployed" shows up before an app breaks.
 func (b *Bot) drift() string {
@@ -175,18 +203,14 @@ func (b *Bot) drift() string {
 		return ""
 	}
 
-	var lock struct {
-		Nodes map[string]struct {
-			Locked struct {
-				Rev          string `json:"rev"`
-				LastModified int64  `json:"lastModified"`
-			} `json:"locked"`
-		} `json:"nodes"`
-	}
+	var lock flakeLock
 	if err := getJSON(b.cfg.FlakeLock, &lock); err != nil {
 		return "⚠️ can't read flake.lock from GitHub\n"
 	}
-	pinned := lock.Nodes["nixpkgs"].Locked
+	pinned, ok := lock.nixpkgs()
+	if !ok {
+		return "⚠️ no nixpkgs in flake.lock on GitHub\n"
+	}
 	if strings.HasPrefix(pinned.Rev, deployedRev) {
 		return fmt.Sprintf("✅ deployed nixpkgs %s matches GitHub\n", deployed.Format("2006-01-02"))
 	}
@@ -283,8 +307,12 @@ func (b *Bot) backups() string {
 				offsite = offsite || medium == "offsite"
 			}
 		}
+		want := c.Copies
+		if want == 0 {
+			want = 3
+		}
 		icon := "✅"
-		if copies < 3 || len(media) < 2 || !offsite {
+		if copies < want || len(media) < 2 || !offsite {
 			icon = "⚠️"
 		}
 		off := "no offsite"
