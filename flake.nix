@@ -13,6 +13,13 @@
       repo = "creamlinux-installer";
       flake = false;
     };
+    bioma = {
+      type = "github";
+      owner = "AkusenArcade";
+      repo = "Bioma";
+      ref = "v1.0.0-beta.60";
+      flake = false;
+    };
     agenix = {
       url = "github:ryantm/agenix";
       inputs.nixpkgs.follows = "nixpkgs";

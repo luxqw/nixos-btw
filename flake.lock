@@ -20,6 +20,23 @@
         "type": "github"
       }
     },
+    "bioma": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1793370717,
+        "narHash": "sha256-QJAuZCA8O6q5HPaSM3aGA1peKiyqeYGEXmTLNamA6Vs=",
+        "owner": "AkusenArcade",
+        "repo": "Bioma",
+        "rev": "3ff1e521b4cad1a30ba36f38868bec637a1a3228",
+        "type": "github"
+      },
+      "original": {
+        "owner": "AkusenArcade",
+        "ref": "v1.0.0-beta.60",
+        "repo": "Bioma",
+        "type": "github"
+      }
+    },
     "claude-code": {
       "inputs": {
         "nixpkgs": "nixpkgs",
@@ -515,6 +532,7 @@
     "root": {
       "inputs": {
         "agenix": "agenix",
+        "bioma": "bioma",
         "claude-code": "claude-code",
         "clin": "clin",
         "creamlinux-installer": "creamlinux-installer",

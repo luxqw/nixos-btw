@@ -1,0 +1,305 @@
+// niri session config, translated from ../umbriel/config.toml.
+// Live dotfile (mkOutOfStoreSymlink): edits reload without a rebuild; check
+// with `niri validate -c /etc/nixos/dotfiles/niri/config.kdl`.
+// Bioma's settings cell edits this file and writes bioma-*.kdl next to it
+// (gitignored here, except bioma-binds.kdl).
+
+// ─────────────────────────────── outputs ───────────────────────────────
+
+output "eDP-1" {
+    mode "2560x1600@165.004"
+    scale 1.5
+    transform "normal"
+    position x=3440 y=0
+}
+
+output "DP-2" {
+    mode "3440x1440@165.000"
+    scale 1.0
+    transform "normal"
+    position x=0 y=0
+    // "always" flickers on this VA panel on the desktop; games and video only.
+    variable-refresh-rate on-demand=true
+    focus-at-startup
+}
+
+output "HDMI-A-1" {
+    off
+}
+
+// Pinned to the ultrawide like Umbriel's workspaces 1-3.
+workspace "1" {
+    open-on-output "DP-2"
+}
+workspace "2" {
+    open-on-output "DP-2"
+}
+workspace "3" {
+    open-on-output "DP-2"
+}
+
+// ──────────────────────────────── input ────────────────────────────────
+
+input {
+    keyboard {
+        xkb {
+            layout "us,ru"
+            options "grp:win_space_toggle"
+        }
+        repeat-delay 200
+        repeat-rate 35
+        numlock
+    }
+
+    touchpad {
+        tap
+        natural-scroll
+    }
+
+    focus-follows-mouse max-scroll-amount="0%"
+}
+
+// Same theme as home.pointerCursor in home.nix.
+cursor {
+    xcursor-theme "Bibata-Modern-Classic"
+    xcursor-size 24
+}
+
+// ─────────────────────────────── layout ────────────────────────────────
+
+layout {
+    gaps 5
+    center-focused-column "never"
+
+    preset-column-widths {
+        proportion 0.33333
+        proportion 0.5
+        proportion 0.66667
+    }
+    default-column-width { proportion 0.5; }
+
+    // Umbriel drew a 2 px border and no ring.
+    focus-ring {
+        off
+    }
+    border {
+        on
+        width 2
+    }
+}
+
+prefer-no-csd
+
+window-rule {
+    geometry-corner-radius 4
+    clip-to-geometry true
+}
+
+// Two wider passes look like the default three and cost a third less GPU per
+// blurred frame. Bioma's APPEARANCE page overrides this in bioma-blur.kdl.
+blur {
+    passes 2
+}
+
+gestures {
+    hot-corners {
+        top-left
+    }
+}
+
+hotkey-overlay {
+    skip-at-startup
+}
+
+screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
+
+window-rule {
+    match app-id="^keyhints$"
+    open-floating true
+    default-column-width { proportion 0.6; }
+    default-window-height { proportion 0.7; }
+}
+
+// ───────────────────────────── Bioma shell ─────────────────────────────
+// The layer rules and the keys live in the NixOS package (stable path under
+// /run/current-system/sw) and in bioma-binds.kdl; the last include is the
+// palette Bioma's theme cell writes for niri.
+
+spawn-at-startup "/run/current-system/sw/share/bioma/scripts/shell" "start"
+
+// optional: the path exists once the system with the bioma package is active.
+include optional=true "/run/current-system/sw/share/bioma/config/niri/bioma.kdl"
+include "bioma-binds.kdl"
+
+// ─────────────────────────────── keybinds ──────────────────────────────
+// After the includes, so these win over bioma-binds.kdl on the same key.
+// Mod+Space is not bound here or there: it is xkb's layout switch.
+
+binds {
+    Mod+Shift+Slash { show-hotkey-overlay; }
+    Mod+F1 repeat=false { spawn "foot" "--app-id=keyhints" "keyhints"; }
+    Mod+Return repeat=false { spawn "foot"; }
+
+    // Bioma's launcher and clipboard cells over its IPC (scripts/ipc, see
+    // bioma-binds.kdl). Mod+Space is not bound anywhere: the template's launcher
+    // bind is switched off in bioma-binds.kdl, which stops scripts/binds adding it back.
+    Mod+D repeat=false hotkey-overlay-title="Bioma: launcher" {
+        spawn "/run/current-system/sw/share/bioma/scripts/ipc" "cell" "toggle" "launcher"
+    }
+    Mod+T repeat=false hotkey-overlay-title="Bioma: clipboard" {
+        spawn "/run/current-system/sw/share/bioma/scripts/ipc" "cell" "toggle" "clipboard"
+    }
+
+    XF86AudioRaiseVolume allow-when-locked=true { spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "0.1+"; }
+    XF86AudioLowerVolume allow-when-locked=true { spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "0.1-"; }
+    XF86AudioMute allow-when-locked=true { spawn "wpctl" "set-mute" "@DEFAULT_AUDIO_SINK@" "toggle"; }
+    XF86AudioMicMute allow-when-locked=true { spawn "wpctl" "set-mute" "@DEFAULT_AUDIO_SOURCE@" "toggle"; }
+    XF86MonBrightnessUp allow-when-locked=true { spawn "brightnessctl" "--class=backlight" "set" "+10%"; }
+    XF86MonBrightnessDown allow-when-locked=true { spawn "brightnessctl" "--class=backlight" "set" "10%-"; }
+
+    Mod+O repeat=false { toggle-overview; }
+    Mod+Q repeat=false { close-window; }
+
+    // Focus
+    Mod+Left  { focus-column-left; }
+    Mod+Down  { focus-window-down; }
+    Mod+Up    { focus-window-up; }
+    Mod+Right { focus-column-right; }
+    Mod+H { focus-column-left; }
+    Mod+J { focus-window-down; }
+    Mod+K { focus-window-up; }
+    Mod+L { focus-column-right; }
+
+    // Move
+    Mod+Ctrl+Left  { move-column-left; }
+    Mod+Ctrl+Down  { move-window-down; }
+    Mod+Ctrl+Up    { move-window-up; }
+    Mod+Ctrl+Right { move-column-right; }
+    Mod+Ctrl+H { move-column-left; }
+    Mod+Ctrl+J { move-window-down; }
+    Mod+Ctrl+K { move-window-up; }
+    Mod+Ctrl+L { move-column-right; }
+
+    Mod+Home { focus-column-first; }
+    Mod+End  { focus-column-last; }
+    Mod+Ctrl+Home { move-column-to-first; }
+    Mod+Ctrl+End  { move-column-to-last; }
+
+    // Monitors
+    Mod+Shift+Left  { focus-monitor-left; }
+    Mod+Shift+Down  { focus-monitor-down; }
+    Mod+Shift+Up    { focus-monitor-up; }
+    Mod+Shift+Right { focus-monitor-right; }
+    Mod+Shift+H { focus-monitor-left; }
+    Mod+Shift+J { focus-monitor-down; }
+    Mod+Shift+K { focus-monitor-up; }
+    Mod+Shift+L { focus-monitor-right; }
+
+    Mod+Shift+Ctrl+Left  { move-column-to-monitor-left; }
+    Mod+Shift+Ctrl+Down  { move-column-to-monitor-down; }
+    Mod+Shift+Ctrl+Up    { move-column-to-monitor-up; }
+    Mod+Shift+Ctrl+Right { move-column-to-monitor-right; }
+    Mod+Shift+Ctrl+H { move-column-to-monitor-left; }
+    Mod+Shift+Ctrl+J { move-column-to-monitor-down; }
+    Mod+Shift+Ctrl+K { move-column-to-monitor-up; }
+    Mod+Shift+Ctrl+L { move-column-to-monitor-right; }
+
+    // Workspaces
+    Mod+Page_Down { focus-workspace-down; }
+    Mod+Page_Up   { focus-workspace-up; }
+    Mod+U { focus-workspace-down; }
+    Mod+I { focus-workspace-up; }
+    Mod+Ctrl+Page_Down { move-column-to-workspace-down; }
+    Mod+Ctrl+Page_Up   { move-column-to-workspace-up; }
+    Mod+Ctrl+U { move-column-to-workspace-down; }
+    Mod+Ctrl+I { move-column-to-workspace-up; }
+    Mod+Shift+Page_Down { move-workspace-down; }
+    Mod+Shift+Page_Up   { move-workspace-up; }
+    Mod+Shift+U { move-workspace-down; }
+    Mod+Shift+I { move-workspace-up; }
+
+    Mod+WheelScrollDown      cooldown-ms=150 { focus-workspace-down; }
+    Mod+WheelScrollUp        cooldown-ms=150 { focus-workspace-up; }
+    Mod+Ctrl+WheelScrollDown cooldown-ms=150 { move-column-to-workspace-down; }
+    Mod+Ctrl+WheelScrollUp   cooldown-ms=150 { move-column-to-workspace-up; }
+    Mod+WheelScrollRight      { focus-column-right; }
+    Mod+WheelScrollLeft       { focus-column-left; }
+    Mod+Ctrl+WheelScrollRight { move-column-right; }
+    Mod+Ctrl+WheelScrollLeft  { move-column-left; }
+    Mod+Shift+WheelScrollDown { focus-column-right; }
+    Mod+Shift+WheelScrollUp   { focus-column-left; }
+    Mod+Ctrl+Shift+WheelScrollDown { move-column-right; }
+    Mod+Ctrl+Shift+WheelScrollUp   { move-column-left; }
+
+    // 1-3 are the named workspaces on DP-2; 4-9 count on the focused monitor.
+    Mod+1 { focus-workspace "1"; }
+    Mod+2 { focus-workspace "2"; }
+    Mod+3 { focus-workspace "3"; }
+    Mod+4 { focus-workspace 4; }
+    Mod+5 { focus-workspace 5; }
+    Mod+6 { focus-workspace 6; }
+    Mod+7 { focus-workspace 7; }
+    Mod+8 { focus-workspace 8; }
+    Mod+9 { focus-workspace 9; }
+    Mod+Shift+1 { move-column-to-workspace "1"; }
+    Mod+Shift+2 { move-column-to-workspace "2"; }
+    Mod+Shift+3 { move-column-to-workspace "3"; }
+    Mod+Shift+4 { move-column-to-workspace 4; }
+    Mod+Shift+5 { move-column-to-workspace 5; }
+    Mod+Shift+6 { move-column-to-workspace 6; }
+    Mod+Shift+7 { move-column-to-workspace 7; }
+    Mod+Shift+8 { move-column-to-workspace 8; }
+    Mod+Shift+9 { move-column-to-workspace 9; }
+
+    // Columns
+    Mod+BracketLeft  { consume-or-expel-window-left; }
+    Mod+BracketRight { consume-or-expel-window-right; }
+    Mod+Comma  { consume-window-into-column; }
+    Mod+Period { expel-window-from-column; }
+
+    Mod+R { switch-preset-column-width; }
+    Mod+Shift+R { switch-preset-window-height; }
+    Mod+F repeat=false { maximize-column; }
+    Mod+Shift+F repeat=false { fullscreen-window; }
+    Mod+Ctrl+F { set-column-width "100%"; }
+    Mod+C { center-column; }
+    Mod+Ctrl+C { center-visible-columns; }
+
+    Mod+Minus { set-column-width "-10%"; }
+    Mod+Equal { set-column-width "+10%"; }
+    Mod+Shift+Minus { set-window-height "-10%"; }
+    Mod+Shift+Equal { set-window-height "+10%"; }
+
+    Mod+V repeat=false { toggle-window-floating; }
+    Mod+Shift+V repeat=false { switch-focus-between-floating-and-tiling; }
+    Mod+W repeat=false { toggle-column-tabbed-display; }
+
+    // Screenshots go to ~/Pictures/Screenshots and the clipboard.
+    //   Mod+S                    region (drag with slurp, Esc cancels)
+    //   Mod+Shift+S, Print       the whole focused monitor
+    // Print overrides Bioma's own region capture from bioma-binds.kdl (its
+    // Alt+Print window capture and Mod+Print monitor capture stay); delete these
+    // here to use Bioma's capture cell instead.
+    Mod+S repeat=false {
+        spawn-sh r#"mkdir -p ~/Pictures/Screenshots; f=~/Pictures/Screenshots/"Screenshot from $(date '+%Y-%m-%d %H-%M-%S').png"; g=$(slurp) && grim -g "$g" "$f" && wl-copy < "$f""#;
+    }
+    Mod+Shift+S repeat=false {
+        spawn-sh r#"mkdir -p ~/Pictures/Screenshots; f=~/Pictures/Screenshots/"Screenshot from $(date '+%Y-%m-%d %H-%M-%S').png"; o=$(niri msg --json focused-output | jq -r .name); grim -o "$o" "$f" && wl-copy < "$f""#;
+    }
+    Print repeat=false {
+        spawn-sh r#"mkdir -p ~/Pictures/Screenshots; f=~/Pictures/Screenshots/"Screenshot from $(date '+%Y-%m-%d %H-%M-%S').png"; o=$(niri msg --json focused-output | jq -r .name); grim -o "$o" "$f" && wl-copy < "$f""#;
+    }
+
+    Mod+Escape allow-inhibiting=false repeat=false { toggle-keyboard-shortcuts-inhibit; }
+    Mod+Shift+E { quit; }
+    Ctrl+Alt+Delete { quit; }
+    Mod+Shift+P { power-off-monitors; }
+    // Umbriel's output-toggle: a runtime on/off, back after a config reload.
+    Mod+Shift+O repeat=false {
+        spawn-sh r#"niri msg output eDP-1 "$(niri msg --json outputs | jq -r 'if .["eDP-1"].current_mode == null then "on" else "off" end')""#;
+    }
+}
+
+// Written by Bioma's settings cell (palette, blur, cursor, keyboard, vrr); a
+// missing file is fine.
+include optional=true "bioma-theme.kdl"

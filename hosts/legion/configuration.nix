@@ -217,6 +217,17 @@ in {
   # login is the stack Noctalia's lock screen authenticates against.
   security.pam.services.login.u2f.enable = true;
   security.pam.services.polkit-1.u2f.enable = true;
+  # Bioma's lock screen authenticates against this service (patched into
+  # lock.qml). Like login for Noctalia's lock it takes the YubiKey, and like
+  # Bioma's own assets/pam/bioma-lock it has no failure counter.
+  security.pam.services.bioma-lock.u2f.enable = true;
+  # The fallback lock Bioma starts when its own fails; adds its PAM service,
+  # which takes the YubiKey too.
+  programs.hyprlock.enable = true;
+  security.pam.services.hyprlock.u2f.enable = true;
+  # programs.hyprlock turns hypridle on in every session; with no
+  # hypridle.conf it only fails. Idle locking stays with the shell.
+  services.hypridle.enable = lib.mkForce false;
 
   # Holds only the YubiKey's SSH key, forwarded to homelab, where pam_rssh
   # takes a touch for sudo.
@@ -451,6 +462,8 @@ in {
       ".ssh"
       ".config/noctalia"
       ".local/state/noctalia"
+      ".config/bioma"
+      ".local/state/bioma"
       ".agents"
       ".claude/projects"
     ];
@@ -523,6 +536,49 @@ in {
 
   programs.umbriel.enable = true;
 
+  # A second session beside Umbriel, with the Bioma shell; pick it in the
+  # greeter. Umbriel keeps its own portal config (xdg.portal.config.umbriel),
+  # niri brings its own (xdg.portal.config.niri), chosen by XDG_CURRENT_DESKTOP.
+  programs.niri.enable = true;
+  # File pickers through the gtk portal (as under Umbriel) instead of
+  # pulling Nautilus in for xdg-desktop-portal-gnome's chooser.
+  programs.niri.useNautilus = false;
+  # niri enables gnome-keyring (Secret portal, Bioma's calendar tokens), whose
+  # gcr agent would clash with programs.ssh.startAgent, which holds the
+  # YubiKey key.
+  services.gnome.gcr-ssh-agent.enable = false;
+  # The greeter ignores this, but keep Umbriel the default for any other
+  # display manager: the niri module defaults it to niri.
+  services.displayManager.defaultSession = "umbriel";
+  # The nvidia driver's heap keeps freed buffers, which can pin ~1 GiB of VRAM
+  # in a Wayland compositor. The wiki's mitigation applies only to a process
+  # named niri (niri wiki: Nvidia, "High VRAM usage fix"); Umbriel is unaffected.
+  environment.etc."nvidia/nvidia-application-profiles-rc.d/50-limit-free-buffer-pool-in-wayland-compositors.json".text = builtins.toJSON {
+    rules = [
+      {
+        pattern = {
+          feature = "procname";
+          matches = "niri";
+        };
+        profile = "Limit Free Buffer Pool On Wayland Compositors";
+      }
+    ];
+    profiles = [
+      {
+        name = "Limit Free Buffer Pool On Wayland Compositors";
+        settings = [
+          {
+            key = "GLVidHeapReuseRatio";
+            value = 0;
+          }
+        ];
+      }
+    ];
+  };
+  # Bioma's keys and niri's includes point at this stable path; the store path
+  # underneath changes with every update.
+  environment.pathsToLink = ["/share/bioma"];
+
   services.displayManager.noctalia-greeter = {
     enable = true;
     package = inputs.noctalia-greeter.packages.${system}.default;
@@ -544,6 +600,9 @@ in {
     (iosevka-bin.override {variant = "Aile";})
     (iosevka-bin.override {variant = "Etoile";})
     noto-fonts-color-emoji
+    # Bioma's two voices.
+    spectral
+    orbitron
   ];
 
   fonts.fontconfig.defaultFonts = {
@@ -585,6 +644,10 @@ in {
 
     inputs.noctalia.packages.${system}.default
 
+    pkgs.bioma
+    # niri starts it on demand for X11 clients.
+    pkgs.xwayland-satellite
+
     pkgs.ntfs3g
     pkgs.neovim-unwrapped
     pkgs.claude-code
@@ -599,7 +662,10 @@ in {
   nix.settings.min-free = 5 * 1024 * 1024 * 1024;
   nix.settings.max-free = 15 * 1024 * 1024 * 1024;
 
-  nixpkgs.overlays = [inputs.claude-code.overlays.default];
+  nixpkgs.overlays = [
+    inputs.claude-code.overlays.default
+    (final: _: {bioma = final.callPackage ../../pkgs/bioma.nix {src = inputs.bioma;};})
+  ];
 
   users.users.lux = {
     extraGroups = ["networkmanager" "wheel" "docker" "input" "video" "lenovoctl" "wireshark"];

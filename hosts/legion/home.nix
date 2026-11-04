@@ -431,6 +431,13 @@ in {
     force = true;
   };
 
+  # The niri session (beside Umbriel). Bioma's settings cell edits config.kdl
+  # and bioma-binds.kdl and writes its bioma-*.kdl includes in this directory.
+  xdg.configFile."niri" = {
+    source = config.lib.file.mkOutOfStoreSymlink "/etc/nixos/dotfiles/niri";
+    force = true;
+  };
+
   # One rules file for Claude and Codex; the ~/.agents repo is its source.
   home.file = lib.genAttrs [".claude/CLAUDE.md" ".codex/AGENTS.md"] (_: {
     source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.agents/CLAUDE.md";
@@ -731,8 +738,32 @@ in {
     platformTheme.name = "qtct";
   };
 
-  xdg.configFile."qt5ct/qt5ct.conf".text = qtctConf "qt5ct";
-  xdg.configFile."qt6ct/qt6ct.conf".text = qtctConf "qt6ct";
+  # force: Bioma's scripts/looks replaces these symlinks with files when an
+  # icon theme is chosen in its theme cell, which would otherwise block the
+  # next activation.
+  xdg.configFile."qt5ct/qt5ct.conf" = {
+    text = qtctConf "qt5ct";
+    force = true;
+  };
+  xdg.configFile."qt6ct/qt6ct.conf" = {
+    text = qtctConf "qt6ct";
+    force = true;
+  };
+
+  # Bioma's first start would put its own icons and cursor on the desktop
+  # (gsettings, qtct), which the Umbriel session shares, and open a setup that
+  # edits greetd and niri's config. Seed its override so neither happens; the
+  # theme cell still switches looks later, and SETUP on the Structure page
+  # opens the walk-through again.
+  home.activation.seedBiomaOverride = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    override="${config.xdg.configHome}/bioma/override.json"
+    if [ ! -e "$override" ]; then
+      mkdir -p "$(dirname "$override")"
+      cat > "$override" <<'JSON'
+    {"setup": {"done": true}, "theme": {"looks_adopted": true}}
+    JSON
+    fi
+  '';
 
   xdg.mimeApps = let
     zed = "dev.zed.Zed.desktop";

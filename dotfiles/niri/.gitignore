@@ -1,0 +1,4 @@
+# Written by Bioma at runtime (theme, blur, cursor, keyboard, vrr includes and backups).
+bioma-*.kdl
+!bioma-binds.kdl
+*.before-bioma*
