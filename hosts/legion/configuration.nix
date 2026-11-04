@@ -278,16 +278,21 @@ in {
     amdgpuBusId = "PCI:6:0:0";
   };
 
-  environment.sessionVariables = {
-    GBM_BACKEND = "nvidia-drm";
-    __GLX_VENDOR_LIBRARY_NAME = "nvidia";
-    LIBVA_DRIVER_NAME = "nvidia";
-    NVD_BACKEND = "direct";
-    ELECTRON_OZONE_PLATFORM_HINT = "auto";
-    NIXOS_OZONE_WL = "1";
-    MOZ_ENABLE_WAYLAND = "1";
-    __GL_SHADER_DISK_CACHE_SKIP_CLEANUP = "1";
-  };
+  environment.sessionVariables = lib.mkMerge [
+    {
+      ELECTRON_OZONE_PLATFORM_HINT = "auto";
+      NIXOS_OZONE_WL = "1";
+      MOZ_ENABLE_WAYLAND = "1";
+      __GL_SHADER_DISK_CACHE_SKIP_CLEANUP = "1";
+    }
+    # specialisation is empty inside on-the-go, where the iGPU drives the display.
+    (lib.mkIf (config.specialisation != {}) {
+      GBM_BACKEND = "nvidia-drm";
+      __GLX_VENDOR_LIBRARY_NAME = "nvidia";
+      LIBVA_DRIVER_NAME = "nvidia";
+      NVD_BACKEND = "direct";
+    })
+  ];
 
   specialisation = {
     on-the-go.configuration = {
@@ -297,11 +302,7 @@ in {
         prime.offload.enableOffloadCmd = lib.mkForce true;
         powerManagement.finegrained = lib.mkForce true;
       };
-      environment.sessionVariables = lib.mkForce {
-        LIBVA_DRIVER_NAME = "radeonsi";
-        ELECTRON_OZONE_PLATFORM_HINT = "auto";
-        MOZ_ENABLE_WAYLAND = "1";
-      };
+      environment.sessionVariables.LIBVA_DRIVER_NAME = "radeonsi";
     };
   };
 
