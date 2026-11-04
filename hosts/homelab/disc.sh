@@ -72,8 +72,8 @@ own() {
 rip_audio() {
   notify "Рип аудио-CD начался"
   abcde -N -x -c "$ABCDE_CONF" -d "$dev"
-  find "$MEDIA/music" -user root -exec chown lux:media {} +
-  notify "Аудио-CD готов: $MEDIA/music"
+  find "$MUSIC" -mindepth 1 -user root -exec chown lux:media {} +
+  notify "Аудио-CD готов: $MUSIC"
 }
 
 rip_video() {

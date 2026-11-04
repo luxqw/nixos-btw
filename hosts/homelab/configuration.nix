@@ -59,7 +59,6 @@
   cloud = "/srv/cloud";
   music = "/srv/music";
   soulseek = "${media}/downloads/soulseek";
-  ytmExport = "/var/lib/ytm-export";
 
   beetsConfig = (pkgs.formats.yaml {}).generate "beets.yaml" {
     directory = music;
@@ -107,7 +106,7 @@
   abcdeConf = pkgs.writeText "abcde.conf" (lib.concatLines [
     "CDDBMETHOD=musicbrainz"
     "OUTPUTTYPE=flac"
-    "OUTPUTDIR=${media}/music"
+    "OUTPUTDIR=${music}"
     "WAVOUTPUTDIR=${media}/.disc"
     "OUTPUTFORMAT='\${ARTISTFILE}/\${ALBUMFILE}/\${TRACKNUM} - \${TRACKFILE}'"
     "VAOUTPUTFORMAT='Various/\${ALBUMFILE}/\${TRACKNUM} - \${ARTISTFILE} - \${TRACKFILE}'"
@@ -140,6 +139,7 @@
     ];
     runtimeEnv = {
       MEDIA = media;
+      MUSIC = music;
       BURN_ROOT = "${cloud}/projects/burn";
       ABCDE_CONF = abcdeConf;
       TELEGRAM_ENV = config.age.secrets.telegram.path;
@@ -996,11 +996,6 @@ in {
       group = "media";
       mode = "2775";
     };
-    ${ytmExport}.d = {
-      user = "lux";
-      group = "media";
-      mode = "0770";
-    };
     ${vaultwardenBackup}.d = {
       user = "vaultwarden";
       group = "vaultwarden";
@@ -1012,7 +1007,7 @@ in {
 
   systemd.services."disc@" = {
     description = "Rip or burn the disc in %I";
-    unitConfig.RequiresMountsFor = [media];
+    unitConfig.RequiresMountsFor = [media music];
     serviceConfig = {
       Type = "exec";
       ExecStart = "${lib.getExe disc} auto /dev/%I";
@@ -1432,25 +1427,6 @@ in {
         [[ $d == */.incomplete ]] && continue
         beet import -q "$d"
       done
-    '';
-    serviceConfig = {
-      Type = "oneshot";
-      User = "lux";
-      Group = "media";
-      UMask = "0002";
-    };
-  };
-
-  systemd.services.ytm-export = {
-    description = "One-time export of a YouTube Music library";
-    path = [pkgs.yt-dlp];
-    unitConfig.RequiresMountsFor = [music];
-    script = ''
-      yt-dlp --cookies ${ytmExport}/cookies.txt -a ${ytmExport}/urls.txt \
-        -f bestaudio -x --embed-metadata --embed-thumbnail --convert-thumbnails jpg \
-        -o "${music}/YouTube Music/%(artist,uploader)s/%(album,playlist_title)s/%(track,title)s.%(ext)s" \
-        --download-archive ${ytmExport}/archive.txt --ignore-errors --no-overwrites \
-        --sleep-requests 1 --sleep-interval 2 --max-sleep-interval 8
     '';
     serviceConfig = {
       Type = "oneshot";
