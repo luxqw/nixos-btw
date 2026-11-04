@@ -927,7 +927,7 @@ in {
       // {
         "x-scheme-handler/tg" = "org.telegram.desktop.desktop";
         "x-scheme-handler/tonsite" = "org.telegram.desktop.desktop";
-        "x-scheme-handler/discord" = "vesktop.desktop";
+        "x-scheme-handler/discord" = "discord.desktop";
         "x-scheme-handler/claude-cli" = "claude-code-url-handler.desktop";
         "application/vnd.microsoft.portable-executable" = "steam.desktop";
       };
@@ -1012,6 +1012,8 @@ in {
     ];
 
     cli = [
+      shellcheck
+      shfmt
       ripgrep
       fd
       bat

@@ -657,6 +657,7 @@ in {
     pkgs.ntfs3g
     pkgs.neovim-unwrapped
     pkgs.claude-code
+    pkgs.codex
   ];
 
   programs.nh.flake = "/etc/nixos";
