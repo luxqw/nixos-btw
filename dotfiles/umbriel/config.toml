@@ -286,12 +286,9 @@ enabled = false
 # Screenshots go to ~/Pictures/Screenshots and the clipboard.
 #   Mod+S                    region (drag with slurp, Esc cancels)
 #   Mod+Shift+S, Print       the whole focused monitor
-#   Alt+Print                a window: click it in slurp
 "Mod+S" = { action = "spawn:f=~/Pictures/Screenshots/\"Screenshot from $(date '+%Y-%m-%d %H-%M-%S').png\"; g=$(slurp) && grim -g \"$g\" \"$f\" && wl-copy < \"$f\"", repeat = false }
 "Mod+Shift+S" = { action = "spawn:f=~/Pictures/Screenshots/\"Screenshot from $(date '+%Y-%m-%d %H-%M-%S').png\"; o=$(umbriel workspaces --json | jq -r '(.ok? // .)[] | select(.focused) | .output'); grim -o \"$o\" \"$f\" && wl-copy < \"$f\"", repeat = false }
 "Print" = { action = "spawn:f=~/Pictures/Screenshots/\"Screenshot from $(date '+%Y-%m-%d %H-%M-%S').png\"; o=$(umbriel workspaces --json | jq -r '(.ok? // .)[] | select(.focused) | .output'); grim -o \"$o\" \"$f\" && wl-copy < \"$f\"", repeat = false }
-"Ctrl+Print" = { action = "spawn:f=~/Pictures/Screenshots/\"Screenshot from $(date '+%Y-%m-%d %H-%M-%S').png\"; o=$(umbriel workspaces --json | jq -r '(.ok? // .)[] | select(.focused) | .output'); grim -o \"$o\" \"$f\" && wl-copy < \"$f\"", repeat = false }
-"Alt+Print" = { action = "spawn:f=~/Pictures/Screenshots/\"Screenshot from $(date '+%Y-%m-%d %H-%M-%S').png\"; g=$(slurp) && grim -g \"$g\" \"$f\" && wl-copy < \"$f\"", repeat = false }
 
 "Mod+Escape" = { action = "shortcuts-inhibit-toggle", allow_when_inhibited = true, repeat = false }
 "Mod+Shift+E" = "session-quit"

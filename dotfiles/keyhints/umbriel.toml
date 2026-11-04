@@ -46,6 +46,14 @@ desc = "screenshot a region → file + clipboard"
 star = true
 
 [[key]]
+keys = "Mod+Shift+S"
+desc = "screenshot the focused monitor → file + clipboard"
+
+[[key]]
+keys = "Print"
+desc = "screenshot the focused monitor → file + clipboard"
+
+[[key]]
 keys = "Mod+F"
 desc = "maximize window"
 star = true

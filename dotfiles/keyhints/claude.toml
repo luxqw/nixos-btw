@@ -39,3 +39,7 @@ desc = "pick up an earlier conversation"
 [[key]]
 keys = "/compact"
 desc = "summarize the conversation to free context"
+
+[[key]]
+keys = "Ctrl+g"
+desc = "edit the prompt in $EDITOR (also Ctrl+x Ctrl+e)"
