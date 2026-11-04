@@ -1,13 +1,8 @@
-# zellij is locked by default; Ctrl+g unlocks, Esc locks again.
+# zellij takes only Alt keys; Alt m opens the menu for the rest, Esc leaves it.
 
 [[key]]
 keys = "Alt p"
 desc = "project picker: sessions, project dirs, zoxide; type a new name to create"
-star = true
-
-[[key]]
-keys = "Alt s"
-desc = "session manager: switch, resurrect, delete"
 star = true
 
 [[key]]
@@ -60,37 +55,81 @@ keys = "Alt f"
 desc = "show / hide floating panes"
 
 [[key]]
-keys = "Ctrl+g"
-desc = "unlock: then p pane · t tab · r resize · m move · s scroll · o session"
+keys = "Alt m"
+desc = "menu: one more letter for everything below"
 star = true
 
 [[key]]
-keys = "Ctrl+g s /"
-desc = "search the scrollback"
+keys = "Alt m r"
+desc = "split pane right"
 
 [[key]]
-keys = "Ctrl+g s e"
-desc = "open scrollback in nvim"
+keys = "Alt m d"
+desc = "split pane down"
 
 [[key]]
-keys = "Ctrl+g s c"
-desc = "copy last command's output"
+keys = "Alt m a"
+desc = "add a stacked pane"
 
 [[key]]
-keys = "Ctrl+g p r"
-desc = "split pane right (d: down, s: stacked)"
-
-[[key]]
-keys = "Ctrl+g p e"
+keys = "Alt m f"
 desc = "float pane ↔ embed it"
 
 [[key]]
-keys = "Ctrl+g t r"
+keys = "Alt m i"
+desc = "pin a floating pane on top"
+
+[[key]]
+keys = "Alt m n"
+desc = "rename pane"
+
+[[key]]
+keys = "Alt m t"
 desc = "rename tab"
 
 [[key]]
-keys = "Ctrl+g r"
-desc = "resize mode: hjkl grow, HJKL shrink"
+keys = "Alt m x"
+desc = "close tab"
+
+[[key]]
+keys = "Alt m b"
+desc = "move pane to its own tab"
+
+[[key]]
+keys = "Alt m y"
+desc = "type into all panes of the tab (toggle)"
+
+[[key]]
+keys = "Alt m /"
+desc = "search the scrollback"
+
+[[key]]
+keys = "Alt m e"
+desc = "open scrollback in nvim"
+
+[[key]]
+keys = "Alt m c"
+desc = "copy last command's output"
+
+[[key]]
+keys = "Alt m s"
+desc = "session manager: switch, resurrect, delete"
+
+[[key]]
+keys = "Alt m q"
+desc = "detach from the session"
+
+[[key]]
+keys = "Alt m R"
+desc = "resize mode: hjkl grow, HJKL shrink, Esc leaves"
+
+[[key]]
+keys = "Alt m M"
+desc = "move mode: hjkl or n moves the pane, Esc leaves"
+
+[[key]]
+keys = "Alt m S"
+desc = "scroll mode: jk, d/u, g/G, / search, Esc leaves"
 
 [[key]]
 keys = "zellij action rename-session NAME"

@@ -81,8 +81,17 @@
 
   zellij-scratch = pkgs.writeShellApplication {
     name = "zellij-scratch";
-    runtimeInputs = with pkgs; [zellij gnugrep];
+    runtimeInputs = with pkgs; [zellij gnugrep gawk coreutils findutils];
     text = ''
+      # Keep the 3 last closed windows to resurrect; the rest free their numbers.
+      # zellij drops session-metadata.kdl on close, so dir mtime is the close time.
+      info=''${XDG_CACHE_HOME:-$HOME/.cache}/zellij/contract_version_1/session_info
+      zellij ls -n 2>/dev/null \
+        | awk '/EXITED/ && $1 ~ /^s-[0-9]+$/ {print $1}' \
+        | (cd "$info" && xargs -r ls -dt -- 2>/dev/null) \
+        | tail -n +4 \
+        | while read -r s; do zellij delete-session "$s" >/dev/null 2>&1; done || true
+
       n=1
       while zellij ls -s 2>/dev/null | grep -qxF "s-$n"; do n=$((n + 1)); done
       exec zellij attach -c "s-$n"
@@ -408,22 +417,6 @@ in {
   xdg.configFile."zellij/config.kdl" = {
     source = config.lib.file.mkOutOfStoreSymlink "/etc/nixos/dotfiles/zellij/config.kdl";
     force = true;
-  };
-
-  systemd.user.services.zellij-prune = {
-    Unit = {
-      Description = "Delete exited zellij scratch sessions";
-      After = ["graphical-session.target"];
-    };
-    Service = {
-      Type = "oneshot";
-      ExecStart = "${pkgs.writeShellScript "zellij-prune" ''
-        ${lib.getExe pkgs.zellij} ls -n 2>/dev/null \
-          | ${lib.getExe pkgs.gawk} '/EXITED/ && $1 ~ /^s-/ {print $1}' \
-          | while read -r s; do ${lib.getExe pkgs.zellij} delete-session "$s"; done
-      ''}";
-    };
-    Install.WantedBy = ["graphical-session.target"];
   };
 
   xdg.configFile."umbriel" = {
