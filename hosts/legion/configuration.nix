@@ -657,6 +657,17 @@ in {
   programs.nh.flake = "/etc/nixos";
   # 16 generations in 5 days filled /nix; keep the last 3 and nothing older than 2 days.
   programs.nh.clean.extraArgs = lib.mkForce "--keep 3 --keep-since 2d";
+  programs.nh.clean.dates = "daily";
+
+  # Swap sat full at the default 50%. Recommended tuning for swap on zram:
+  # https://wiki.archlinux.org/title/Zram#Optimizing_swap_on_zram
+  zramSwap.memoryPercent = 100;
+  boot.kernel.sysctl = {
+    "vm.swappiness" = 180;
+    "vm.page-cluster" = 0;
+  };
+
+  boot.tmp.cleanOnBoot = true;
 
   # Free space during a build instead of dying at zero: below 5 GiB free the
   # daemon collects garbage until 15 GiB are free.
