@@ -504,11 +504,16 @@ in {
   systemd.services.photos-backup = {
     description = "Copy homelab's photo backup repository";
     path = [pkgs.rsync pkgs.openssh];
+    unitConfig = {
+      RequiresMountsFor = "/run/media/gamedisk";
+      OnFailure = ["notify-desktop@%N.service"];
+    };
     serviceConfig = {
       Type = "oneshot";
       User = "lux";
-      ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p /home/lux/Backups/photos";
-      ExecStart = "${pkgs.rsync}/bin/rsync -a lux@192.168.1.10:/var/backup/photos/ /home/lux/Backups/photos/";
+      ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p /run/media/gamedisk/Backups/photos";
+      # NTFS can't hold owners or modes, so -a would fail.
+      ExecStart = "${pkgs.rsync}/bin/rsync -rlt lux@192.168.1.10:/var/backup/photos/ /run/media/gamedisk/Backups/photos/";
     };
   };
   systemd.timers.photos-backup = {
