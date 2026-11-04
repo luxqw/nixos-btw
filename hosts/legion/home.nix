@@ -567,13 +567,23 @@ in {
         url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin";
         hash = "sha256-H8cPd0046xaZk6w5Huo1fvR8iHV+9y7llDh5t+jivGk=";
       }}";
-      language = "auto";
+      language = ["ru" "en"];
       translate = false;
+      # Whisper copies the prompt's style; without it, it sometimes writes
+      # lowercase with no punctuation. A Russian-only prompt turns English into Russian.
+      initial_prompt = "Привет! Короче, посмотри конфиг NixOS и логи. Please check the repository, then tell me what happened.";
       gpu_isolation = true;
     };
     output = {
-      mode = "type";
+      # wtype drops Cyrillic keystrokes in Electron; paste is lossless.
+      # ctrl+shift+v pastes in foot and as plain text in Chromium.
+      mode = "paste";
+      paste_keys = "ctrl+shift+v";
+      restore_clipboard = true;
       fallback_to_clipboard = true;
+      append_text = " ";
+      # Noctalia plays a sound on every notification.
+      notification.on_transcription = false;
     };
   };
 
@@ -582,6 +592,7 @@ in {
       Description = "Voxtype push-to-talk dictation";
       PartOf = ["graphical-session.target"];
       After = ["graphical-session.target" "pipewire.service"];
+      X-Restart-Triggers = ["${config.xdg.configFile."voxtype/config.toml".source}"];
     };
     Service = {
       ExecStart = "${lib.getExe pkgs.voxtype-vulkan} -q daemon";
