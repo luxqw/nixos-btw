@@ -1,8 +1,7 @@
 // niri session config, translated from ../umbriel/config.toml.
 // Live dotfile (mkOutOfStoreSymlink): edits reload without a rebuild; check
 // with `niri validate -c /etc/nixos/dotfiles/niri/config.kdl`.
-// Bioma's settings cell edits this file and writes bioma-*.kdl next to it
-// (gitignored here, except bioma-binds.kdl).
+// DMS writes dms/*.kdl next to it (gitignored here); included at the end.
 
 // ─────────────────────────────── outputs ───────────────────────────────
 
@@ -96,7 +95,8 @@ window-rule {
 }
 
 // Two wider passes look like the default three and cost a third less GPU per
-// blurred frame. Bioma's APPEARANCE page overrides this in bioma-blur.kdl.
+// blurred frame. DMS's dms/layout.kdl, included last, overrides this blur and
+// also the gaps and the window rule above (corner radius, from DMS Settings).
 blur {
     passes 2
 }
@@ -120,42 +120,36 @@ window-rule {
     default-window-height { proportion 0.7; }
 }
 
-// ───────────────────────────── Bioma shell ─────────────────────────────
-// The layer rules and the keys live in the NixOS package (stable path under
-// /run/current-system/sw) and in bioma-binds.kdl; the last include is the
-// palette Bioma's theme cell writes for niri.
-
-spawn-at-startup "/run/current-system/sw/share/bioma/scripts/shell" "start"
-
-// optional: the path exists once the system with the bioma package is active.
-include optional=true "/run/current-system/sw/share/bioma/config/niri/bioma.kdl"
-include "bioma-binds.kdl"
+// ───────────────────────────── DMS shell ─────────────────────────────
+// Started by its systemd user service, bound to niri.service (configuration.nix).
+// Its includes are at the end of this file.
 
 // ─────────────────────────────── keybinds ──────────────────────────────
-// After the includes, so these win over bioma-binds.kdl on the same key.
-// Mod+Space is not bound here or there: it is xkb's layout switch.
+// Mod+Space is not bound: it is xkb's layout switch. The DMS binds are all
+// `dms ipc call <target> <function>`; dms/binds.kdl is not included.
 
 binds {
     Mod+Shift+Slash { show-hotkey-overlay; }
     Mod+F1 repeat=false { spawn "foot" "--app-id=keyhints" "keyhints"; }
     Mod+Return repeat=false { spawn "foot"; }
 
-    // Bioma's launcher and clipboard cells over its IPC (scripts/ipc, see
-    // bioma-binds.kdl). Mod+Space is not bound anywhere: the template's launcher
-    // bind is switched off in bioma-binds.kdl, which stops scripts/binds adding it back.
-    Mod+D repeat=false hotkey-overlay-title="Bioma: launcher" {
-        spawn "/run/current-system/sw/share/bioma/scripts/ipc" "cell" "toggle" "launcher"
-    }
-    Mod+T repeat=false hotkey-overlay-title="Bioma: clipboard" {
-        spawn "/run/current-system/sw/share/bioma/scripts/ipc" "cell" "toggle" "clipboard"
-    }
+    Mod+D repeat=false hotkey-overlay-title="DMS: launcher" { spawn "dms" "ipc" "call" "launcher" "toggle"; }
+    Mod+T repeat=false hotkey-overlay-title="DMS: clipboard" { spawn "dms" "ipc" "call" "clipboard" "toggle"; }
+    Mod+N repeat=false hotkey-overlay-title="DMS: notifications" { spawn "dms" "ipc" "call" "notifications" "toggle"; }
+    Mod+Alt+S repeat=false hotkey-overlay-title="DMS: settings" { spawn "dms" "ipc" "call" "settings" "toggle"; }
+    Mod+Alt+Escape repeat=false hotkey-overlay-title="DMS: power menu" { spawn "dms" "ipc" "call" "powermenu" "toggle"; }
+    Mod+Alt+L repeat=false hotkey-overlay-title="DMS: lock" { spawn "dms" "ipc" "call" "lock" "lock"; }
 
-    XF86AudioRaiseVolume allow-when-locked=true { spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "0.1+"; }
-    XF86AudioLowerVolume allow-when-locked=true { spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "0.1-"; }
-    XF86AudioMute allow-when-locked=true { spawn "wpctl" "set-mute" "@DEFAULT_AUDIO_SINK@" "toggle"; }
-    XF86AudioMicMute allow-when-locked=true { spawn "wpctl" "set-mute" "@DEFAULT_AUDIO_SOURCE@" "toggle"; }
-    XF86MonBrightnessUp allow-when-locked=true { spawn "brightnessctl" "--class=backlight" "set" "+10%"; }
-    XF86MonBrightnessDown allow-when-locked=true { spawn "brightnessctl" "--class=backlight" "set" "10%-"; }
+    XF86AudioRaiseVolume allow-when-locked=true { spawn "dms" "ipc" "call" "audio" "increment" "10"; }
+    XF86AudioLowerVolume allow-when-locked=true { spawn "dms" "ipc" "call" "audio" "decrement" "10"; }
+    XF86AudioMute allow-when-locked=true { spawn "dms" "ipc" "call" "audio" "mute"; }
+    XF86AudioMicMute allow-when-locked=true { spawn "dms" "ipc" "call" "audio" "micmute"; }
+    XF86MonBrightnessUp allow-when-locked=true { spawn "dms" "ipc" "call" "brightness" "increment" "10"; }
+    XF86MonBrightnessDown allow-when-locked=true { spawn "dms" "ipc" "call" "brightness" "decrement" "10"; }
+    XF86AudioPlay hotkey-overlay-title="Media: play or pause" { spawn "dms" "ipc" "call" "mpris" "playPause"; }
+    XF86AudioNext hotkey-overlay-title="Media: next" { spawn "dms" "ipc" "call" "mpris" "next"; }
+    XF86AudioPrev hotkey-overlay-title="Media: previous" { spawn "dms" "ipc" "call" "mpris" "previous"; }
+    XF86AudioStop hotkey-overlay-title="Media: stop" { spawn "dms" "ipc" "call" "mpris" "stop"; }
 
     Mod+O repeat=false { toggle-overview; }
     Mod+Q repeat=false { close-window; }
@@ -277,9 +271,6 @@ binds {
     // Screenshots go to ~/Pictures/Screenshots and the clipboard.
     //   Mod+S                    region (drag with slurp, Esc cancels)
     //   Mod+Shift+S, Print       the whole focused monitor
-    // Print overrides Bioma's own region capture from bioma-binds.kdl (its
-    // Alt+Print window capture and Mod+Print monitor capture stay); delete these
-    // here to use Bioma's capture cell instead.
     Mod+S repeat=false {
         spawn-sh r#"mkdir -p ~/Pictures/Screenshots; f=~/Pictures/Screenshots/"Screenshot from $(date '+%Y-%m-%d %H-%M-%S').png"; g=$(slurp) && grim -g "$g" "$f" && wl-copy < "$f""#;
     }
@@ -300,6 +291,12 @@ binds {
     }
 }
 
-// Written by Bioma's settings cell (palette, blur, cursor, keyboard, vrr); a
-// missing file is fine.
-include optional=true "bioma-theme.kdl"
+// Written by DMS at runtime (palette, layout and blur, window rules, alt-tab);
+// a missing file is fine. Not included: dms/binds.kdl (the binds are above),
+// dms/outputs.kdl (kanshi owns the displays), dms/cursor.kdl and dms/input.kdl
+// (this file owns cursor and keyboard).
+include optional=true "dms/colors.kdl"
+include optional=true "dms/layout.kdl"
+include optional=true "dms/alttab.kdl"
+include optional=true "dms/wpblur.kdl"
+include optional=true "dms/windowrules.kdl"

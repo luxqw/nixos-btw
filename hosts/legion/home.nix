@@ -424,8 +424,8 @@ in {
     force = true;
   };
 
-  # The niri session (beside Umbriel). Bioma's settings cell edits config.kdl
-  # and bioma-binds.kdl and writes its bioma-*.kdl includes in this directory.
+  # The niri session (beside Umbriel). DMS writes its dms/*.kdl includes in
+  # this directory (gitignored there).
   xdg.configFile."niri" = {
     source = config.lib.file.mkOutOfStoreSymlink "/etc/nixos/dotfiles/niri";
     force = true;
@@ -742,9 +742,8 @@ in {
     platformTheme.name = "qtct";
   };
 
-  # force: Bioma's scripts/looks replaces these symlinks with files when an
-  # icon theme is chosen in its theme cell, which would otherwise block the
-  # next activation.
+  # force: DMS's icon theme setting and its "apply Qt" button replace these
+  # symlinks with files, which would otherwise block the next activation.
   xdg.configFile."qt5ct/qt5ct.conf" = {
     text = qtctConf "qt5ct";
     force = true;
@@ -754,20 +753,14 @@ in {
     force = true;
   };
 
-  # Bioma's first start would put its own icons and cursor on the desktop
-  # (gsettings, qtct), which the Umbriel session shares, and open a setup that
-  # edits greetd and niri's config. Seed its override so neither happens; the
-  # theme cell still switches looks later, and SETUP on the Structure page
-  # opens the walk-through again.
-  home.activation.seedBiomaOverride = lib.hm.dag.entryAfter ["writeBoundary"] ''
-    override="${config.xdg.configHome}/bioma/override.json"
-    if [ ! -e "$override" ]; then
-      mkdir -p "$(dirname "$override")"
-      cat > "$override" <<'JSON'
-    {"setup": {"done": true}, "theme": {"looks_adopted": true}}
-    JSON
-    fi
-  '';
+  # DMS's lock screen authenticates against PAM `login`, which takes the
+  # YubiKey (hosts/legion/configuration.nix), instead of generating its own
+  # password-only service. A config.d partial rather than a settings.json, so
+  # the Settings UI keeps writing everything else; DMS only rewrites a partial
+  # whose keys change, and merges it over settings.json.
+  xdg.configFile."dms/config.d/lock.json".text = builtins.toJSON {
+    lockPamExternallyManaged = true;
+  };
 
   xdg.mimeApps = let
     zed = "dev.zed.Zed.desktop";

@@ -13,12 +13,9 @@
       repo = "creamlinux-installer";
       flake = false;
     };
-    bioma = {
-      type = "github";
-      owner = "AkusenArcade";
-      repo = "Bioma";
-      ref = "v1.0.0-beta.60";
-      flake = false;
+    dux-shell = {
+      url = "github:duxlabs-dev/dux-shell/v2.1.0";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
     agenix = {
       url = "github:ryantm/agenix";

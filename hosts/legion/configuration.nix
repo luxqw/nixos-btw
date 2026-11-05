@@ -149,6 +149,7 @@ in {
   imports = [
     inputs.noctalia-greeter.nixosModules.default
     inputs.umbriel.nixosModules.default
+    inputs.dux-shell.nixosModules.default
     ./hardware-configuration.nix
   ];
 
@@ -214,15 +215,11 @@ in {
     cue = true;
   };
   security.pam.services.sudo.u2f.enable = true;
-  # login is the stack Noctalia's lock screen authenticates against.
+  # login is the stack the Noctalia and DMS lock screens authenticate against
+  # (DMS via lockPamExternallyManaged in home.nix).
   security.pam.services.login.u2f.enable = true;
   security.pam.services.polkit-1.u2f.enable = true;
-  # Bioma's lock screen authenticates against this service (patched into
-  # lock.qml). Like login for Noctalia's lock it takes the YubiKey, and like
-  # Bioma's own assets/pam/bioma-lock it has no failure counter.
-  security.pam.services.bioma-lock.u2f.enable = true;
-  # The fallback lock Bioma starts when its own fails; adds its PAM service,
-  # which takes the YubiKey too.
+  # hyprlock's PAM service (Hyprland session), which takes the YubiKey too.
   programs.hyprlock.enable = true;
   security.pam.services.hyprlock.u2f.enable = true;
   # programs.hyprlock turns hypridle on in every session; with no
@@ -463,8 +460,8 @@ in {
       ".ssh"
       ".config/noctalia"
       ".local/state/noctalia"
-      ".config/bioma"
-      ".local/state/bioma"
+      ".config/dms"
+      ".local/state/dms"
       ".agents"
       ".claude/projects"
     ];
@@ -496,6 +493,12 @@ in {
   };
 
   systemd.tmpfiles.settings."10-notes"."/home/lux/Notes".d = {
+    user = "lux";
+    group = "users";
+    mode = "0755";
+  };
+  # restic exits 3 on a missing path; DMS creates this only on its first run.
+  systemd.tmpfiles.settings."10-dms-state"."/home/lux/.local/state/dms".d = {
     user = "lux";
     group = "users";
     mode = "0755";
@@ -542,14 +545,14 @@ in {
 
   programs.umbriel.enable = true;
 
-  # A second session beside Umbriel, with the Bioma shell; pick it in the
+  # A second session beside Umbriel, with the DMS shell; pick it in the
   # greeter. Umbriel keeps its own portal config (xdg.portal.config.umbriel),
   # niri brings its own (xdg.portal.config.niri), chosen by XDG_CURRENT_DESKTOP.
   programs.niri.enable = true;
   # File pickers through the gtk portal (as under Umbriel) instead of
   # pulling Nautilus in for xdg-desktop-portal-gnome's chooser.
   programs.niri.useNautilus = false;
-  # niri enables gnome-keyring (Secret portal, Bioma's calendar tokens), whose
+  # niri enables gnome-keyring (Secret portal), whose
   # gcr agent would clash with programs.ssh.startAgent, which holds the
   # YubiKey key.
   services.gnome.gcr-ssh-agent.enable = false;
@@ -581,9 +584,17 @@ in {
       }
     ];
   };
-  # Bioma's keys and niri's includes point at this stable path; the store path
-  # underneath changes with every update.
-  environment.pathsToLink = ["/share/bioma"];
+  # DMS from upstream's flake. Its user service is bound to niri.service, not
+  # the default graphical-session.target, which Umbriel reaches too; it brings
+  # Restart=on-failure, and the niri media and lock keys go through it.
+  programs.dank-material-shell = {
+    enable = true;
+    systemd.enable = true;
+    systemd.target = "niri.service";
+    # khal's man output fails to build with the pinned nixpkgs (calendar events
+    # widget only); turn this back on after the next nixpkgs bump.
+    enableCalendarEvents = false;
+  };
 
   services.displayManager.noctalia-greeter = {
     enable = true;
@@ -606,9 +617,6 @@ in {
     (iosevka-bin.override {variant = "Aile";})
     (iosevka-bin.override {variant = "Etoile";})
     noto-fonts-color-emoji
-    # Bioma's two voices.
-    spectral
-    orbitron
   ];
 
   fonts.fontconfig.defaultFonts = {
@@ -650,7 +658,6 @@ in {
 
     inputs.noctalia.packages.${system}.default
 
-    pkgs.bioma
     # niri starts it on demand for X11 clients.
     pkgs.xwayland-satellite
 
@@ -682,7 +689,6 @@ in {
 
   nixpkgs.overlays = [
     inputs.claude-code.overlays.default
-    (final: _: {bioma = final.callPackage ../../pkgs/bioma.nix {src = inputs.bioma;};})
   ];
 
   users.users.lux = {
