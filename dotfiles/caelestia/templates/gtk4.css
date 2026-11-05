@@ -1,0 +1,106 @@
+/*
+* GTK4 colors from Caelestia's scheme (user template, port of Noctalia's).
+* Imported by gtk-4.0/gtk.css through session-theme (home.nix).
+*/
+
+@define-color accent_color #{{ primary.hex }};
+@define-color accent_bg_color #{{ primary.hex }};
+@define-color accent_fg_color #{{ onPrimary.hex }};
+
+@define-color destructive_bg_color #{{ error.hex }};
+@define-color destructive_fg_color #{{ onError.hex }};
+
+@define-color error_bg_color #{{ error.hex }};
+@define-color error_fg_color #{{ onError.hex }};
+
+@define-color window_bg_color #{{ surface.hex }};
+@define-color window_fg_color #{{ onSurface.hex }};
+
+@define-color view_bg_color #{{ surface.hex }};
+@define-color view_fg_color #{{ onSurface.hex }};
+
+@define-color headerbar_bg_color #{{ surface.hex }};
+@define-color headerbar_fg_color #{{ onSurface.hex }};
+@define-color headerbar_backdrop_color @window_bg_color;
+
+@define-color popover_bg_color #{{ surfaceContainer.hex }};
+@define-color popover_fg_color #{{ onSurface.hex }};
+
+@define-color card_bg_color #{{ surfaceContainer.hex }};
+@define-color card_fg_color #{{ onSurface.hex }};
+
+@define-color dialog_bg_color #{{ surface.hex }};
+@define-color dialog_fg_color #{{ onSurface.hex }};
+
+@define-color overview_bg_color #{{ surfaceContainer.hex }};
+@define-color overview_fg_color #{{ onSurface.hex }};
+
+@define-color sidebar_bg_color #{{ surfaceContainer.hex }};
+@define-color sidebar_fg_color #{{ onSurface.hex }};
+@define-color sidebar_backdrop_color @window_bg_color;
+@define-color sidebar_border_color @window_bg_color;
+
+@define-color secondary_sidebar_bg_color #{{ surface.hex }};
+@define-color secondary_sidebar_fg_color #{{ onSurface.hex }};
+
+/* Focused selection states */
+@define-color theme_selected_bg_color @accent_bg_color;
+@define-color theme_selected_fg_color @accent_fg_color;
+
+/* Backdrop/unfocused states */
+@define-color theme_unfocused_fg_color @window_fg_color;
+@define-color theme_unfocused_text_color @view_fg_color;
+@define-color theme_unfocused_bg_color @window_bg_color;
+@define-color theme_unfocused_base_color @window_bg_color;
+@define-color theme_unfocused_selected_bg_color @accent_bg_color;
+@define-color theme_unfocused_selected_fg_color @accent_fg_color;
+
+:root {
+    --accent-color: #{{ primary.hex }};
+    --accent-bg-color: #{{ primary.hex }};
+    --accent-fg-color: #{{ onPrimary.hex }};
+
+    --destructive-bg-color: #{{ error.hex }};
+    --destructive-fg-color: #{{ onError.hex }};
+
+    --error-bg-color: #{{ error.hex }};
+    --error-fg-color: #{{ onError.hex }};
+    --error-color: #{{ error.hex }};
+
+    --window-bg-color: #{{ surface.hex }};
+    --window-fg-color: #{{ onSurface.hex }};
+
+    --view-bg-color: #{{ surface.hex }};
+    --view-fg-color: #{{ onSurface.hex }};
+
+    --headerbar-bg-color: #{{ surface.hex }};
+    --headerbar-fg-color: #{{ onSurface.hex }};
+    --headerbar-backdrop-color: @window_bg_color;
+
+    --popover-bg-color: #{{ surfaceContainer.hex }};
+    --popover-fg-color: #{{ onSurface.hex }};
+
+    --card-bg-color: #{{ surfaceContainer.hex }};
+    --card-fg-color: #{{ onSurface.hex }};
+
+    --dialog-bg-color: #{{ surface.hex }};
+    --dialog-fg-color: #{{ onSurface.hex }};
+
+    --overview-bg-color: #{{ surfaceContainer.hex }};
+    --overview-fg-color: #{{ onSurface.hex }};
+
+    --sidebar-bg-color: #{{ surfaceContainer.hex }};
+    --sidebar-fg-color: #{{ onSurface.hex }};
+    --sidebar-backdrop-color: @window_bg_color;
+    --sidebar-border-color: @window_bg_color;
+
+    --warning-bg-color: #{{ tertiaryContainer.hex }};
+    --warning-fg-color: #{{ onTertiaryContainer.hex }};
+    --warning-color: #{{ tertiary.hex }};
+
+    --success-color: #{{ secondary.hex }};
+    --success-bg-color: #{{ secondaryContainer.hex }};
+    --success-fg-color: #{{ onSecondaryContainer.hex }};
+
+    --shade-color: rgba(0, 0, 0, 0.36);
+}

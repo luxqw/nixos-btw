@@ -1,0 +1,149 @@
+{
+  "general": {
+    "apps": {
+      "terminal": [
+        "foot"
+      ]
+    },
+    "idle": {
+      "lockBeforeSleep": false,
+      "timeouts": []
+    }
+  },
+  "launcher": {
+    "actions": [
+      {
+        "name": "Calculator",
+        "icon": "calculate",
+        "description": "Do simple maths equations (powered by Qalc)",
+        "command": [
+          "autocomplete",
+          "calc"
+        ]
+      },
+      {
+        "name": "Scheme",
+        "icon": "palette",
+        "description": "Change the current colour scheme",
+        "command": [
+          "autocomplete",
+          "scheme"
+        ]
+      },
+      {
+        "name": "Wallpaper",
+        "icon": "image",
+        "description": "Change the current wallpaper",
+        "command": [
+          "autocomplete",
+          "wallpaper"
+        ]
+      },
+      {
+        "name": "Variant",
+        "icon": "colors",
+        "description": "Change the current scheme variant",
+        "command": [
+          "autocomplete",
+          "variant"
+        ]
+      },
+      {
+        "name": "Random",
+        "icon": "casino",
+        "description": "Switch to a random wallpaper",
+        "command": [
+          "caelestia",
+          "wallpaper",
+          "-r"
+        ]
+      },
+      {
+        "name": "Light",
+        "icon": "light_mode",
+        "description": "Change the scheme to light mode",
+        "command": [
+          "setMode",
+          "light"
+        ]
+      },
+      {
+        "name": "Dark",
+        "icon": "dark_mode",
+        "description": "Change the scheme to dark mode",
+        "command": [
+          "setMode",
+          "dark"
+        ]
+      },
+      {
+        "name": "Shutdown",
+        "icon": "power_settings_new",
+        "description": "Shutdown the system",
+        "command": [
+          "poweroff"
+        ],
+        "dangerous": true
+      },
+      {
+        "name": "Reboot",
+        "icon": "cached",
+        "description": "Reboot the system",
+        "command": [
+          "reboot"
+        ],
+        "dangerous": true
+      },
+      {
+        "name": "Logout",
+        "icon": "exit_to_app",
+        "description": "Log out of the current session",
+        "command": [
+          "logout"
+        ],
+        "dangerous": true
+      },
+      {
+        "name": "Lock",
+        "icon": "lock",
+        "description": "Lock the current session",
+        "command": [
+          "sh",
+          "-c",
+          "pidof hyprlock || hyprlock"
+        ]
+      },
+      {
+        "name": "Sleep",
+        "icon": "bedtime",
+        "description": "Suspend then hibernate",
+        "command": [
+          "suspendThenHibernate"
+        ]
+      },
+      {
+        "name": "Settings",
+        "icon": "settings",
+        "description": "Configure the shell",
+        "command": [
+          "caelestia",
+          "shell",
+          "nexus",
+          "open"
+        ]
+      }
+    ]
+  },
+  "paths": {
+    "wallpaperDir": "~/Documents/walls"
+  },
+  "session": {
+    "commands": {
+      "logout": [
+        "hyprctl",
+        "dispatch",
+        "hl.dsp.exit()"
+      ]
+    }
+  }
+}

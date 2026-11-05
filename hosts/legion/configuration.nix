@@ -223,7 +223,8 @@ in {
   programs.hyprlock.enable = true;
   security.pam.services.hyprlock.u2f.enable = true;
   # programs.hyprlock turns hypridle on in every session; with no
-  # hypridle.conf it only fails. Idle locking stays with the shell.
+  # hypridle.conf it only fails. The Hyprland session runs its own user unit
+  # (home.nix) with dotfiles/hypr/hypridle.conf.
   services.hypridle.enable = lib.mkForce false;
 
   # Holds only the YubiKey's SSH key, forwarded to homelab, where pam_rssh
@@ -281,6 +282,10 @@ in {
       NIXOS_OZONE_WL = "1";
       MOZ_ENABLE_WAYLAND = "1";
       __GL_SHADER_DISK_CACHE_SKIP_CLEANUP = "1";
+      # Hyprland would import its environment into the user manager and unset
+      # PATH and QT_QPA_PLATFORMTHEME there on exit, which Umbriel and niri keep
+      # using. dotfiles/hypr/hyprland/execs.lua imports what it needs instead.
+      HYPRLAND_NO_SD_VARS = "1";
     }
     # specialisation is empty inside on-the-go, where the iGPU drives the display.
     (lib.mkIf (config.specialisation != {}) {
@@ -299,7 +304,17 @@ in {
         prime.offload.enableOffloadCmd = lib.mkForce true;
         powerManagement.finegrained = lib.mkForce true;
       };
-      environment.sessionVariables.LIBVA_DRIVER_NAME = "radeonsi";
+      environment.sessionVariables = {
+        LIBVA_DRIVER_NAME = "radeonsi";
+        # Hyprland renders on the iGPU first; the dGPU stays listed for outputs
+        # wired to it. The udev links are stable names: /dev/dri/card* swap
+        # between boots, and the by-path names hold colons, which split the list.
+        AQ_DRM_DEVICES = "/dev/dri/amd-igpu:/dev/dri/nvidia-dgpu";
+      };
+      services.udev.extraRules = ''
+        SUBSYSTEM=="drm", SUBSYSTEMS=="pci", KERNEL=="card*", KERNELS=="0000:06:00.0", SYMLINK+="dri/amd-igpu"
+        SUBSYSTEM=="drm", SUBSYSTEMS=="pci", KERNEL=="card*", KERNELS=="0000:01:00.0", SYMLINK+="dri/nvidia-dgpu"
+      '';
     };
   };
 
@@ -462,6 +477,7 @@ in {
       ".local/state/noctalia"
       ".config/dms"
       ".local/state/dms"
+      ".local/state/caelestia"
       ".agents"
       ".claude/projects"
     ];
@@ -499,6 +515,13 @@ in {
   };
   # restic exits 3 on a missing path; DMS creates this only on its first run.
   systemd.tmpfiles.settings."10-dms-state"."/home/lux/.local/state/dms".d = {
+    user = "lux";
+    group = "users";
+    mode = "0755";
+  };
+
+  # Same for the Caelestia shell (wallpaper, scheme, notifications).
+  systemd.tmpfiles.settings."10-caelestia-state"."/home/lux/.local/state/caelestia".d = {
     user = "lux";
     group = "users";
     mode = "0755";
@@ -561,13 +584,30 @@ in {
   services.displayManager.defaultSession = "umbriel";
   # The nvidia driver's heap keeps freed buffers, which can pin ~1 GiB of VRAM
   # in a Wayland compositor. The wiki's mitigation applies only to a process
-  # named niri (niri wiki: Nvidia, "High VRAM usage fix"); Umbriel is unaffected.
+  # named niri (niri wiki: Nvidia, "High VRAM usage fix"), so Hyprland is added
+  # below; Umbriel is unaffected.
   environment.etc."nvidia/nvidia-application-profiles-rc.d/50-limit-free-buffer-pool-in-wayland-compositors.json".text = builtins.toJSON {
     rules = [
       {
         pattern = {
           feature = "procname";
           matches = "niri";
+        };
+        profile = "Limit Free Buffer Pool On Wayland Compositors";
+      }
+      # Hyprland is a makeCWrapper around .Hyprland-wrapped; which name the
+      # driver sees is not confirmed, so both match.
+      {
+        pattern = {
+          feature = "procname";
+          matches = ".Hyprland-wrapped";
+        };
+        profile = "Limit Free Buffer Pool On Wayland Compositors";
+      }
+      {
+        pattern = {
+          feature = "procname";
+          matches = "Hyprland";
         };
         profile = "Limit Free Buffer Pool On Wayland Compositors";
       }
@@ -583,6 +623,17 @@ in {
         ];
       }
     ];
+  };
+  # A third session: Hyprland (scrolling layout) with the Caelestia shell. The
+  # config is dotfiles/hypr and the units are in home.nix, not Home Manager's
+  # Hyprland module. No UWSM.
+  programs.hyprland.enable = true;
+  # The module's portal config picks hyprland, then gtk. Add what niri's sets
+  # beyond that: the gtk file chooser (no Nautilus) and the keyring's Secret portal.
+  xdg.portal.config.hyprland = {
+    default = ["hyprland" "gtk"];
+    "org.freedesktop.impl.portal.FileChooser" = "gtk";
+    "org.freedesktop.impl.portal.Secret" = "gnome-keyring";
   };
   # DMS from upstream's flake. Its user service is bound to niri.service, not
   # the default graphical-session.target, which Umbriel reaches too; it brings

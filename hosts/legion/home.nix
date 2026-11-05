@@ -40,10 +40,21 @@
     install -Dm755 ${pkgs.gotools}/bin/.goimports-wrapped $out/bin/goimports
   '';
 
+  # Zellij fixes its theme per server, so a session started in Hyprland has
+  # Caelestia's colours and keeps them when attached later from another session.
+  zellijTheme = ''
+    theme=()
+    theme_dir=''${XDG_STATE_HOME:-$HOME/.local/state}/session-theme/zellij
+    if [ "''${XDG_CURRENT_DESKTOP-}" = Hyprland ] && [ -e "$theme_dir/caelestia-ui.kdl" ]; then
+      theme=(options --theme caelestia-ui --theme-dir "$theme_dir")
+    fi
+  '';
+
   zellij-pick = pkgs.writeShellApplication {
     name = "zellij-pick";
     runtimeInputs = with pkgs; [zellij fzf zoxide findutils coreutils gawk];
     text = ''
+      ${zellijTheme}
       out=$(
         {
           zellij ls -s 2>/dev/null | sed 's/^/@/'
@@ -71,10 +82,10 @@
       fi
 
       if [ -n "''${ZELLIJ-}" ]; then
-        zellij ls -s 2>/dev/null | grep -qxF "$name" || (cd "$dir" && zellij attach -b "$name")
+        zellij ls -s 2>/dev/null | grep -qxF "$name" || (cd "$dir" && zellij attach -b "$name" "''${theme[@]}")
         zellij action switch-session "$name"
       else
-        cd "$dir" && exec zellij attach -c "$name"
+        cd "$dir" && exec zellij attach -c "$name" "''${theme[@]}"
       fi
     '';
   };
@@ -83,6 +94,7 @@
     name = "zellij-scratch";
     runtimeInputs = with pkgs; [zellij gnugrep gawk coreutils findutils];
     text = ''
+      ${zellijTheme}
       # Keep the 3 last closed windows to resurrect; the rest free their numbers.
       # zellij drops session-metadata.kdl on close, so dir mtime is the close time.
       info=''${XDG_CACHE_HOME:-$HOME/.cache}/zellij/contract_version_1/session_info
@@ -94,7 +106,70 @@
 
       n=1
       while zellij ls -s 2>/dev/null | grep -qxF "s-$n"; do n=$((n + 1)); done
-      exec zellij attach -c "s-$n"
+      exec zellij attach -c "s-$n" "''${theme[@]}"
+    '';
+  };
+
+  # Colours follow the session: Noctalia's in Umbriel and niri, Caelestia's in
+  # Hyprland. foot, qt5ct/qt6ct, gtk and nvim read theirs through links in
+  # ~/.local/state/session-theme/, and this points the links at one source or
+  # the other (the zellij scripts pick their theme by XDG_CURRENT_DESKTOP). Run
+  # at session start (below), by Caelestia after each colour change
+  # (dotfiles/caelestia/cli.json postHook), and with --seed at activation, which
+  # only creates the links that are missing, so every include resolves.
+  session-theme = pkgs.writeShellApplication {
+    name = "session-theme";
+    runtimeInputs = with pkgs; [coreutils hyprland];
+    text = ''
+      state=''${XDG_STATE_HOME:-$HOME/.local/state}
+      config=''${XDG_CONFIG_HOME:-$HOME/.config}
+      dir=$state/session-theme
+      caelestia=$state/caelestia/theme
+
+      seed=false
+      if [ "''${1-}" = --seed ]; then
+        seed=true
+      fi
+      hyprland=false
+      if [ "$seed" = false ] && [ "''${XDG_CURRENT_DESKTOP-}" = Hyprland ]; then
+        hyprland=true
+      fi
+
+      mkdir -p "$dir/zellij"
+      [ -e "$dir/empty" ] || : > "$dir/empty"
+
+      link() {
+        if [ "$seed" = true ] && [ -L "$dir/$1" ]; then
+          return
+        fi
+        ln -sfn "$2" "$dir/$1.new"
+        mv -T "$dir/$1.new" "$dir/$1"
+      }
+
+      # Caelestia's output in Hyprland once it has written it, else the fallback.
+      pick() {
+        if [ "$hyprland" = true ] && [ -e "$caelestia/$2" ]; then
+          link "$1" "$caelestia/$2"
+        else
+          link "$1" "$3"
+        fi
+      }
+
+      pick foot.ini foot.ini "$dir/empty"
+      pick qtct.conf qtct.conf "$config/qt6ct/colors/noctalia.conf"
+      pick gtk3.css gtk3.css "$dir/empty"
+      pick gtk4.css gtk4.css "$dir/empty"
+      link zellij/caelestia-ui.kdl "$caelestia/caelestia-ui.kdl"
+      if [ "$hyprland" = true ] && [ -e "$caelestia/nvim.lua" ]; then
+        link nvim.lua "$caelestia/nvim.lua"
+      elif [ "$seed" = false ]; then
+        rm -f "$dir/nvim.lua"
+      fi
+
+      # Caelestia just changed colours: repaint Hyprland's borders and shadow.
+      if [ "$hyprland" = true ] && [ -n "''${SCHEME_NAME-}" ] && [ -n "''${HYPRLAND_INSTANCE_SIGNATURE-}" ]; then
+        hyprctl eval 'require("hyprland.theme").apply()' > /dev/null || true
+      fi
     '';
   };
 
@@ -219,9 +294,43 @@
         obsidianPlugins)}
     '';
   };
-  qtctConf = dir: ''
+  # User units of the Hyprland session (home.nix below): they belong to
+  # hyprland-session.target, not to graphical-session.target, which Umbriel
+  # and niri reach too. Logging out from Caelestia's power menu or a crash skips
+  # the shutdown hook, and lingering keeps the target active, so the units
+  # would restart-loop into the next session. The ExecCondition asks the
+  # compositor over its IPC socket (a stale socket file refuses the connection):
+  # a failed condition skips the start quietly and stops the loop, and it only
+  # runs when a unit starts, never in a live session.
+  hyprlandSession = description: service: {
+    Unit = {
+      Description = description;
+      PartOf = ["hyprland-session.target"];
+      After = ["graphical-session.target"];
+    };
+    Service =
+      {
+        Restart = "on-failure";
+        ExecCondition = "${pkgs.hyprland}/bin/hyprctl version";
+      }
+      // service;
+    Install.WantedBy = ["hyprland-session.target"];
+  };
+
+  clipboardWatcher = type:
+    hyprlandSession "Store ${type} clipboard history" {
+      ExecStart = "${pkgs.wl-clipboard}/bin/wl-paste --type ${type} --watch ${lib.getExe pkgs.cliphist} store";
+    };
+
+  gtkCss = dir: file: ''
+    @import url("file://${config.xdg.configHome}/${dir}/noctalia.css");
+    @import url("file://${config.home.homeDirectory}/.local/state/session-theme/${file}");
+  '';
+
+  # The colours come through session-theme (Noctalia's or Caelestia's).
+  qtctConf = ''
     [Appearance]
-    color_scheme_path=${config.xdg.configHome}/${dir}/colors/noctalia.conf
+    color_scheme_path=${config.home.homeDirectory}/.local/state/session-theme/qtct.conf
     custom_palette=true
     icon_theme=Papirus-Dark
     style=Fusion
@@ -431,6 +540,20 @@ in {
     force = true;
   };
 
+  # The Hyprland session (beside Umbriel and niri), with the Caelestia shell.
+  # Not Home Manager's wayland.windowManager.hyprland: it would write its own
+  # hyprland.lua into this directory. Caelestia writes hypr/scheme/ here.
+  xdg.configFile."hypr" = {
+    source = config.lib.file.mkOutOfStoreSymlink "/etc/nixos/dotfiles/hypr";
+    force = true;
+  };
+
+  # The shell saves shell.json from its settings UI, so this is writable too.
+  xdg.configFile."caelestia" = {
+    source = config.lib.file.mkOutOfStoreSymlink "/etc/nixos/dotfiles/caelestia";
+    force = true;
+  };
+
   # One rules file for Claude and Codex; the ~/.agents repo is its source.
   home.file = lib.genAttrs [".claude/CLAUDE.md" ".codex/AGENTS.md"] (_: {
     source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.agents/CLAUDE.md";
@@ -472,7 +595,13 @@ in {
         font = "Iosevka NF:size=15";
         pad = "4x4";
         shell = lib.getExe zellij-scratch;
-        include = "${config.home.homeDirectory}/.config/foot/themes/noctalia";
+        # Noctalia's theme, then the session's (empty outside Hyprland): the
+        # later include wins. Keep the noctalia include: without it Noctalia's
+        # apply script rewrites foot.ini.
+        include = [
+          "${config.home.homeDirectory}/.config/foot/themes/noctalia"
+          "${config.home.homeDirectory}/.local/state/session-theme/foot.ini"
+        ];
       };
       colors-dark = {
         foreground = "c0caf5";
@@ -594,6 +723,59 @@ in {
     };
     Install.WantedBy = ["graphical-session.target"];
   };
+
+  # The Hyprland session. Hyprland 0.56 starts no session target, so
+  # dotfiles/hypr/hyprland/execs.lua starts this one, as Home Manager's would.
+  systemd.user.targets.hyprland-session.Unit = {
+    Description = "Hyprland compositor session";
+    Documentation = ["man:systemd.special(7)"];
+    BindsTo = ["graphical-session.target"];
+    Wants = ["graphical-session-pre.target"];
+    After = ["graphical-session-pre.target"];
+    PropagatesStopTo = ["graphical-session.target"];
+  };
+
+  # Which colours the app themes use, by session (see session-theme above).
+  systemd.user.services.session-theme = {
+    Unit = {
+      Description = "Point the app themes at this session's colours";
+      After = ["graphical-session-pre.target"];
+      Before = ["graphical-session.target" "xdg-desktop-autostart.target"];
+    };
+    Service = {
+      Type = "oneshot";
+      ExecStart = lib.getExe session-theme;
+    };
+    Install.WantedBy = ["graphical-session.target"];
+  };
+
+  # Locking is hyprlock's (configuration.nix, U2F); Caelestia's own lock and
+  # idle timeouts are off (dotfiles/caelestia/shell.json).
+  systemd.user.services.caelestia = hyprlandSession "Caelestia shell" {
+    Type = "exec";
+    ExecStart = lib.getExe pkgs.caelestia-shell;
+    # caelestia-cli's random wallpaper reads this, not shell.json's paths.
+    Environment = ["QT_QPA_PLATFORM=wayland" "CAELESTIA_WALLPAPERS_DIR=${config.home.homeDirectory}/Documents/walls"];
+    RestartSec = 2;
+  };
+
+  systemd.user.services.hyprpolkitagent = hyprlandSession "Hyprland polkit agent" {
+    ExecStart = "${pkgs.hyprpolkitagent}/libexec/hyprpolkitagent";
+  };
+
+  systemd.user.services.cliphist-text = clipboardWatcher "text";
+  systemd.user.services.cliphist-image = clipboardWatcher "image";
+
+  # Locks after 5 minutes and before sleep, with hyprlock.
+  systemd.user.services.hypridle = hyprlandSession "Idle lock for the Hyprland session" {
+    ExecStart = "${lib.getExe pkgs.hypridle} -c ${config.xdg.configHome}/hypr/hypridle.conf";
+  };
+
+  # Seed the session-theme links (which default to Noctalia's) so that foot,
+  # qt and gtk includes resolve before the first session starts.
+  home.activation.seedSessionTheme = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    run ${lib.getExe session-theme} --seed
+  '';
 
   programs.yazi = {
     enable = true;
@@ -727,7 +909,15 @@ in {
       package = pkgs.papirus-icon-theme;
       name = "Papirus-Dark";
     };
+    # Noctalia's colours (it writes noctalia.css), then the session's, which
+    # are Caelestia's in Hyprland and empty elsewhere. Keep noctalia.css and
+    # @import here: Noctalia's gtk apply script then leaves this file alone.
+    gtk3.extraCss = gtkCss "gtk-3.0" "gtk3.css";
+    gtk4.extraCss = gtkCss "gtk-4.0" "gtk4.css";
   };
+  # A plain file with `@import url("noctalia.css");` exists today.
+  xdg.configFile."gtk-3.0/gtk.css".force = true;
+  xdg.configFile."gtk-4.0/gtk.css".force = true;
 
   dconf.settings."org/gnome/desktop/interface" = {
     color-scheme = "prefer-dark";
@@ -745,11 +935,11 @@ in {
   # force: DMS's icon theme setting and its "apply Qt" button replace these
   # symlinks with files, which would otherwise block the next activation.
   xdg.configFile."qt5ct/qt5ct.conf" = {
-    text = qtctConf "qt5ct";
+    text = qtctConf;
     force = true;
   };
   xdg.configFile."qt6ct/qt6ct.conf" = {
-    text = qtctConf "qt6ct";
+    text = qtctConf;
     force = true;
   };
 
@@ -1022,6 +1212,7 @@ in {
       zellij
       zellij-pick
       zellij-scratch
+      session-theme
       torrent-add
       deploy-homelab
       deploy-homelab-pw
@@ -1032,6 +1223,10 @@ in {
       keyhints
       wtype
       inputs.clin.packages.${system}.default
+      # The Hyprland session's binds call `caelestia clipboard`, and the shell
+      # starts from its user unit.
+      caelestia-cli
+      caelestia-shell
     ];
 
     network = [

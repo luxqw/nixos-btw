@@ -1,0 +1,171 @@
+# The Hyprland session's binds, which dotfiles/hypr/hyprland/binds.lua defines in Lua
+# (keyhints parses niri and umbriel configs, not Lua). Keep in step with it.
+
+[[key]]
+keys = "Mod+F1"
+desc = "this cheat sheet"
+star = true
+
+[[key]]
+keys = "Mod+D"
+desc = "app launcher (Caelestia)"
+star = true
+
+[[key]]
+keys = "Mod+Return"
+desc = "terminal (new zellij session)"
+star = true
+
+[[key]]
+keys = "Mod+Q"
+desc = "close window"
+star = true
+
+[[key]]
+keys = "Mod+T"
+desc = "clipboard history"
+star = true
+
+[[key]]
+keys = "Mod+N"
+desc = "notifications and sidebar"
+
+[[key]]
+keys = "Mod+Alt+S"
+desc = "settings (Caelestia nexus)"
+
+[[key]]
+keys = "Mod+Alt+Escape"
+desc = "power menu"
+
+[[key]]
+keys = "Ctrl+Alt+Delete"
+desc = "power menu"
+
+[[key]]
+keys = "Mod+Alt+L"
+desc = "lock the screen (hyprlock, YubiKey)"
+
+[[key]]
+keys = "Mod+H"
+desc = "focus window left (J/K/L, arrows too)"
+star = true
+
+[[key]]
+keys = "Mod+Ctrl+H"
+desc = "move column left (L right); J/K move the window in its column"
+
+[[key]]
+keys = "Mod+Home"
+desc = "scroll to the first column (End: last)"
+
+[[key]]
+keys = "Mod+Shift+H"
+desc = "focus monitor left (J/K/L, arrows too)"
+
+[[key]]
+keys = "Mod+Shift+Ctrl+H"
+desc = "move window to monitor left (J/K/L, arrows too)"
+
+[[key]]
+keys = "Mod+Page_Down"
+desc = "next workspace (Page_Up, U/I: previous)"
+
+[[key]]
+keys = "Mod+Ctrl+Page_Down"
+desc = "move window to the next workspace (Page_Up, U/I)"
+
+[[key]]
+keys = "Mod+1"
+desc = "workspace 1 (2…9 likewise; Shift moves the window)"
+star = true
+
+[[key]]
+keys = "Mod+Z"
+desc = "scratch workspace (Shift moves the window)"
+
+[[key]]
+keys = "Mod+BracketLeft"
+desc = "pull window into the left column, or out of its column"
+
+[[key]]
+keys = "Mod+BracketRight"
+desc = "pull window into the right column, or out of its column"
+
+[[key]]
+keys = "Mod+Comma"
+desc = "pull the next column's window into this one"
+
+[[key]]
+keys = "Mod+Period"
+desc = "push the last window out into its own column"
+
+[[key]]
+keys = "Mod+R"
+desc = "cycle column width (⅓ ½ ⅔)"
+
+[[key]]
+keys = "Mod+Minus"
+desc = "column narrower (Equal: wider; Shift: window height)"
+
+[[key]]
+keys = "Mod+F"
+desc = "maximize window"
+star = true
+
+[[key]]
+keys = "Mod+Shift+F"
+desc = "fullscreen window"
+
+[[key]]
+keys = "Mod+Ctrl+F"
+desc = "column to the full width"
+
+[[key]]
+keys = "Mod+C"
+desc = "center column"
+
+[[key]]
+keys = "Mod+Ctrl+C"
+desc = "fit the visible columns"
+
+[[key]]
+keys = "Mod+V"
+desc = "float / tile window"
+
+[[key]]
+keys = "Mod+Shift+V"
+desc = "focus floating ↔ tiled windows"
+
+[[key]]
+keys = "Mod+W"
+desc = "stack column as tabs"
+
+[[key]]
+keys = "Mod+S"
+desc = "screenshot a region → file + clipboard"
+star = true
+
+[[key]]
+keys = "Mod+Shift+S"
+desc = "screenshot the focused monitor → file + clipboard"
+
+[[key]]
+keys = "Print"
+desc = "screenshot the focused monitor → file + clipboard"
+
+[[key]]
+keys = "Mod+Escape"
+desc = "let the focused app have all keys (games, VMs); again to leave"
+
+[[key]]
+keys = "Mod+Shift+E"
+desc = "log out"
+
+[[key]]
+keys = "Mod+Shift+P"
+desc = "switch all monitors off (any key wakes them)"
+
+[[key]]
+keys = "Mod+Shift+O"
+desc = "blank or wake the laptop panel (eDP-1)"

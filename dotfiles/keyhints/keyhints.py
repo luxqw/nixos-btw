@@ -3,7 +3,8 @@
 Prints one line per bind for fzf: umbriel and zellij binds parsed from their
 configs, Claude skills from their SKILL.md frontmatter, and the hand-written
 entries in <app>.toml next to this file. A curated entry with the same keys as
-a parsed one replaces its description; `star = true` puts it on top.
+a parsed one replaces its description; `star = true` puts it on top. Hyprland's
+binds are Lua, which is not parsed: hyprland.toml lists all of them.
 """
 
 import json
@@ -15,7 +16,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 HOME = Path.home()
 CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", HOME / ".config"))
-ORDER = ["system", "umbriel", "niri", "zellij", "shell", "nvim", "yazi", "lazygit", "claude", "skills"]
+ORDER = ["system", "umbriel", "niri", "hyprland", "zellij", "shell", "nvim", "yazi", "lazygit", "claude", "skills"]
 
 YELLOW, DIM, CYAN, RESET = "\033[33m", "\033[2m", "\033[36m", "\033[0m"
 
@@ -235,7 +236,7 @@ def skills():
 PARSED = {"umbriel": umbriel, "niri": niri, "zellij": zellij, "skills": skills}
 
 # Each compositor lists its own binds; a plain terminal shows both.
-COMPOSITORS = {"umbriel", "niri"}
+COMPOSITORS = {"umbriel", "niri", "hyprland"}
 
 
 def entries():
