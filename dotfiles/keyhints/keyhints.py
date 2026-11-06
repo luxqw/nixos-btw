@@ -1,10 +1,9 @@
 """Mod+F1 cheat sheet.
 
-Prints one line per bind for fzf: umbriel and zellij binds parsed from their
+Prints one line per bind for fzf: niri and zellij binds parsed from their
 configs, Claude skills from their SKILL.md frontmatter, and the hand-written
 entries in <app>.toml next to this file. A curated entry with the same keys as
-a parsed one replaces its description; `star = true` puts it on top. Hyprland's
-binds are Lua, which is not parsed: hyprland.toml lists all of them.
+a parsed one replaces its description; `star = true` puts it on top.
 """
 
 import json
@@ -16,7 +15,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 HOME = Path.home()
 CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", HOME / ".config"))
-ORDER = ["system", "umbriel", "niri", "hyprland", "zellij", "shell", "nvim", "yazi", "lazygit", "claude", "skills"]
+ORDER = ["system", "niri", "zellij", "shell", "nvim", "yazi", "lazygit", "claude", "skills"]
 
 YELLOW, DIM, CYAN, RESET = "\033[33m", "\033[2m", "\033[36m", "\033[0m"
 
@@ -25,22 +24,6 @@ def pretty(key):
     for a, b in (("Mod+", "Super+"), ("Alt ", "Alt+"), ("Ctrl ", "Ctrl+")):
         key = key.replace(a, b)
     return key
-
-
-def umbriel():
-    try:
-        with open(CONFIG / "umbriel/config.toml", "rb") as f:
-            binds = tomllib.load(f).get("keybinds", {})
-    except OSError:
-        return
-    for key, act in binds.items():
-        if isinstance(act, dict):
-            act = act.get("action", "")
-        if "Wheel" in key or key.startswith("XF86"):
-            continue
-        if act.startswith("spawn:"):
-            act = "run " + act[6:].split(";")[0][:60]
-        yield key, act.replace("-", " ")
 
 
 def kdl_nodes(text):
@@ -233,18 +216,12 @@ def skills():
         yield "/" + meta.get("name", d.name), desc
 
 
-PARSED = {"umbriel": umbriel, "niri": niri, "zellij": zellij, "skills": skills}
-
-# Each compositor lists its own binds; a plain terminal shows both.
-COMPOSITORS = {"umbriel", "niri", "hyprland"}
+PARSED = {"niri": niri, "zellij": zellij, "skills": skills}
 
 
 def entries():
     rows = {}
-    desktop = os.environ.get("XDG_CURRENT_DESKTOP", "").lower()
     for app in ORDER:
-        if app in COMPOSITORS and desktop in COMPOSITORS and app != desktop:
-            continue
         for keys, desc in PARSED.get(app, lambda: [])():
             rows[(app, keys)] = {"app": app, "keys": keys, "desc": desc, "star": False}
         path = HERE / f"{app}.toml"

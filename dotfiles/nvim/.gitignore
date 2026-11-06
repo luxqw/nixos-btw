@@ -1,0 +1,3 @@
+# Written by DMS's neovim template on every colour change.
+colors/dms.lua
+lua/lualine/themes/dms.lua

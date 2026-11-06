@@ -52,6 +52,20 @@
     '';
   };
 
+  # greetd starts the greeter with only PAM's environment, and the greeter lists
+  # sessions from XDG_DATA_DIRS (the module doesn't set it). Put the session data
+  # (niri.desktop) on its path rather than rely on pam_env passing it through.
+  dmsGreeter = pkgs.symlinkJoin {
+    name = "dms-greeter-with-sessions";
+    paths = [inputs.dux-greeter.packages.${system}.dms-greeter];
+    nativeBuildInputs = [pkgs.makeWrapper];
+    postBuild = ''
+      wrapProgram $out/bin/dms-greeter \
+        --prefix XDG_DATA_DIRS : ${config.services.displayManager.sessionData.desktops}/share
+    '';
+    meta.mainProgram = "dms-greeter";
+  };
+
   tunnelCli = pkgs.writeShellApplication {
     name = "tunnel";
     runtimeInputs = [pkgs.age agenixPackage pkgs.systemd];
@@ -147,9 +161,8 @@
   };
 in {
   imports = [
-    inputs.noctalia-greeter.nixosModules.default
-    inputs.umbriel.nixosModules.default
     inputs.dux-shell.nixosModules.default
+    inputs.dux-greeter.nixosModules.default
     ./hardware-configuration.nix
   ];
 
@@ -215,17 +228,12 @@ in {
     cue = true;
   };
   security.pam.services.sudo.u2f.enable = true;
-  # login is the stack the Noctalia and DMS lock screens authenticate against
-  # (DMS via lockPamExternallyManaged in home.nix).
+  # login is the stack the DMS lock screen authenticates against (via
+  # lockPamExternallyManaged in home.nix) and the greeter's greetd service
+  # substacks it, so the YubiKey works at both without a u2f flag on greetd
+  # (that would ask for the touch twice).
   security.pam.services.login.u2f.enable = true;
   security.pam.services.polkit-1.u2f.enable = true;
-  # hyprlock's PAM service (Hyprland session), which takes the YubiKey too.
-  programs.hyprlock.enable = true;
-  security.pam.services.hyprlock.u2f.enable = true;
-  # programs.hyprlock turns hypridle on in every session; with no
-  # hypridle.conf it only fails. The Hyprland session runs its own user unit
-  # (home.nix) with dotfiles/hypr/hypridle.conf.
-  services.hypridle.enable = lib.mkForce false;
 
   # Holds only the YubiKey's SSH key, forwarded to homelab, where pam_rssh
   # takes a touch for sudo.
@@ -247,9 +255,9 @@ in {
   services.gvfs.enable = true;
   services.libinput.enable = true;
 
-  services.power-profiles-daemon.enable = true;
   services.upower.enable = true;
 
+  # niri binds the key to DMS's power menu (dotfiles/niri/config.kdl).
   services.logind.settings.Login.HandlePowerKey = "ignore";
 
   services.xserver.videoDrivers = ["amdgpu" "nvidia"];
@@ -276,16 +284,17 @@ in {
     amdgpuBusId = "PCI:6:0:0";
   };
 
+  # DDC/CI brightness for the external monitor (DMS opens /dev/i2c-* itself).
+  hardware.i2c.enable = true;
+
   environment.sessionVariables = lib.mkMerge [
     {
+      # NIXOS_OZONE_WL only reaches Electron apps wrapped by nixpkgs; the hint
+      # also covers AppImages such as T3 Code.
       ELECTRON_OZONE_PLATFORM_HINT = "auto";
       NIXOS_OZONE_WL = "1";
       MOZ_ENABLE_WAYLAND = "1";
       __GL_SHADER_DISK_CACHE_SKIP_CLEANUP = "1";
-      # Hyprland would import its environment into the user manager and unset
-      # PATH and QT_QPA_PLATFORMTHEME there on exit, which Umbriel and niri keep
-      # using. dotfiles/hypr/hyprland/execs.lua imports what it needs instead.
-      HYPRLAND_NO_SD_VARS = "1";
     }
     # specialisation is empty inside on-the-go, where the iGPU drives the display.
     (lib.mkIf (config.specialisation != {}) {
@@ -304,17 +313,7 @@ in {
         prime.offload.enableOffloadCmd = lib.mkForce true;
         powerManagement.finegrained = lib.mkForce true;
       };
-      environment.sessionVariables = {
-        LIBVA_DRIVER_NAME = "radeonsi";
-        # Hyprland renders on the iGPU first; the dGPU stays listed for outputs
-        # wired to it. The udev links are stable names: /dev/dri/card* swap
-        # between boots, and the by-path names hold colons, which split the list.
-        AQ_DRM_DEVICES = "/dev/dri/amd-igpu:/dev/dri/nvidia-dgpu";
-      };
-      services.udev.extraRules = ''
-        SUBSYSTEM=="drm", SUBSYSTEMS=="pci", KERNEL=="card*", KERNELS=="0000:06:00.0", SYMLINK+="dri/amd-igpu"
-        SUBSYSTEM=="drm", SUBSYSTEMS=="pci", KERNEL=="card*", KERNELS=="0000:01:00.0", SYMLINK+="dri/nvidia-dgpu"
-      '';
+      environment.sessionVariables.LIBVA_DRIVER_NAME = "radeonsi";
     };
   };
 
@@ -446,7 +445,8 @@ in {
       };
       devices.homelab = {
         id = "L53YR5L-AMCVGBF-JGDVO4Y-P5DRG3F-H2SVGI6-6X4SVM5-FKX5KOD-VTB2LA4";
-        addresses = ["tcp://192.168.1.10:22000"];
+        # The LAN, then the home tunnel (homelab trusts its interface) when away.
+        addresses = ["tcp://192.168.1.10:22000" "tcp://10.100.0.1:22000"];
       };
       folders = {
         documents = {
@@ -473,11 +473,8 @@ in {
       "Pictures"
       "Notes"
       ".ssh"
-      ".config/noctalia"
-      ".local/state/noctalia"
       ".config/dms"
       ".local/state/dms"
-      ".local/state/caelestia"
       ".agents"
       ".claude/projects"
     ];
@@ -515,13 +512,6 @@ in {
   };
   # restic exits 3 on a missing path; DMS creates this only on its first run.
   systemd.tmpfiles.settings."10-dms-state"."/home/lux/.local/state/dms".d = {
-    user = "lux";
-    group = "users";
-    mode = "0755";
-  };
-
-  # Same for the Caelestia shell (wallpaper, scheme, notifications).
-  systemd.tmpfiles.settings."10-caelestia-state"."/home/lux/.local/state/caelestia".d = {
     user = "lux";
     group = "users";
     mode = "0755";
@@ -566,48 +556,26 @@ in {
     ];
   };
 
-  programs.umbriel.enable = true;
-
-  # A second session beside Umbriel, with the DMS shell; pick it in the
-  # greeter. Umbriel keeps its own portal config (xdg.portal.config.umbriel),
-  # niri brings its own (xdg.portal.config.niri), chosen by XDG_CURRENT_DESKTOP.
+  # The one session; niri brings its own portal config (xdg.portal.config.niri)
+  # and makes itself the default session.
   programs.niri.enable = true;
-  # File pickers through the gtk portal (as under Umbriel) instead of
-  # pulling Nautilus in for xdg-desktop-portal-gnome's chooser.
+  # File pickers through the gtk portal instead of pulling Nautilus in for
+  # xdg-desktop-portal-gnome's chooser.
   programs.niri.useNautilus = false;
   # niri enables gnome-keyring (Secret portal), whose
   # gcr agent would clash with programs.ssh.startAgent, which holds the
   # YubiKey key.
   services.gnome.gcr-ssh-agent.enable = false;
-  # The greeter ignores this, but keep Umbriel the default for any other
-  # display manager: the niri module defaults it to niri.
-  services.displayManager.defaultSession = "umbriel";
   # The nvidia driver's heap keeps freed buffers, which can pin ~1 GiB of VRAM
   # in a Wayland compositor. The wiki's mitigation applies only to a process
-  # named niri (niri wiki: Nvidia, "High VRAM usage fix"), so Hyprland is added
-  # below; Umbriel is unaffected.
+  # named niri (niri wiki: Nvidia, "High VRAM usage fix"); the greeter's niri
+  # matches too.
   environment.etc."nvidia/nvidia-application-profiles-rc.d/50-limit-free-buffer-pool-in-wayland-compositors.json".text = builtins.toJSON {
     rules = [
       {
         pattern = {
           feature = "procname";
           matches = "niri";
-        };
-        profile = "Limit Free Buffer Pool On Wayland Compositors";
-      }
-      # Hyprland is a makeCWrapper around .Hyprland-wrapped; which name the
-      # driver sees is not confirmed, so both match.
-      {
-        pattern = {
-          feature = "procname";
-          matches = ".Hyprland-wrapped";
-        };
-        profile = "Limit Free Buffer Pool On Wayland Compositors";
-      }
-      {
-        pattern = {
-          feature = "procname";
-          matches = "Hyprland";
         };
         profile = "Limit Free Buffer Pool On Wayland Compositors";
       }
@@ -624,20 +592,8 @@ in {
       }
     ];
   };
-  # A third session: Hyprland (scrolling layout) with the Caelestia shell. The
-  # config is dotfiles/hypr and the units are in home.nix, not Home Manager's
-  # Hyprland module. No UWSM.
-  programs.hyprland.enable = true;
-  # The module's portal config picks hyprland, then gtk. Add what niri's sets
-  # beyond that: the gtk file chooser (no Nautilus) and the keyring's Secret portal.
-  xdg.portal.config.hyprland = {
-    default = ["hyprland" "gtk"];
-    "org.freedesktop.impl.portal.FileChooser" = "gtk";
-    "org.freedesktop.impl.portal.Secret" = "gnome-keyring";
-  };
-  # DMS from upstream's flake. Its user service is bound to niri.service, not
-  # the default graphical-session.target, which Umbriel reaches too; it brings
-  # Restart=on-failure, and the niri media and lock keys go through it.
+  # DMS from upstream's flake. Its user service is bound to niri.service; it
+  # brings Restart=on-failure, and the niri media and lock keys go through it.
   programs.dank-material-shell = {
     enable = true;
     systemd.enable = true;
@@ -647,20 +603,15 @@ in {
     enableCalendarEvents = false;
   };
 
-  services.displayManager.noctalia-greeter = {
+  # The DMS greeter, in its own niri. It copies lux's DMS settings, session and
+  # colours into /var/lib/dms-greeter when greetd starts, so wallpaper and theme
+  # follow the desktop after the next boot or greetd restart. Login goes through
+  # PAM greetd, which substacks login (YubiKey and keyring, above).
+  programs.dms-greeter = {
     enable = true;
-    package = inputs.noctalia-greeter.packages.${system}.default;
-
-    greeter-args = "";
-    settings = {
-      cursor = {
-        theme = "Bibata-Modern-Classic";
-        size = 24;
-      };
-      keyboard = {
-        layout = "us";
-      };
-    };
+    package = dmsGreeter;
+    compositor.name = "niri";
+    configHome = "/home/lux";
   };
 
   fonts.packages = with pkgs; [
@@ -694,7 +645,19 @@ in {
     package = pkgs.wireshark;
   };
 
+  # The greeter's niri includes this file; without it the greeter takes the
+  # cursor from DMS's cursorSettings, which is unset here (niri's config.kdl
+  # owns the cursor).
+  environment.etc."greetd/niri_overrides.kdl".text = ''
+    cursor {
+        xcursor-theme "Bibata-Modern-Classic"
+        xcursor-size 24
+    }
+  '';
+
   environment.systemPackages = [
+    # The greeter's cursor (greetd/niri_overrides.kdl) is looked up in
+    # /run/current-system/sw/share/icons.
     pkgs.bibata-cursors
     pkgs.nix-output-monitor
     pkgs.nixd
@@ -706,8 +669,6 @@ in {
     tunnelCli
     nixosCheck
     pkgs.brightnessctl
-
-    inputs.noctalia.packages.${system}.default
 
     # niri starts it on demand for X11 clients.
     pkgs.xwayland-satellite
@@ -743,7 +704,7 @@ in {
   ];
 
   users.users.lux = {
-    extraGroups = ["networkmanager" "wheel" "docker" "input" "video" "lenovoctl" "wireshark"];
+    extraGroups = ["networkmanager" "wheel" "docker" "input" "video" "i2c" "lenovoctl" "wireshark"];
     linger = true;
   };
 

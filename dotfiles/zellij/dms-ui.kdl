@@ -1,11 +1,11 @@
-// noctalia template (~/.config/noctalia/zellij.toml renders it to
-// ~/.config/zellij/themes/noctalia-ui.kdl). Zellij's UI in the shell's colors:
-// the active tab and mode in the accent, everything else on a quiet surface
-// with only the keys picked out.
+// DMS matugen template (the user template in ~/.config/matugen/dms/configs/zellij.toml,
+// home.nix, renders it to ~/.config/zellij/themes/dms.kdl on each colour change).
+// Zellij's UI in the shell's colors: the active tab and mode in the accent,
+// everything else on a quiet surface with only the keys picked out.
 themes {
-  noctalia-ui {
+  dms {
     text_unselected {
-      base "{{colors.on_surface.default.hex | darken 30}}"
+      base "{{colors.on_surface_variant.default.hex}}"
       background "{{colors.surface.default.hex}}"
       emphasis_0 "{{colors.primary.default.hex}}"
       emphasis_1 "{{colors.primary.default.hex}}"
@@ -21,7 +21,7 @@ themes {
       emphasis_3 "{{colors.error.default.hex}}"
     }
     ribbon_unselected {
-      base "{{colors.on_surface.default.hex | darken 30}}"
+      base "{{colors.on_surface_variant.default.hex}}"
       background "{{colors.surface_container_high.default.hex}}"
       emphasis_0 "{{colors.primary.default.hex}}"
       emphasis_1 "{{colors.on_surface.default.hex}}"
@@ -101,7 +101,7 @@ themes {
       emphasis_3 "{{colors.error.default.hex}}"
     }
     exit_code_success {
-      base "{{colors.terminal_normal_green.default.hex}}"
+      base "{{dank16.color2.default.hex}}"
       background "{{colors.surface.default.hex}}"
       emphasis_0 "{{colors.primary.default.hex}}"
       emphasis_1 "{{colors.on_surface.default.hex}}"
@@ -109,7 +109,7 @@ themes {
       emphasis_3 "{{colors.error.default.hex}}"
     }
     exit_code_error {
-      base "{{colors.terminal_normal_red.default.hex}}"
+      base "{{dank16.color1.default.hex}}"
       background "{{colors.surface.default.hex}}"
       emphasis_0 "{{colors.primary.default.hex}}"
       emphasis_1 "{{colors.on_surface.default.hex}}"
@@ -119,12 +119,12 @@ themes {
     multiplayer_user_colors {
       player_1 "{{colors.primary.default.hex}}"
       player_2 "{{colors.tertiary.default.hex}}"
-      player_3 "{{colors.terminal_normal_green.default.hex}}"
-      player_4 "{{colors.terminal_normal_yellow.default.hex}}"
-      player_5 "{{colors.terminal_normal_cyan.default.hex}}"
-      player_6 "{{colors.terminal_normal_magenta.default.hex}}"
-      player_7 "{{colors.terminal_normal_red.default.hex}}"
-      player_8 "{{colors.terminal_normal_blue.default.hex}}"
+      player_3 "{{dank16.color2.default.hex}}"
+      player_4 "{{dank16.color3.default.hex}}"
+      player_5 "{{dank16.color6.default.hex}}"
+      player_6 "{{dank16.color5.default.hex}}"
+      player_7 "{{dank16.color1.default.hex}}"
+      player_8 "{{dank16.color4.default.hex}}"
       player_9 "{{colors.secondary.default.hex}}"
       player_10 "{{colors.on_surface.default.hex}}"
     }

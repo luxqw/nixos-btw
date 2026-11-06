@@ -89,6 +89,22 @@
         "type": "github"
       }
     },
+    "dank-qml-common_2": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1793720721,
+        "narHash": "sha256-A266EMSFs169/cqH+9elzMX/6N+ycuEBXFw4qXdTD7k=",
+        "owner": "duxlabs-dev",
+        "repo": "dux-qml-common",
+        "rev": "be3e16ca62866a749b34cfefe1aaed81cfe21e94",
+        "type": "github"
+      },
+      "original": {
+        "owner": "duxlabs-dev",
+        "repo": "dux-qml-common",
+        "type": "github"
+      }
+    },
     "disko": {
       "inputs": {
         "nixpkgs": [
@@ -109,9 +125,31 @@
         "type": "github"
       }
     },
-    "dux-shell": {
+    "dux-greeter": {
       "inputs": {
         "dank-qml-common": "dank-qml-common",
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1793756073,
+        "narHash": "sha256-cIiNRKUfDG5BzX4wIIEvbm2i+M17CL0prIpu5yEHWAk=",
+        "owner": "duxlabs-dev",
+        "repo": "dux-greeter",
+        "rev": "cc00abddac794244aa97783f412b927aa4f5c730",
+        "type": "github"
+      },
+      "original": {
+        "owner": "duxlabs-dev",
+        "ref": "v2.1.0",
+        "repo": "dux-greeter",
+        "type": "github"
+      }
+    },
+    "dux-shell": {
+      "inputs": {
+        "dank-qml-common": "dank-qml-common_2",
         "flake-compat": "flake-compat",
         "nixpkgs": [
           "nixpkgs"
@@ -442,19 +480,6 @@
     },
     "nixpkgs_5": {
       "locked": {
-        "lastModified": 1792094642,
-        "narHash": "sha256-LPFRbrCWWyNsdQLO3SX1B/5UMkFK0hfe7bZR6lENvpc=",
-        "rev": "fe13242281a67641c0102cdb1087f0ebe586c7df",
-        "type": "tarball",
-        "url": "https://releases.nixos.org/nixos/unstable/nixos-26.11pre1093333.fe13242281a6/nixexprs.tar.zst"
-      },
-      "original": {
-        "type": "tarball",
-        "url": "https://channels.nixos.org/nixos-unstable/nixexprs.tar.zst"
-      }
-    },
-    "nixpkgs_6": {
-      "locked": {
         "lastModified": 1782918843,
         "narHash": "sha256-ETYnV9U7Sr+A45dohzZdfCZKOss4qrTkO+wgNZNvEc0=",
         "owner": "NixOS",
@@ -469,7 +494,7 @@
         "type": "github"
       }
     },
-    "nixpkgs_7": {
+    "nixpkgs_6": {
       "locked": {
         "lastModified": 1790689126,
         "narHash": "sha256-ilerN1WLSvF+HMjziC/Wv99J5y02maDH+6hZPwsORKg=",
@@ -485,48 +510,10 @@
         "type": "github"
       }
     },
-    "noctalia": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1792653901,
-        "narHash": "sha256-78muVLcTK0P73ir65B88rr+MesTEemMrxywYQs9RVLk=",
-        "owner": "noctalia-dev",
-        "repo": "noctalia-shell",
-        "rev": "15051a8251435dfcb9abdb2c63b9cf401f2f0d58",
-        "type": "github"
-      },
-      "original": {
-        "owner": "noctalia-dev",
-        "repo": "noctalia-shell",
-        "type": "github"
-      }
-    },
-    "noctalia-greeter": {
-      "inputs": {
-        "nixpkgs": "nixpkgs_5"
-      },
-      "locked": {
-        "lastModified": 1792407766,
-        "narHash": "sha256-hon2Py5QcQ5tAqKUAlNiJhl7MnZQg5XD32TXMLJlD+c=",
-        "owner": "noctalia-dev",
-        "repo": "noctalia-greeter",
-        "rev": "1c35a133958c83b7cd018cced2119c1026504497",
-        "type": "github"
-      },
-      "original": {
-        "owner": "noctalia-dev",
-        "repo": "noctalia-greeter",
-        "type": "github"
-      }
-    },
     "pre-commit-hooks": {
       "inputs": {
         "flake-compat": "flake-compat_3",
-        "nixpkgs": "nixpkgs_6"
+        "nixpkgs": "nixpkgs_5"
       },
       "locked": {
         "lastModified": 1784288435,
@@ -574,16 +561,14 @@
         "clin": "clin",
         "creamlinux-installer": "creamlinux-installer",
         "disko": "disko",
+        "dux-greeter": "dux-greeter",
         "dux-shell": "dux-shell",
         "elyprismlauncher": "elyprismlauncher",
         "home-manager": "home-manager",
         "millennium": "millennium",
         "nixpkgs": "nixpkgs_4",
-        "noctalia": "noctalia",
-        "noctalia-greeter": "noctalia-greeter",
         "pumpkin": "pumpkin",
         "t3-code-nix": "t3-code-nix",
-        "umbriel": "umbriel",
         "zen-browser": "zen-browser"
       }
     },
@@ -627,52 +612,10 @@
         "type": "github"
       }
     },
-    "umbriel": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ],
-        "xdg-desktop-portal-umbriel": "xdg-desktop-portal-umbriel"
-      },
-      "locked": {
-        "lastModified": 1792605344,
-        "narHash": "sha256-g5wojkRUCMRroU/Qr1SAjBRTvaChq3KB4OaZP4RdEaw=",
-        "owner": "noctalia-dev",
-        "repo": "umbriel",
-        "rev": "8449975579a23d191f375a7d53cfe56e260ce19e",
-        "type": "github"
-      },
-      "original": {
-        "owner": "noctalia-dev",
-        "repo": "umbriel",
-        "type": "github"
-      }
-    },
-    "xdg-desktop-portal-umbriel": {
-      "inputs": {
-        "nixpkgs": [
-          "umbriel",
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1792417147,
-        "narHash": "sha256-uCM9pwVAG4Csf8n+IvFdhEAlXjqVWPidUNY3I1oUkzE=",
-        "owner": "noctalia-dev",
-        "repo": "xdg-desktop-portal-umbriel",
-        "rev": "1cc6eb18ba0d6c82dd66999646d7e554f76a85b6",
-        "type": "github"
-      },
-      "original": {
-        "owner": "noctalia-dev",
-        "repo": "xdg-desktop-portal-umbriel",
-        "type": "github"
-      }
-    },
     "zen-browser": {
       "inputs": {
         "home-manager": "home-manager_2",
-        "nixpkgs": "nixpkgs_7"
+        "nixpkgs": "nixpkgs_6"
       },
       "locked": {
         "lastModified": 1792595242,

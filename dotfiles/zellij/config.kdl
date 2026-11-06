@@ -11,7 +11,7 @@ show_startup_tips false
 show_release_notes false
 copy_command "wl-copy"
 scrollback_editor "nvim"
-theme "noctalia-ui"
+theme "dms"
 
 keybinds clear-defaults=true {
     normal {
