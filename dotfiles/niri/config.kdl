@@ -46,9 +46,10 @@ input {
     focus-follows-mouse max-scroll-amount="0%"
 }
 
-// Same theme as home.pointerCursor in home.nix.
+// Same theme as home.pointerCursor in home.nix, the fallback for DMS's
+// dms/cursor.kdl (Settings → Cursor), included at the end.
 cursor {
-    xcursor-theme "Bibata-Modern-Classic"
+    xcursor-theme "Bibata-Original-Classic"
     xcursor-size 24
 }
 
@@ -283,11 +284,12 @@ binds {
 }
 
 // Written by DMS at runtime (palette, layout and blur, window rules, alt-tab,
-// displays); a missing file is fine. Not included: dms/binds.kdl (the binds are
-// above), dms/cursor.kdl and dms/input.kdl (this file owns cursor and keyboard).
+// displays, cursor); a missing file is fine. Not included: dms/binds.kdl (the binds
+// are above) and dms/input.kdl (this file owns the keyboard: us/ru on Mod+Space).
 include optional=true "dms/outputs.kdl"
 include optional=true "dms/colors.kdl"
 include optional=true "dms/layout.kdl"
 include optional=true "dms/alttab.kdl"
 include optional=true "dms/wpblur.kdl"
 include optional=true "dms/windowrules.kdl"
+include optional=true "dms/cursor.kdl"

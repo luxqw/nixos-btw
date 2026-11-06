@@ -645,12 +645,17 @@ in {
     package = pkgs.wireshark;
   };
 
+  # The daemon behind DMS's Phone Connect plugin; opens 1714-1764 for the phone.
+  programs.kdeconnect.enable = true;
+  # The launcher's file search (DMS's dux-search check).
+  programs.dsearch.enable = true;
+
   # The greeter's niri includes this file; without it the greeter takes the
-  # cursor from DMS's cursorSettings, which is unset here (niri's config.kdl
-  # owns the cursor).
+  # cursor from DMS's cursorSettings, which is empty until a theme is picked
+  # in Settings → Cursor.
   environment.etc."greetd/niri_overrides.kdl".text = ''
     cursor {
-        xcursor-theme "Bibata-Modern-Classic"
+        xcursor-theme "Bibata-Original-Classic"
         xcursor-size 24
     }
   '';

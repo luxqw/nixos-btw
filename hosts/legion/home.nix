@@ -699,7 +699,7 @@ in {
   home.pointerCursor = {
     enable = true;
     package = pkgs.bibata-cursors;
-    name = "Bibata-Modern-Classic";
+    name = "Bibata-Original-Classic";
     size = 24;
     gtk.enable = true;
     x11.enable = true;
@@ -730,7 +730,7 @@ in {
     color-scheme = "prefer-dark";
     gtk-theme = "adw-gtk3-dark";
     icon-theme = "Papirus-Dark";
-    cursor-theme = "Bibata-Modern-Classic";
+    cursor-theme = "Bibata-Original-Classic";
     cursor-size = 24;
   };
 
@@ -972,6 +972,9 @@ in {
     system = pkgs.stdenv.hostPlatform.system;
 
     apps = [
+      # The voxtype CLI, and voxtype-audio-bridge, which the OSD finds on PATH
+      # for its level meter and waveform.
+      voxtype-vulkan
       chromium
       inputs.zen-browser.packages.${system}.default
       telegram-desktop
