@@ -598,9 +598,6 @@ in {
     enable = true;
     systemd.enable = true;
     systemd.target = "niri.service";
-    # khal's man output fails to build with the pinned nixpkgs (calendar events
-    # widget only); turn this back on after the next nixpkgs bump.
-    enableCalendarEvents = false;
   };
 
   # The DMS greeter, in its own niri. It copies lux's DMS settings, session and
