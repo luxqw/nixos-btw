@@ -42,13 +42,15 @@
 
   nixosCheck = pkgs.writeShellApplication {
     name = "nixos-check";
-    runtimeInputs = [pkgs.alejandra pkgs.deadnix pkgs.statix pkgs.nix];
+    runtimeInputs = [pkgs.alejandra pkgs.deadnix pkgs.statix pkgs.nix config.programs.niri.package];
     text = ''
       cd /etc/nixos
       alejandra --check .
       deadnix --fail .
       statix check .
       nix flake check --no-build --all-systems
+      # DMS edits config.kdl at runtime (e.g. appends includes), so check it too.
+      niri validate -c dotfiles/niri/config.kdl
     '';
   };
 
@@ -348,6 +350,9 @@ in {
     configFile = config.age.secrets.${name}.path;
     autostart = !(builtins.elem name manualTunnels);
   });
+  # Every resolvconf update (each tunnel, each NetworkManager change) try-restarts
+  # nscd; at boot that beats the default 5-in-10s limit and leaves nscd failed.
+  systemd.services.nscd.startLimitBurst = 30;
 
   nix.distributedBuilds = true;
   nix.buildMachines = [
@@ -645,7 +650,7 @@ in {
   # The daemon behind DMS's Phone Connect plugin; opens 1714-1764 for the phone.
   programs.kdeconnect.enable = true;
   # The launcher's file search (DMS's dux-search check).
-  programs.dsearch.enable = true;
+  programs.dux-search.enable = true;
 
   # The greeter's niri includes this file; without it the greeter takes the
   # cursor from DMS's cursorSettings, which is empty until a theme is picked

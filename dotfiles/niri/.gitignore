@@ -1,2 +1,5 @@
 # Written by DMS at runtime (colors, layout, blur, window rules and the rest).
 dms/
+
+# DMS backs up config.kdl before it edits it.
+config.kdl.backup*
