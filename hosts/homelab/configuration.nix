@@ -1387,6 +1387,8 @@ in {
   # Both Hub containers share the host network and listen on loopback only.
   virtualisation = lib.mkIf hubEnabled {
     podman.enable = true;
+    # Podman 6 ships no search registries; the Hub Dockerfile uses short names (denoland/deno:…).
+    containers.registries.settings.unqualified-search-registries = ["docker.io"];
     oci-containers = {
       backend = "podman";
       containers = {
