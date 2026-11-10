@@ -36,6 +36,7 @@
     flaresolverr = 8191;
     gatus = 8083;
     harmonia = 5000;
+    homemusic = 8092;
     homepage = 8082;
     immich = 2283;
     ipp = 3010;
@@ -47,7 +48,6 @@
     paperless = 28981;
     qbittorrent = 8080;
     scrutiny = 8081;
-    slskd = 5030;
     syncthing = 8384;
     torrserver = 8091;
     vaultwarden = 8222;
@@ -58,28 +58,22 @@
   photos = "/srv/photos";
   cloud = "/srv/cloud";
   music = "/srv/music";
-  soulseek = "${media}/downloads/soulseek";
 
-  beetsConfig = (pkgs.formats.yaml {}).generate "beets.yaml" {
-    directory = music;
-    library = "/var/lib/beets/library.db";
-    statefile = "/var/lib/beets/state.pickle";
-    import = {
-      move = true;
-      write = true;
-      # No confident MusicBrainz match: import with the file's own tags rather
-      # than leave the album in downloads, where nothing plays it.
-      quiet_fallback = "asis";
-      log = "/var/lib/beets/import.log";
-    };
-    paths = {
-      default = "$albumartist/$album%aunique{}/$track $title";
-      singleton = "$artist/Singles/$title";
-      comp = "Compilations/$album%aunique{}/$track $title";
-    };
-    # beets 2.x looks nothing up unless the musicbrainz plugin is listed.
-    plugins = ["musicbrainz" "fetchart" "embedart"];
+  # HomeMusic Hub: stays off until secrets/homelab/homemusic.age exists (wizards/homemusic.sh).
+  hubEnabled = builtins.pathExists ../../secrets/homelab/homemusic.age;
+  hubRev = "f852fca71885eb1bb4797d420f96325864ca6775";
+  hubSrc = pkgs.fetchFromGitHub {
+    owner = "justman-1";
+    repo = "HomeMusic-public";
+    rev = hubRev;
+    hash = "sha256-aMSIwUjfdqVgmOuvAGUpT7bnFr1LZVwI3kAy/sbF7O4=";
   };
+  # A stable tag: a rev bump rebuilds and restarts in the background instead of failing the switch.
+  hubImage = "localhost/homemusic-hub:pinned";
+  hubRoot = "/srv/homemusic";
+  hubData = "/var/lib/homemusic-hub";
+  potPort = 4416;
+
   photosRepo = "/var/backup/photos";
   filesRepo = "/var/backup/files";
   vaultwardenBackup = "/var/lib/backups/vaultwarden";
@@ -279,6 +273,8 @@ in {
 
   users.mutableUsers = false;
   users.users.lux = {
+    # The Hub container runs as lux:media, so the uid has to be known at build time.
+    uid = 1000;
     extraGroups = ["wheel"];
     hashedPasswordFile = config.age.secrets.lux-password.path;
     openssh.authorizedKeys.keys = [
@@ -317,47 +313,48 @@ in {
   services.caddy = {
     enable = true;
     environmentFile = config.age.secrets.caddy-auth.path;
-    virtualHosts = {
-      "home.${domain}" = proxy ports.homepage;
-      "beszel.${domain}" = proxy ports.beszel;
-      "status.${domain}" = proxy ports.gatus;
-      "disks.${domain}" = proxy ports.scrutiny;
-      "cache.${domain}" = proxy ports.harmonia;
-      "adguard.${domain}" = guarded ports.adguard;
-      "jellyfin.${domain}" = proxy ports.jellyfin;
-      "torrent.${domain}" = guarded ports.qbittorrent;
-      "torrserver.${domain}" = guarded ports.torrserver;
-      "sync.${domain}" = guarded ports.syncthing;
-      "vault.${domain}" = proxy ports.vaultwarden;
-      "photos.${domain}" = proxy ports.immich;
-      "share.${domain}" =
-        proxy ports.ipp
-        // {
-          serverAliases = ["share.${domain}:${toString publicPort}"];
+    virtualHosts =
+      {
+        "home.${domain}" = proxy ports.homepage;
+        "beszel.${domain}" = proxy ports.beszel;
+        "status.${domain}" = proxy ports.gatus;
+        "disks.${domain}" = proxy ports.scrutiny;
+        "cache.${domain}" = proxy ports.harmonia;
+        "adguard.${domain}" = guarded ports.adguard;
+        "jellyfin.${domain}" = proxy ports.jellyfin;
+        "torrent.${domain}" = guarded ports.qbittorrent;
+        "torrserver.${domain}" = guarded ports.torrserver;
+        "sync.${domain}" = guarded ports.syncthing;
+        "vault.${domain}" = proxy ports.vaultwarden;
+        "photos.${domain}" = proxy ports.immich;
+        "share.${domain}" =
+          proxy ports.ipp
+          // {
+            serverAliases = ["share.${domain}:${toString publicPort}"];
+          };
+        "cloud.${domain}" = proxy ports.opencloud;
+        "couch.${domain}" = proxy ports.couchdb;
+        "dav.${domain}" = proxy ports.webdav;
+        "music.${domain}" = proxy ports.navidrome;
+        "docs.${domain}" = proxy ports.paperless;
+        "keep.${domain}" = proxy ports.karakeep;
+        "budget.${domain}" = {
+          useACMEHost = domain;
+          extraConfig = firefly;
         };
-      "cloud.${domain}" = proxy ports.opencloud;
-      "couch.${domain}" = proxy ports.couchdb;
-      "dav.${domain}" = proxy ports.webdav;
-      "music.${domain}" = proxy ports.navidrome;
-      "slskd.${domain}" = proxy ports.slskd;
-      "docs.${domain}" = proxy ports.paperless;
-      "keep.${domain}" = proxy ports.karakeep;
-      "budget.${domain}" = {
-        useACMEHost = domain;
-        extraConfig = firefly;
-      };
-      "http://127.0.0.1:${toString ports.firefly}".extraConfig = firefly + "bind 127.0.0.1\n";
-      "jackett.${domain}" = {
-        useACMEHost = domain;
-        extraConfig = ''
-          @ui not path /api/* /dl/*
-          basic_auth @ui {
-            lux {$ADMIN_HASH}
-          }
-          reverse_proxy 127.0.0.1:${toString ports.jackett}
-        '';
-      };
-    };
+        "http://127.0.0.1:${toString ports.firefly}".extraConfig = firefly + "bind 127.0.0.1\n";
+        "jackett.${domain}" = {
+          useACMEHost = domain;
+          extraConfig = ''
+            @ui not path /api/* /dl/*
+            basic_auth @ui {
+              lux {$ADMIN_HASH}
+            }
+            reverse_proxy 127.0.0.1:${toString ports.jackett}
+          '';
+        };
+      }
+      // lib.optionalAttrs hubEnabled {"musichub.${domain}" = proxy ports.homemusic;};
   };
 
   services.adguardhome = {
@@ -453,55 +450,56 @@ in {
           send-on-resolved = true;
         };
       };
-      endpoints = [
-        (local "adguard" "/")
-        (local "beszel" "/")
-        (local "scrutiny" "/web/dashboard")
-        (local "homepage" "/")
-        (local "harmonia" "/nix-cache-info")
-        (local "jellyfin" "/health")
-        (local "qbittorrent" "/")
-        (local "flaresolverr" "/")
-        (local "torrserver" "/echo")
-        (local "syncthing" "/rest/noauth/health")
-        (listening "jackett")
-        (local "vaultwarden" "/alive")
-        (local "immich" "/api/server/ping")
-        (listening "ipp")
-        (listening "opencloud")
-        (local "couchdb" "/_up")
-        (listening "webdav")
-        (local "navidrome" "/ping")
-        (listening "slskd")
-        (listening "paperless")
-        (listening "karakeep")
-        (local "firefly" "/health")
-        {
-          name = "pumpkin";
-          url = "tcp://${pumpkin.localAddress}:${toString pumpkin.port}";
-          interval = "1m";
-          conditions = ["[CONNECTED] == true"];
-          alerts = [{type = "telegram";}];
-        }
-        {
-          name = "certificate";
-          url = "https://home.${domain}";
-          interval = "1h";
-          conditions = ["[CERTIFICATE_EXPIRATION] > 240h"];
-          alerts = [{type = "telegram";}];
-        }
-        {
-          name = "dns";
-          url = "127.0.0.1";
-          interval = "1m";
-          dns = {
-            query-name = "nixos.org";
-            query-type = "A";
-          };
-          conditions = ["[DNS_RCODE] == NOERROR"];
-          alerts = [{type = "telegram";}];
-        }
-      ];
+      endpoints =
+        [
+          (local "adguard" "/")
+          (local "beszel" "/")
+          (local "scrutiny" "/web/dashboard")
+          (local "homepage" "/")
+          (local "harmonia" "/nix-cache-info")
+          (local "jellyfin" "/health")
+          (local "qbittorrent" "/")
+          (local "flaresolverr" "/")
+          (local "torrserver" "/echo")
+          (local "syncthing" "/rest/noauth/health")
+          (listening "jackett")
+          (local "vaultwarden" "/alive")
+          (local "immich" "/api/server/ping")
+          (listening "ipp")
+          (listening "opencloud")
+          (local "couchdb" "/_up")
+          (listening "webdav")
+          (local "navidrome" "/ping")
+          (listening "paperless")
+          (listening "karakeep")
+          (local "firefly" "/health")
+          {
+            name = "pumpkin";
+            url = "tcp://${pumpkin.localAddress}:${toString pumpkin.port}";
+            interval = "1m";
+            conditions = ["[CONNECTED] == true"];
+            alerts = [{type = "telegram";}];
+          }
+          {
+            name = "certificate";
+            url = "https://home.${domain}";
+            interval = "1h";
+            conditions = ["[CERTIFICATE_EXPIRATION] > 240h"];
+            alerts = [{type = "telegram";}];
+          }
+          {
+            name = "dns";
+            url = "127.0.0.1";
+            interval = "1m";
+            dns = {
+              query-name = "nixos.org";
+              query-type = "A";
+            };
+            conditions = ["[DNS_RCODE] == NOERROR"];
+            alerts = [{type = "telegram";}];
+          }
+        ]
+        ++ lib.optional hubEnabled (local "homemusic" "/healthz");
     };
   };
 
@@ -541,23 +539,24 @@ in {
     ];
     services = [
       {
-        "Медиа" = [
-          {Jellyfin = app ports.jellyfin "jellyfin" "jellyfin.svg" "Фильмы и сериалы";}
-          {Navidrome = app ports.navidrome "music" "navidrome.svg" "Музыка";}
-          {slskd = app ports.slskd "slskd" "slskd.svg" "Поиск и загрузка музыки (Soulseek)";}
-          {
-            qBittorrent =
-              app ports.qbittorrent "torrent" "qbittorrent.svg" "Загрузки"
-              // {
-                widget = {
-                  type = "qbittorrent";
-                  url = loopback ports.qbittorrent;
+        "Медиа" =
+          [
+            {Jellyfin = app ports.jellyfin "jellyfin" "jellyfin.svg" "Фильмы и сериалы";}
+            {Navidrome = app ports.navidrome "music" "navidrome.svg" "Музыка";}
+            {
+              qBittorrent =
+                app ports.qbittorrent "torrent" "qbittorrent.svg" "Загрузки"
+                // {
+                  widget = {
+                    type = "qbittorrent";
+                    url = loopback ports.qbittorrent;
+                  };
                 };
-              };
-          }
-          {Jackett = app ports.jackett "jackett" "jackett.svg" "Поиск по трекерам";}
-          {TorrServer = app ports.torrserver "torrserver" "torrserver.png" "Торренты онлайн для Lampa";}
-        ];
+            }
+            {Jackett = app ports.jackett "jackett" "jackett.svg" "Поиск по трекерам";}
+            {TorrServer = app ports.torrserver "torrserver" "torrserver.png" "Торренты онлайн для Lampa";}
+          ]
+          ++ lib.optional hubEnabled {"HomeMusic Hub" = app ports.homemusic "musichub" "mdi-music-box-multiple" "Поиск и загрузка музыки";};
       }
       {
         "Файлы" = [
@@ -978,24 +977,6 @@ in {
       group = "media";
       mode = "2775";
     };
-    # lux like the rest of ${media}: tmpfiles won't create a root-owned dir
-    # under lux's downloads ("unsafe path transition").
-    ${soulseek}.d = {
-      user = "lux";
-      group = "media";
-      mode = "2775";
-    };
-    # slskd refuses to start when its incomplete directory is missing.
-    "${soulseek}/.incomplete".d = {
-      user = "lux";
-      group = "media";
-      mode = "2775";
-    };
-    "/var/lib/beets".d = {
-      user = "root";
-      group = "media";
-      mode = "2775";
-    };
     ${vaultwardenBackup}.d = {
       user = "vaultwarden";
       group = "vaultwarden";
@@ -1148,6 +1129,7 @@ in {
     paths = ["/var/lib" photos cloud "/srv/sync" music];
     exclude = [
       "/var/lib/systemd/coredump"
+      "/var/lib/containers"
       "/var/lib/postgresql"
       "${photos}/thumbs"
       "${photos}/encoded-video"
@@ -1212,7 +1194,6 @@ in {
   systemd.services.paperless-exporter.unitConfig.OnFailure = lib.mkAfter ["notify-telegram@%N.service"];
   systemd.services.btrbk-local.unitConfig.OnFailure = ["notify-telegram@%N.service"];
   systemd.services.statusbot-digest.unitConfig.OnFailure = ["notify-telegram@%N.service"];
-  systemd.services.beets-import.unitConfig.OnFailure = ["notify-telegram@%N.service"];
   systemd.services.scrutiny-collector.unitConfig.OnFailure = ["notify-telegram@%N.service"];
 
   # Restores the newest offsite copy of Vaultwarden's database and opens it, so a
@@ -1304,33 +1285,34 @@ in {
       }
     ];
     backupUnits = ["backup-vaultwarden" "restic-backups-local" "restic-backups-photos" "restic-backups-files" "restic-backups-offsite"];
-    services = [
-      "adguardhome"
-      "caddy"
-      "container@pumpkin"
-      "couchdb"
-      "flaresolverr"
-      "gatus"
-      "homepage-dashboard"
-      "immich-machine-learning"
-      "immich-server"
-      "jackett"
-      "jellyfin"
-      "karakeep-web"
-      "karakeep-workers"
-      "navidrome"
-      "opencloud"
-      "paperless-consumer"
-      "paperless-web"
-      "phpfpm-firefly-iii"
-      "qbittorrent"
-      "scrutiny"
-      "slskd"
-      "syncthing"
-      "torrserver"
-      "vaultwarden"
-      "webdav"
-    ];
+    services =
+      [
+        "adguardhome"
+        "caddy"
+        "container@pumpkin"
+        "couchdb"
+        "flaresolverr"
+        "gatus"
+        "homepage-dashboard"
+        "immich-machine-learning"
+        "immich-server"
+        "jackett"
+        "jellyfin"
+        "karakeep-web"
+        "karakeep-workers"
+        "navidrome"
+        "opencloud"
+        "paperless-consumer"
+        "paperless-web"
+        "phpfpm-firefly-iii"
+        "qbittorrent"
+        "scrutiny"
+        "syncthing"
+        "torrserver"
+        "vaultwarden"
+        "webdav"
+      ]
+      ++ lib.optionals hubEnabled ["podman-homemusic-hub" "podman-youtube-pot"];
     disks = ["/" "/srv"];
     gatus = loopback ports.gatus;
     scrutiny = loopback ports.scrutiny;
@@ -1378,62 +1360,144 @@ in {
   services.navidrome = {
     enable = true;
     group = "media";
-    settings = {
-      Address = "127.0.0.1";
-      Port = ports.navidrome;
-      MusicFolder = music;
-      BaseUrl = "https://music.${domain}";
-      Scanner.Schedule = "@every 1h";
-      ListenBrainz.Enabled = true;
-      EnableInsightsCollector = false;
-    };
+    settings =
+      lib.recursiveUpdate {
+        Address = "127.0.0.1";
+        Port = ports.navidrome;
+        MusicFolder = music;
+        BaseUrl = "https://music.${domain}";
+        Scanner.Schedule = "@every 1h";
+        ListenBrainz.Enabled = true;
+        EnableInsightsCollector = false;
+      } (lib.optionalAttrs hubEnabled {
+        # The Hub links its files to Navidrome songs by path. No PID.* rules: they would re-key the existing library.
+        Subsonic.DefaultReportRealPath = true;
+        Scanner.PurgeMissing = "never";
+        Tags = {
+          homemusic_track_id.Aliases = ["homemusic_track_id" "txxx:homemusic_track_id" "----:com.apple.itunes:homemusic_track_id"];
+          homemusic_album_id = {
+            Aliases = ["homemusic_album_id" "txxx:homemusic_album_id" "----:com.apple.itunes:homemusic_album_id"];
+            Album = true;
+          };
+        };
+      });
   };
   systemd.services.navidrome.unitConfig.RequiresMountsFor = [music];
 
-  services.slskd = {
-    enable = true;
-    group = "media";
-    environmentFile = config.age.secrets.slskd.path;
-    settings = {
-      web.port = ports.slskd;
-      directories = {
-        downloads = soulseek;
-        incomplete = "${soulseek}/.incomplete";
+  # Both Hub containers share the host network and listen on loopback only.
+  virtualisation = lib.mkIf hubEnabled {
+    podman.enable = true;
+    oci-containers = {
+      backend = "podman";
+      containers = {
+        # bgutil 2.0.2 takes --host; the image's default CMD binds 0.0.0.0.
+        youtube-pot = {
+          image = "brainicism/bgutil-ytdlp-pot-provider:2.0.2";
+          # Pulled when the Hub starts (dependsOn), so a Docker Hub outage can't fail a switch.
+          autoStart = false;
+          cmd = ["--host" "127.0.0.1" "--port" (toString potPort)];
+          extraOptions = ["--network=host" "--init" "--cap-drop=ALL" "--security-opt=no-new-privileges"];
+        };
+
+        homemusic-hub = {
+          image = hubImage;
+          # Built locally by homemusic-build, never pulled; that unit starts it, not the switch.
+          pull = "never";
+          autoStart = false;
+          dependsOn = ["youtube-pot"];
+          # lux:media owns what beets and abcde wrote to the library, and Navidrome reads it by group.
+          user = "${toString config.users.users.lux.uid}:${toString config.users.groups.media.gid}";
+          cmd = [
+            "uvicorn"
+            "app.main:app"
+            "--host"
+            "127.0.0.1"
+            "--port"
+            (toString ports.homemusic)
+            "--proxy-headers"
+            "--forwarded-allow-ips"
+            "127.0.0.1"
+            "--no-access-log"
+          ];
+          environment = {
+            MUSIC_ROOT = "/music";
+            DATA_DIR = "/data";
+            HOME = "/data";
+            CONFIG_FILE = "/config/config.yaml";
+            NAVIDROME_URL = loopback ports.navidrome;
+            YTDLP_POT_BASE_URL = loopback potPort;
+            YTDLP_CACHE_DIR = "/data/yt-dlp-cache";
+            PUBLIC_MUSIC_URL = "https://music.${domain}";
+            PUBLIC_HUB_URL = "https://musichub.${domain}";
+            TIMEZONE = "Europe/Belgrade";
+            EMBEDDER_URL = "";
+          };
+          environmentFiles = [config.age.secrets.homemusic.path];
+          volumes = [
+            "${hubData}:/data"
+            "${hubRoot}:/music"
+            "${music}:/music/library"
+            "${hubSrc}/config.example.yaml:/config/config.yaml:ro"
+          ];
+          extraOptions = ["--network=host" "--init" "--cap-drop=ALL" "--security-opt=no-new-privileges"];
+        };
       };
-      shares.directories = [music];
-      soulseek.description = "homelab of a music fan; sharing what I listen to";
     };
   };
-  age.secrets.slskd = secret "slskd";
-  systemd.services.slskd = {
-    unitConfig.RequiresMountsFor = [media music];
-    serviceConfig.UMask = "0002";
-  };
 
-  environment.etc."beets/config.yaml".source = beetsConfig;
-  environment.variables.BEETSDIR = "/etc/beets";
+  age.secrets.homemusic = lib.mkIf hubEnabled (secret "homemusic");
 
-  systemd.services.beets-import = {
-    description = "Import finished Soulseek downloads into the music library";
-    startAt = "hourly";
-    path = [pkgs.beets];
-    environment.BEETSDIR = "/etc/beets";
-    unitConfig.RequiresMountsFor = [media music];
+  systemd.tmpfiles.settings."10-homemusic" = lib.mkIf hubEnabled (lib.genAttrs [hubData hubRoot "${hubRoot}/library" "${hubRoot}/staging" "${hubRoot}/.trash" "${hubRoot}/.backups"] (_: {
+    d = {
+      user = "lux";
+      group = "media";
+      mode = "0755";
+    };
+  }));
+
+  # The Hub's source is a Nix store path, so the image is built here, once per pinned revision.
+  # A timer runs it after boot and after a rev bump, so a long or failed build never blocks or
+  # fails deploy-homelab.
+  systemd.services.homemusic-build = lib.mkIf hubEnabled {
+    description = "Build the HomeMusic Hub image";
+    wants = ["network-online.target"];
+    after = ["network-online.target"];
+    path = [config.virtualisation.podman.package config.systemd.package];
+    unitConfig.OnFailure = ["notify-telegram@%N.service"];
+    # A switch must never restart (and wait on) a running build; the timer picks up a new rev.
+    restartIfChanged = false;
     script = ''
-      shopt -s nullglob
-      dirs=(${soulseek}/*/)
-      dirs=("''${dirs[@]%/}")
-      for d in "''${dirs[@]}"; do
-        [[ $d == */.incomplete ]] && continue
-        beet import -q "$d"
-      done
+      built=$(podman image inspect --format '{{index .Labels "homemusic.rev"}}' ${hubImage} 2>/dev/null || true)
+      if [ "$built" = ${hubRev} ]; then
+        systemctl start --no-block podman-homemusic-hub.service
+      else
+        podman build --label homemusic.rev=${hubRev} -t ${hubImage} -f ${hubSrc}/hub/Dockerfile ${hubSrc}
+        podman image prune -f
+        systemctl restart --no-block podman-homemusic-hub.service
+      fi
     '';
     serviceConfig = {
       Type = "oneshot";
-      User = "lux";
-      Group = "media";
-      UMask = "0002";
+      TimeoutStartSec = "1h";
     };
+  };
+
+  systemd.timers.homemusic-build = lib.mkIf hubEnabled {
+    wantedBy = ["timers.target"];
+    restartTriggers = [hubRev];
+    # The re-check catches a rev bump deployed while an older build was still running.
+    timerConfig = {
+      OnActiveSec = "1min";
+      OnUnitInactiveSec = "6h";
+    };
+  };
+
+  # Not ordered after homemusic-build: that unit starts the Hub itself, and the ordering would make
+  # a switch-driven restart wait behind a running build.
+  systemd.services.podman-homemusic-hub = lib.mkIf hubEnabled {
+    requires = ["navidrome.service"];
+    after = ["navidrome.service"];
+    unitConfig.RequiresMountsFor = [music hubRoot];
   };
 
   system.stateVersion = "26.11";
