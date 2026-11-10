@@ -70,6 +70,11 @@
   };
   # A stable tag: a rev bump rebuilds and restarts in the background instead of failing the switch.
   hubImage = "localhost/homemusic-hub:pinned";
+  # hitmoz answers 403 to Serbian IPs, and its retries ran YouTube searches into their timeout.
+  hubConfig = pkgs.runCommand "homemusic-config.yaml" {nativeBuildInputs = [pkgs.yq-go];} ''
+    yq '.sources.default = ["ytdlp"] | .sources.ru = ["hitmos_fm", "soundcloud", "yt_reupload", "ytdlp"]' \
+      ${hubSrc}/config.example.yaml > $out
+  '';
   hubRoot = "/srv/homemusic";
   hubData = "/var/lib/homemusic-hub";
   potPort = 4416;
@@ -1439,7 +1444,7 @@ in {
             "${hubData}:/data"
             "${hubRoot}:/music"
             "${music}:/music/library"
-            "${hubSrc}/config.example.yaml:/config/config.yaml:ro"
+            "${hubConfig}:/config/config.yaml:ro"
           ];
           extraOptions = ["--network=host" "--init" "--cap-drop=ALL" "--security-opt=no-new-privileges"];
         };
