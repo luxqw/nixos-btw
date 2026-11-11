@@ -271,6 +271,15 @@ in {
     authorizedKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINlCwfdl4s/GjA5OAN/DVGQ0WJjyCTsQjuFDvf42cWur dispatcher-tunnel@legion";
   };
 
+  # Tailscale only for Funnel: public :443 for the dispatcher gateway's cloud
+  # clients. tailscale0 stays untrusted, the tailnet's DNS is ignored (AdGuard
+  # serves this host), and lux may run `tailscale funnel` without sudo.
+  services.tailscale = {
+    enable = true;
+    disableTaildrop = true;
+    extraSetFlags = ["--operator=lux" "--accept-dns=false"];
+  };
+
   # A touch on the YubiKey, through the agent legion forwards, stands in for
   # the password. Only the key in sudo_keys counts, not every authorized key.
   security.pam.rssh = {
