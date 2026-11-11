@@ -269,6 +269,17 @@ in {
   services.dispatcher-gateway = {
     enable = true;
     authorizedKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINlCwfdl4s/GjA5OAN/DVGQ0WJjyCTsQjuFDvf42cWur dispatcher-tunnel@legion";
+    # Cloud voice clients (Claude, ChatGPT): OAuth via GitHub, owner only, on
+    # 127.0.0.1 behind Tailscale Funnel :443. The secret goes in by LoadCredential.
+    public = {
+      enable = true;
+      funnel = true;
+      baseUrl = "https://homelab.tail9d9e5b.ts.net";
+      githubClientId = "Ov23lizhZIus3dfj14Yb";
+      githubUserId = 190406525;
+      githubLogin = "luxqw";
+      clientSecretFile = config.age.secrets.dispatcher-github.path;
+    };
   };
 
   # Tailscale only for Funnel: public :443 for the dispatcher gateway's cloud
@@ -304,6 +315,7 @@ in {
   };
 
   age.secrets = {
+    dispatcher-github = secret "dispatcher-github";
     lux-password = secret "lux-password";
     wg-home = secret "wg-home";
     cloudflare = secret "cloudflare";
