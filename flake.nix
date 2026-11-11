@@ -46,6 +46,8 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.follows = "home-manager";
     };
+    # Own nixpkgs pin on purpose: fastmcp is broken in this flake's revision.
+    dispatcher.url = "git+file:///home/lux/Documents/projects/dispatcher?ref=main";
   };
 
   outputs = inputs @ {

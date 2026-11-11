@@ -125,6 +125,25 @@
         "type": "github"
       }
     },
+    "dispatcher": {
+      "inputs": {
+        "nixpkgs": "nixpkgs_3"
+      },
+      "locked": {
+        "lastModified": 1794415976,
+        "narHash": "sha256-D+T21ku8W3c1L4ID0UwFktu7e13OeqWwSfrtaveGdQI=",
+        "ref": "main",
+        "rev": "760cc869e177ab3cb3cf8e504c4d1f5764044bb3",
+        "revCount": 4,
+        "type": "git",
+        "url": "file:///home/lux/Documents/projects/dispatcher"
+      },
+      "original": {
+        "ref": "main",
+        "type": "git",
+        "url": "file:///home/lux/Documents/projects/dispatcher"
+      }
+    },
     "dux-greeter": {
       "inputs": {
         "dank-qml-common": "dank-qml-common",
@@ -335,7 +354,7 @@
     "millennium": {
       "inputs": {
         "millennium-src": "millennium-src",
-        "nixpkgs": "nixpkgs_3",
+        "nixpkgs": "nixpkgs_4",
         "nixpkgs-bun": "nixpkgs-bun"
       },
       "locked": {
@@ -451,6 +470,22 @@
     },
     "nixpkgs_3": {
       "locked": {
+        "lastModified": 1790822859,
+        "narHash": "sha256-69xHQhAeMAD2wDXO7T2pcOZIF9Sga2W+JkmY2a11Ops=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "c59305bab2065cfecc4944690d9eedbb56f3a9fa",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "c59305bab2065cfecc4944690d9eedbb56f3a9fa",
+        "type": "github"
+      }
+    },
+    "nixpkgs_4": {
+      "locked": {
         "lastModified": 1790769526,
         "narHash": "sha256-6j4yqqBUvIbBn29k0y/2jqlv/YJd8CRkTBYhfm5Z/8c=",
         "rev": "c9fe7d12cd78d1adcd12dd15e24432dde5b155a0",
@@ -462,7 +497,7 @@
         "url": "https://channels.nixos.org/nixpkgs-unstable/nixexprs.tar.zst"
       }
     },
-    "nixpkgs_4": {
+    "nixpkgs_5": {
       "locked": {
         "lastModified": 1793726008,
         "narHash": "sha256-jQp1wKvbwWdLBASTXkSi/VYmDJ5AbBi1WvcMt9HWJC8=",
@@ -478,7 +513,7 @@
         "type": "github"
       }
     },
-    "nixpkgs_5": {
+    "nixpkgs_6": {
       "locked": {
         "lastModified": 1782918843,
         "narHash": "sha256-ETYnV9U7Sr+A45dohzZdfCZKOss4qrTkO+wgNZNvEc0=",
@@ -494,7 +529,7 @@
         "type": "github"
       }
     },
-    "nixpkgs_6": {
+    "nixpkgs_7": {
       "locked": {
         "lastModified": 1793341285,
         "narHash": "sha256-Y1CiZ4SoBUjLQyQM/pY+rS2dXD3CHLPstF0lmOc73D4=",
@@ -513,7 +548,7 @@
     "pre-commit-hooks": {
       "inputs": {
         "flake-compat": "flake-compat_3",
-        "nixpkgs": "nixpkgs_5"
+        "nixpkgs": "nixpkgs_6"
       },
       "locked": {
         "lastModified": 1784288435,
@@ -561,12 +596,13 @@
         "clin": "clin",
         "creamlinux-installer": "creamlinux-installer",
         "disko": "disko",
+        "dispatcher": "dispatcher",
         "dux-greeter": "dux-greeter",
         "dux-shell": "dux-shell",
         "elyprismlauncher": "elyprismlauncher",
         "home-manager": "home-manager",
         "millennium": "millennium",
-        "nixpkgs": "nixpkgs_4",
+        "nixpkgs": "nixpkgs_5",
         "pumpkin": "pumpkin",
         "t3-code-nix": "t3-code-nix",
         "zen-browser": "zen-browser"
@@ -615,7 +651,7 @@
     "zen-browser": {
       "inputs": {
         "home-manager": "home-manager_2",
-        "nixpkgs": "nixpkgs_6"
+        "nixpkgs": "nixpkgs_7"
       },
       "locked": {
         "lastModified": 1793879729,

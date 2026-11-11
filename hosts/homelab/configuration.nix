@@ -211,6 +211,7 @@ in {
   imports = [
     ./hardware-configuration.nix
     ./disko.nix
+    inputs.dispatcher.nixosModules.gateway
   ];
 
   boot.loader.systemd-boot.enable = true;
@@ -262,6 +263,12 @@ in {
       KbdInteractiveAuthentication = false;
       PermitRootLogin = "no";
     };
+  };
+
+  # MCP gateway for the dispatcher; legion tunnels in as `dispatcher` with this key only.
+  services.dispatcher-gateway = {
+    enable = true;
+    authorizedKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINlCwfdl4s/GjA5OAN/DVGQ0WJjyCTsQjuFDvf42cWur dispatcher-tunnel@legion";
   };
 
   # A touch on the YubiKey, through the agent legion forwards, stands in for

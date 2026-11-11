@@ -168,6 +168,12 @@ in {
     ./hardware-configuration.nix
   ];
 
+  # work-bridge and the SSH tunnel to the dispatcher gateway on homelab. Kept here, not in home.nix.
+  home-manager.users.lux = {
+    imports = [inputs.dispatcher.homeModules.bridge];
+    services.dispatcher-bridge.enable = true;
+  };
+
   boot.loader.systemd-boot.enable = true;
   boot.loader.systemd-boot.configurationLimit = 5;
   boot.loader.efi.canTouchEfiVariables = true;
