@@ -488,6 +488,7 @@ in {
       ".local/state/dms"
       ".agents"
       ".claude/projects"
+      ".local/share/dispatcher/snapshots"
     ];
     exclude = buildDirs;
     timerConfig = {
@@ -526,6 +527,12 @@ in {
     user = "lux";
     group = "users";
     mode = "0755";
+  };
+  # registry snapshots (dispatcher `work snapshot`, daily timer); must exist before restic runs.
+  systemd.tmpfiles.settings."10-dispatcher-snapshots"."/home/lux/.local/share/dispatcher/snapshots".d = {
+    user = "lux";
+    group = "users";
+    mode = "0700";
   };
 
   systemd.services.photos-backup = {
