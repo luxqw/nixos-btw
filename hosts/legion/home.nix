@@ -152,6 +152,30 @@
     '';
   };
 
+  # Work records <-> Super Productivity <-> T3 threads (sp-sync.mjs holds the logic).
+  sp-sync = pkgs.writeShellApplication {
+    name = "sp-sync";
+    runtimeInputs = with pkgs; [nodejs_22 util-linux];
+    text = ''
+      # ~/.t3/bin/t3 runs the AppImage's generic-Linux binary, which only starts inside T3's
+      # FHS bwrap (a systemd unit gets stub-ld, exit 127); the server package's t3 is patched for NixOS.
+      export SP_SYNC_T3="''${SP_SYNC_T3:-${inputs.t3-code-nix.packages.${pkgs.stdenv.hostPlatform.system}.t3code-server}/bin/t3}"
+      # Real runs hold an exclusive lock (a second one exits 0 at once); a dry run only reads.
+      for arg in "$@"; do
+        if [ "$arg" = "--dry-run" ]; then exec node ${./sp-sync.mjs} "$@"; fi
+      done
+      state="''${XDG_STATE_HOME:-$HOME/.local/state}/sp-sync"
+      mkdir -p "$state"
+      rc=0
+      flock -n -E 99 "$state/lock" node ${./sp-sync.mjs} "$@" || rc=$?
+      if [ "$rc" -eq 99 ]; then
+        echo "sp-sync: another run is active; nothing to do"
+        exit 0
+      fi
+      exit "$rc"
+    '';
+  };
+
   mkObsidianPlugin = pluginId: {
     repo,
     version,
@@ -583,6 +607,22 @@ in {
       RestartSec = 5;
     };
     Install.WantedBy = ["graphical-session.target"];
+  };
+
+  systemd.user.services.sp-sync = {
+    Unit.Description = "Sync work records with Super Productivity and T3 threads";
+    Service = {
+      Type = "oneshot";
+      ExecStart = lib.getExe sp-sync;
+    };
+  };
+  systemd.user.timers.sp-sync = {
+    Unit.Description = "Run sp-sync every 5 minutes";
+    Timer = {
+      OnBootSec = "2min";
+      OnUnitActiveSec = "5min";
+    };
+    Install.WantedBy = ["timers.target"];
   };
 
   programs.yazi = {
@@ -1045,6 +1085,7 @@ in {
       restic
       yubikey-manager
       keyhints
+      sp-sync
       wtype
       inputs.clin.packages.${system}.default
     ];
