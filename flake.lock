@@ -130,11 +130,11 @@
         "nixpkgs": "nixpkgs_3"
       },
       "locked": {
-        "lastModified": 1794704822,
-        "narHash": "sha256-+13KJqFYGHU9uS1cGSOqGGC6PPfZCAE7kFKIq1FKXms=",
+        "lastModified": 1794755008,
+        "narHash": "sha256-jd69BsApDmWrOfxZYh5lngbKIEblnO/LSY/JUxyPLwQ=",
         "ref": "main",
-        "rev": "26bc7666c4429a730dd05ddf1ce6689d62d0f02a",
-        "revCount": 116,
+        "rev": "300c71470223eae8f83b926d1bbce1d901678c4d",
+        "revCount": 118,
         "type": "git",
         "url": "file:///home/lux/Documents/projects/dispatcher"
       },
