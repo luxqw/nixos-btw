@@ -233,6 +233,7 @@ in {
     # >>> p6-deploy:import >>>
     ./dispatcher-1d.nix
     # <<< p6-deploy:import <<<
+    ./dispatcher-telegram.nix # stage 2: the read-only Telegram reader (needs the agenix secret first, see docs/patches/telegram-reader.md in the dispatcher repo)
   ];
 
   boot.loader.systemd-boot.enable = true;

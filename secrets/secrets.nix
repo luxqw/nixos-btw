@@ -12,3 +12,7 @@ let
       (builtins.attrNames (builtins.readDir (./. + "/${dir}"))));
 in
   builtins.listToAttrs (rules "wg" [lux] ++ rules "legion" [lux] ++ rules "homelab" [lux homelab])
+  // {
+    # A new secret has no file yet, so `rules` cannot derive its recipients: name them here for `agenix -e` (same as rules).
+    "homelab/dispatcher-telegram-api.age".publicKeys = [lux homelab];
+  }
