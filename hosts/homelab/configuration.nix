@@ -195,6 +195,24 @@
 
   loopback = port: "http://127.0.0.1:${toString port}";
 
+  # The dispatcher gateway's health endpoints (services.dispatcher-gateway.approval, loopback only, never published).
+  # Gatus has no per-endpoint quiet hours: the two soft endpoints apply 23:00-09:00 themselves (they answer 200 then);
+  # the gateway-down alert has no quiet hours and fires at any hour.
+  dispatcherHealth = config.services.dispatcher-gateway.approval.enable;
+  dispatcherBase = "http://127.0.0.1:${toString config.services.dispatcher-gateway.approval.botPort}";
+  dispatcherEndpoint = name: path: description: {
+    inherit name;
+    url = "${dispatcherBase}${path}";
+    interval = "1m";
+    conditions = ["[STATUS] == 200"];
+    alerts = [
+      {
+        type = "telegram";
+        inherit description;
+      }
+    ];
+  };
+
   # Firefly is PHP-FPM with no port of its own; the loopback copy is for Gatus and Homepage.
   firefly = ''
     root * ${config.services.firefly-iii.package}/public
@@ -212,6 +230,9 @@ in {
     ./hardware-configuration.nix
     ./disko.nix
     inputs.dispatcher.nixosModules.gateway
+    # >>> p6-deploy:import >>>
+    ./dispatcher-1d.nix
+    # <<< p6-deploy:import <<<
   ];
 
   boot.loader.systemd-boot.enable = true;
@@ -532,7 +553,12 @@ in {
             alerts = [{type = "telegram";}];
           }
         ]
-        ++ lib.optional hubEnabled (local "homemusic" "/healthz");
+        ++ lib.optional hubEnabled (local "homemusic" "/healthz")
+        ++ lib.optionals dispatcherHealth [
+          (dispatcherEndpoint "dispatcher-gateway" "/healthz" "the dispatcher gateway is down: voice capture and approval notices do not work")
+          (dispatcherEndpoint "dispatcher-legion" "/healthz/legion" "legion is awake but its work core has not answered for over 15 minutes")
+          (dispatcherEndpoint "dispatcher-queue" "/healthz/queue" "a voice capture is stuck: queued for over 24 hours, or refused by the core")
+        ];
     };
   };
 
@@ -1260,6 +1286,11 @@ in {
   systemd.timers.restore-test.timerConfig.Persistent = true;
 
   environment.etc."statusbot.json".text = builtins.toJSON {
+    # >>> p6-deploy:statusbot-approvals >>>
+    approvals = {
+      botUrl = "http://127.0.0.1:${toString config.services.dispatcher-gateway.approval.botPort}";
+    };
+    # <<< p6-deploy:statusbot-approvals <<<
     passwordFile = config.age.secrets.restic.path;
     repos = {
       local = {
