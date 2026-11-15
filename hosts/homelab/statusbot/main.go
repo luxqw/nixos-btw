@@ -2,7 +2,7 @@
 // logs, restarts from an allowlist, and a morning digest. Everything specific to
 // the host comes from the JSON config that NixOS generates.
 //
-//	statusbot serve  CONFIG   long-poll Telegram and answer commands
+//	statusbot serve  CONFIG   long-poll Telegram, answer commands, announce approvals
 //	statusbot digest CONFIG   send the digest once (run by a timer)
 //	statusbot print  CONFIG   print the digest to stdout, for testing
 package main
@@ -49,6 +49,8 @@ type Config struct {
 	Scrutiny     string          `json:"scrutiny"`
 	FlakeLock    string          `json:"flakeLock"`
 	MaxAgeHours  float64         `json:"maxAgeHours"`
+	// Approvals turns on the approval notices (approvals.go); an empty botUrl keeps them off.
+	Approvals ApprovalsConfig `json:"approvals"`
 }
 
 type Bot struct {
@@ -56,6 +58,8 @@ type Bot struct {
 	token  string
 	chatID int64
 	http   *http.Client
+	// apiBase is the Telegram Bot API root; empty means the real one (tests point it at a fake).
+	apiBase string
 }
 
 func main() {
@@ -94,8 +98,20 @@ func main() {
 
 // ── Telegram ──────────────────────────────────────────────────────────────
 
+// tgError is a refusal from the Telegram Bot API; Code is Telegram's error_code.
+type tgError struct {
+	Method, Description string
+	Code                int
+}
+
+func (e *tgError) Error() string { return e.Method + ": " + e.Description }
+
 func (b *Bot) api(method string, form url.Values, out any) error {
-	resp, err := b.http.PostForm("https://api.telegram.org/bot"+b.token+"/"+method, form)
+	base := b.apiBase
+	if base == "" {
+		base = "https://api.telegram.org"
+	}
+	resp, err := b.http.PostForm(base+"/bot"+b.token+"/"+method, form)
 	if err != nil {
 		// *url.Error carries the request URL, which contains the bot token.
 		var ue *url.Error
@@ -107,6 +123,7 @@ func (b *Bot) api(method string, form url.Values, out any) error {
 	defer resp.Body.Close()
 	var body struct {
 		OK          bool            `json:"ok"`
+		ErrorCode   int             `json:"error_code"`
 		Description string          `json:"description"`
 		Result      json.RawMessage `json:"result"`
 	}
@@ -114,7 +131,7 @@ func (b *Bot) api(method string, form url.Values, out any) error {
 		return err
 	}
 	if !body.OK {
-		return fmt.Errorf("%s: %s", method, body.Description)
+		return &tgError{Method: method, Description: body.Description, Code: body.ErrorCode}
 	}
 	if out != nil {
 		return json.Unmarshal(body.Result, out)
@@ -152,22 +169,18 @@ func (b *Bot) serve() {
 		log.Print(err)
 	}
 
+	var ap *approver
+	if b.cfg.Approvals.BotURL != "" {
+		var err error
+		if ap, err = newApprover(b); err != nil {
+			log.Fatal(err)
+		}
+		go ap.loop()
+	}
+
 	offset := 0
 	for {
-		var updates []struct {
-			UpdateID int `json:"update_id"`
-			Message  *struct {
-				Chat struct {
-					ID int64 `json:"id"`
-				} `json:"chat"`
-				Text string `json:"text"`
-			} `json:"message"`
-		}
-		err := b.api("getUpdates", url.Values{
-			"offset":          {strconv.Itoa(offset)},
-			"timeout":         {"50"},
-			"allowed_updates": {`["message"]`},
-		}, &updates)
+		updates, err := b.getUpdates(offset, 50)
 		if err != nil {
 			log.Print(err)
 			time.Sleep(10 * time.Second)
@@ -175,13 +188,62 @@ func (b *Bot) serve() {
 		}
 		for _, u := range updates {
 			offset = u.UpdateID + 1
-			if u.Message == nil || u.Message.Chat.ID != b.chatID {
-				continue
-			}
-			if err := b.send(b.handle(u.Message.Text)); err != nil {
-				log.Print(err)
-			}
+			b.dispatch(ap, u)
 		}
+	}
+}
+
+type callbackQuery struct {
+	ID   string `json:"id"`
+	From struct {
+		ID int64 `json:"id"`
+	} `json:"from"`
+	Message *struct {
+		MessageID int64 `json:"message_id"`
+		Chat      struct {
+			ID int64 `json:"id"`
+		} `json:"chat"`
+	} `json:"message"`
+	Data string `json:"data"`
+}
+
+type update struct {
+	UpdateID int `json:"update_id"`
+	Message  *struct {
+		Chat struct {
+			ID int64 `json:"id"`
+		} `json:"chat"`
+		Text string `json:"text"`
+	} `json:"message"`
+	CallbackQuery *callbackQuery `json:"callback_query"`
+}
+
+func (b *Bot) getUpdates(offset, timeout int) ([]update, error) {
+	var updates []update
+	err := b.api("getUpdates", url.Values{
+		"offset":          {strconv.Itoa(offset)},
+		"timeout":         {strconv.Itoa(timeout)},
+		"allowed_updates": {`["message","callback_query"]`},
+	}, &updates)
+	return updates, err
+}
+
+// dispatch handles one update. ap is nil when approvals are off; a callback is
+// still answered, so a button never spins.
+func (b *Bot) dispatch(ap *approver, u update) {
+	if u.CallbackQuery != nil {
+		if ap != nil {
+			ap.callback(*u.CallbackQuery)
+		} else if err := b.answerCallback(u.CallbackQuery.ID, ""); err != nil {
+			log.Print(err)
+		}
+		return
+	}
+	if u.Message == nil || u.Message.Chat.ID != b.chatID {
+		return
+	}
+	if err := b.send(b.handle(u.Message.Text)); err != nil {
+		log.Print(err)
 	}
 }
 
@@ -311,5 +373,9 @@ func (b *Bot) backupNow() string {
 }
 
 func (b *Bot) digest() string {
-	return "☀️ <b>Good morning</b>\n\n" + b.status() + "\n\n" + b.backups()
+	s := "☀️ <b>Good morning</b>\n\n" + b.status() + "\n\n" + b.backups()
+	if line := b.approvalsLine(); line != "" {
+		s += "\n" + line
+	}
+	return s
 }

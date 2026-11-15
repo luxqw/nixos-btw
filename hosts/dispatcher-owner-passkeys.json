@@ -1,0 +1,11 @@
+{
+  "rp_id": "homelab.tail9d9e5b.ts.net",
+  "origin": "https://homelab.tail9d9e5b.ts.net:8443",
+  "credentials": [
+    {
+      "id": "KXIxRdkwC4A1JnuNq3ULnw",
+      "public_key": "pQECAyYgASFYIIU3qU1c1p3Vp1hKiuqCJiAm5aatWPttO8XdhOw0n4u8IlggCOhtXySwIHpf24_xKL-jvVAsyEsRVrR2crM1UlfOqsU",
+      "label": "phone"
+    }
+  ]
+}

@@ -1,5 +1,10 @@
 {pkgs, ...}: {
   time.timeZone = "Europe/Belgrade";
+  # >>> p6-deploy:passkeys >>>
+  # The owner's pinned passkeys (docs/p6-spec.md P2): read by the core on legion and by the gateway's passkey-enrol on
+  # homelab. A store file is root-owned and not writable, which is what the core demands.
+  environment.etc."dispatcher/owner-passkeys.json".source = ../hosts/dispatcher-owner-passkeys.json;
+  # <<< p6-deploy:passkeys <<<
   i18n.defaultLocale = "en_US.UTF-8";
 
   zramSwap.enable = true;
