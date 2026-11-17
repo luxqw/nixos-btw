@@ -5,6 +5,14 @@
   inputs,
   ...
 }: let
+  t3Pkgs = inputs.t3-code-nix.packages.${pkgs.stdenv.hostPlatform.system};
+  t3Release = import ./t3code-nightly.nix;
+  # Newer server builds bundle a Vulkan transcriber and musl twins of glibc
+  # modules; the musl ones never load on NixOS.
+  t3Server = (t3Pkgs.t3code-server-nightly.override {release = t3Release;}).overrideAttrs (old: {
+    buildInputs = old.buildInputs ++ [pkgs.vulkan-loader];
+    autoPatchelfIgnoreMissingDeps = ["libc.musl-x86_64.so.1"];
+  });
   nvimGrammars = pkgs.symlinkJoin {
     name = "nvim-treesitter-parsers";
     paths = with pkgs.vimPlugins.nvim-treesitter.grammarPlugins; [
@@ -159,7 +167,7 @@
     text = ''
       # ~/.t3/bin/t3 runs the AppImage's generic-Linux binary, which only starts inside T3's
       # FHS bwrap (a systemd unit gets stub-ld, exit 127); the server package's t3 is patched for NixOS.
-      export SP_SYNC_T3="''${SP_SYNC_T3:-${inputs.t3-code-nix.packages.${pkgs.stdenv.hostPlatform.system}.t3code-server}/bin/t3}"
+      export SP_SYNC_T3="''${SP_SYNC_T3:-${t3Server}/bin/t3}"
       # Real runs hold an exclusive lock (a second one exits 0 at once); a dry run only reads.
       for arg in "$@"; do
         if [ "$arg" = "--dry-run" ]; then exec node ${./sp-sync.mjs} "$@"; fi
@@ -417,7 +425,8 @@ in {
     enable = true;
     # The AppImage runs in bwrap with only a fixed list of /etc mounted, so
     # projects under /etc/nixos need their own bind.
-    package = inputs.t3-code-nix.packages.${pkgs.stdenv.hostPlatform.system}.t3code.override {
+    package = t3Pkgs.t3code-nightly.override {
+      release = t3Release;
       appimageTools =
         pkgs.appimageTools
         // {
@@ -436,7 +445,7 @@ in {
     comment = "Desktop app for coding agents";
     categories = ["Development"];
     mimeType = ["x-scheme-handler/t3code"];
-    settings.StartupWMClass = "t3code";
+    settings.StartupWMClass = "com.t3tools.T3Code";
   };
 
   xdg.configFile."keyhints" = {
