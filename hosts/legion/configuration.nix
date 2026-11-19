@@ -173,6 +173,7 @@ in {
   home-manager.users.lux = {
     imports = [inputs.dispatcher.homeModules.bridge];
     services.dispatcher-bridge.enable = true;
+    services.dispatcher-bridge.package = inputs.dispatcher.packages.${pkgs.stdenv.hostPlatform.system}.dispatcher-browser;
   };
 
   boot.loader.systemd-boot.enable = true;

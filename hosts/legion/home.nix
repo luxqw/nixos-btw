@@ -272,6 +272,8 @@ in {
 
   home.stateVersion = "25.11";
 
+  home.sessionPath = ["${config.home.homeDirectory}/.local/bin"];
+
   home.sessionVariables = {
     EDITOR = "nvim";
     VISUAL = "nvim";
@@ -616,6 +618,22 @@ in {
       RestartSec = 5;
     };
     Install.WantedBy = ["graphical-session.target"];
+  };
+
+  systemd.user.services.sp-file-captures = {
+    Unit.Description = "File dispatcher voice captures into Super Productivity";
+    Service = {
+      Type = "oneshot";
+      ExecStart = "${lib.getExe' inputs.dispatcher.packages.${pkgs.stdenv.hostPlatform.system}.default "work"} sp file-captures";
+    };
+  };
+  systemd.user.timers.sp-file-captures = {
+    Unit.Description = "File voice captures into Super Productivity every 5 minutes";
+    Timer = {
+      OnBootSec = "2min";
+      OnUnitActiveSec = "5min";
+    };
+    Install.WantedBy = ["timers.target"];
   };
 
   systemd.user.services.sp-sync = {

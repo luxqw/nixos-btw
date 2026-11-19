@@ -118,6 +118,8 @@ window-rule {
 // Mod+Space is not bound: it is xkb's layout switch. The DMS binds are all
 // `dms ipc call <target> <function>`; dms/binds.kdl is not included.
 
+include optional=true "~/.config/voice-client/niri-binds.kdl"
+
 binds {
     Mod+Shift+Slash { show-hotkey-overlay; }
     Mod+F1 repeat=false { spawn "foot" "--app-id=keyhints" "keyhints"; }
