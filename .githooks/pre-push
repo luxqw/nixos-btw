@@ -1,0 +1,34 @@
+#!/bin/sh
+# Refuse a push to origin (the public GitHub mirror) when gitleaks finds a secret in the commits being pushed.
+# Guards against accidents, not attackers. Enable once per clone: git config core.hooksPath .githooks
+# Allowlisted false positives live in .gitleaksignore. Fails closed: no gitleaks, no push.
+remote=$1
+case "$remote" in
+  origin) ;;
+  *) exit 0 ;;
+esac
+zero=0000000000000000000000000000000000000000
+top=$(git rev-parse --show-toplevel) || exit 1
+if command -v gitleaks >/dev/null 2>&1; then
+  run_gitleaks() { gitleaks "$@"; }
+elif command -v nix >/dev/null 2>&1; then
+  run_gitleaks() { nix shell nixpkgs#gitleaks -c gitleaks "$@"; }
+else
+  echo "pre-push: gitleaks (or nix) not found; refusing the push to $remote" >&2
+  exit 1
+fi
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ "$local_sha" = "$zero" ] && continue # deleting a ref pushes no commits
+  if [ "$remote_sha" != "$zero" ] && git cat-file -e "$remote_sha^{commit}" 2>/dev/null; then
+    range="$remote_sha..$local_sha"
+  else
+    range="$local_sha --not --remotes=$remote"
+  fi
+  echo "pre-push: gitleaks on $range ($local_ref -> $remote_ref)" >&2
+  if ! (cd "$top" && run_gitleaks git . --log-opts="$range" --redact --no-banner --exit-code 1 -i "$top/.gitleaksignore"); then
+    echo "pre-push: gitleaks found secrets or failed; push to $remote refused" >&2
+    echo "pre-push: a real secret must leave the commits; a false positive goes into .gitleaksignore (fingerprint from the report)" >&2
+    exit 1
+  fi
+done
+exit 0

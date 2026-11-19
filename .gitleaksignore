@@ -1,0 +1,5 @@
+# False positives, triaged 2026-11-19 (keybinding strings flagged as generic-api-key). Exactly these three, nothing wider.
+# commit:file:rule:line for the git scan the pre-push guard runs; the last line is the same niri keyhint seen by a directory scan.
+043a25158b53fc1fc7802bda4fb8d46f0e41f6ad:dotfiles/keyhints/hyprland.toml:generic-api-key:38
+043a25158b53fc1fc7802bda4fb8d46f0e41f6ad:dotfiles/keyhints/hyprland.toml:generic-api-key:67
+dotfiles/keyhints/niri.toml:generic-api-key:82
