@@ -2,6 +2,7 @@
 #  - agent-cleanup: weekly disk cleanup (owner policy NX-1, no questions asked)
 #  - t3-db-snapshot: daily streamed dump of the T3 state DB to homelab
 # Claude transcripts are not in the offsite restic paths (owner decision DP-7).
+# Also imports agent-switch.nix: the agent-run, YubiKey-approved switch of legion.
 {
   lib,
   pkgs,
@@ -179,6 +180,8 @@
     '';
   };
 in {
+  imports = [./agent-switch.nix];
+
   home-manager.users.lux = {
     systemd.user.services = {
       agent-cleanup = {
