@@ -79,6 +79,7 @@
         home-manager.extraSpecialArgs = {inherit inputs;};
         home-manager.users.lux = import ./hosts/legion/home.nix;
       }
+      ./hosts/legion/niri-git.nix
     ];
 
     nixosConfigurations.homelab = host "homelab" [
