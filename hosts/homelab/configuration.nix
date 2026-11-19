@@ -30,6 +30,7 @@
 
   ports = {
     adguard = 3000;
+    anix = 3030;
     beszel = 8090;
     couchdb = 5984;
     firefly = 8084;
@@ -86,6 +87,36 @@
   storagebox = lib.importJSON ../storagebox.json;
 
   retention = ["--keep-daily 7" "--keep-weekly 4" "--keep-monthly 6"];
+
+  dispatcherBackupUnits = ["backup-vaultwarden" "restic-backups-local" "restic-backups-photos" "restic-backups-files" "restic-backups-offsite"];
+  dispatcherWatchedUnits =
+    [
+      "adguardhome"
+      "caddy"
+      "container@pumpkin"
+      "couchdb"
+      "flaresolverr"
+      "gatus"
+      "homepage-dashboard"
+      "immich-machine-learning"
+      "immich-server"
+      "jackett"
+      "jellyfin"
+      "karakeep-web"
+      "karakeep-workers"
+      "navidrome"
+      "opencloud"
+      "paperless-consumer"
+      "paperless-web"
+      "phpfpm-firefly-iii"
+      "qbittorrent"
+      "scrutiny"
+      "syncthing"
+      "torrserver"
+      "vaultwarden"
+      "webdav"
+    ]
+    ++ lib.optionals hubEnabled ["podman-homemusic-hub" "podman-youtube-pot"];
 
   statusbotInbox = "/var/lib/statusbot-inbox";
 
@@ -304,6 +335,21 @@ in {
     };
   };
 
+  age.secrets.dispatcher-karakeep = secret "dispatcher-karakeep";
+  services.dispatcher-gateway.karakeep.apiKeyFile = config.age.secrets.dispatcher-karakeep.path;
+  services.dispatcher-gateway.settings = {
+    karakeep.url = loopback ports.karakeep;
+    homelab = {
+      gatus_url = loopback ports.gatus;
+      scrutiny_url = loopback ports.scrutiny;
+      units = dispatcherWatchedUnits;
+      backup_units = dispatcherBackupUnits;
+      disks = ["/" "/srv"];
+      heartbeats.legion = "${statusbotInbox}/legion";
+      max_age_hours = 36;
+    };
+  };
+
   # Tailscale only for Funnel: public :443 for the dispatcher gateway's cloud
   # clients. tailscale0 stays untrusted, the tailnet's DNS is ignored (AdGuard
   # serves this host), and lux may run `tailscale funnel` without sudo.
@@ -393,6 +439,7 @@ in {
         "music.${domain}" = proxy ports.navidrome;
         "docs.${domain}" = proxy ports.paperless;
         "keep.${domain}" = proxy ports.karakeep;
+        "anime.${domain}" = proxy ports.anix;
         "budget.${domain}" = {
           useACMEHost = domain;
           extraConfig = firefly;
@@ -528,6 +575,7 @@ in {
           (listening "paperless")
           (listening "karakeep")
           (local "firefly" "/health")
+          (listening "anix")
           {
             name = "pumpkin";
             url = "tcp://${pumpkin.localAddress}:${toString pumpkin.port}";
@@ -615,6 +663,7 @@ in {
             }
             {Jackett = app ports.jackett "jackett" "jackett.svg" "Поиск по трекерам";}
             {TorrServer = app ports.torrserver "torrserver" "torrserver.png" "Торренты онлайн для Lampa";}
+            {AniX = app ports.anix "anime" "mdi-television-classic" "Anixart в браузере";}
           ]
           ++ lib.optional hubEnabled {"HomeMusic Hub" = app ports.homemusic "musichub" "mdi-music-box-multiple" "Поиск и загрузка музыки";};
       }
@@ -831,6 +880,26 @@ in {
       ExecStart = "${lib.getExe' pkgs.torrserver "torrserver"} --port ${toString ports.torrserver} --path /var/lib/torrserver";
       DynamicUser = true;
       StateDirectory = "torrserver";
+      Restart = "on-failure";
+    };
+  };
+
+  # Its API proxy (/api/proxy) talks to the Anixart API from here; the cache holds ISR pages.
+  systemd.services.anix = {
+    description = "AniX, an Anixart web client";
+    wantedBy = ["multi-user.target"];
+    after = ["network-online.target"];
+    wants = ["network-online.target"];
+    environment = {
+      HOSTNAME = "127.0.0.1";
+      PORT = toString ports.anix;
+      NODE_ENV = "production";
+      NEXT_TELEMETRY_DISABLED = "1";
+    };
+    serviceConfig = {
+      ExecStart = lib.getExe (pkgs.callPackage ./anix.nix {});
+      DynamicUser = true;
+      CacheDirectory = "anix";
       Restart = "on-failure";
     };
   };
@@ -1349,35 +1418,8 @@ in {
         copies = 2;
       }
     ];
-    backupUnits = ["backup-vaultwarden" "restic-backups-local" "restic-backups-photos" "restic-backups-files" "restic-backups-offsite"];
-    services =
-      [
-        "adguardhome"
-        "caddy"
-        "container@pumpkin"
-        "couchdb"
-        "flaresolverr"
-        "gatus"
-        "homepage-dashboard"
-        "immich-machine-learning"
-        "immich-server"
-        "jackett"
-        "jellyfin"
-        "karakeep-web"
-        "karakeep-workers"
-        "navidrome"
-        "opencloud"
-        "paperless-consumer"
-        "paperless-web"
-        "phpfpm-firefly-iii"
-        "qbittorrent"
-        "scrutiny"
-        "syncthing"
-        "torrserver"
-        "vaultwarden"
-        "webdav"
-      ]
-      ++ lib.optionals hubEnabled ["podman-homemusic-hub" "podman-youtube-pot"];
+    backupUnits = dispatcherBackupUnits;
+    services = dispatcherWatchedUnits;
     disks = ["/" "/srv"];
     gatus = loopback ports.gatus;
     scrutiny = loopback ports.scrutiny;

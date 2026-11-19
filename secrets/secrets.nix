@@ -15,4 +15,5 @@ in
   // {
     # A new secret has no file yet, so `rules` cannot derive its recipients: name them here for `agenix -e` (same as rules).
     "homelab/dispatcher-telegram-api.age".publicKeys = [lux homelab];
+    "homelab/dispatcher-karakeep.age".publicKeys = [lux homelab];
   }
