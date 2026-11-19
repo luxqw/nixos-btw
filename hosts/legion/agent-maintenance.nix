@@ -1,7 +1,7 @@
 # Agent housekeeping for the laptop (home-manager user units):
 #  - agent-cleanup: weekly disk cleanup (owner policy NX-1, no questions asked)
 #  - t3-db-snapshot: daily streamed dump of the T3 state DB to homelab
-# Also keeps Claude transcripts out of the offsite restic job (owner decision DP-7).
+# Claude transcripts are not in the offsite restic paths (owner decision DP-7).
 {
   lib,
   pkgs,
@@ -40,37 +40,63 @@
                find ${home}/.codex/.tmp -maxdepth 1 -name 'git-*' -mtime +1 2>/dev/null)
 
       # 3. merged, clean, old, unlinked dispatcher worktrees
+      # Clean = no changes, and no ignored files besides test dirs, caches and build links.
+      wt_clean() {
+        local l p b
+        while IFS= read -r l; do
+          case $l in
+            "!! "*)
+              p=''${l#"!! "}; p=''${p%/}; b=''${p##*/}
+              case $b in .pt* | __pycache__ | node_modules | result*) ;; *) return 1 ;; esac ;;
+            *) return 1 ;;
+          esac
+        done < <(git -C "$1" status --porcelain --ignored 2>/dev/null || echo dirty)
+        return 0
+      }
+
       if [ -d "$repo/.git" ] || [ -f "$repo/.git" ]; then
+        mainbranch=$(git -C "$repo" symbolic-ref -q --short HEAD || true)
         open_links=$(sqlite3 -readonly "$db" "select json_extract(payload_json,'\$.worktreePath') from orchestration_v2_projection_threads where archived_at is null and deleted_at is null and json_extract(payload_json,'\$.settledAt') is null and json_extract(payload_json,'\$.worktreePath') is not null" 2>/dev/null) && links_ok=1 || links_ok=0
         if [ "$links_ok" = 1 ]; then
-          path="" branch=""
+          path="" branch="" locked=0
           while IFS= read -r line || [ -n "$path" ]; do
             case $line in
-              "worktree "*) path=''${line#worktree } branch="" ;;
+              "worktree "*) path=''${line#worktree } branch="" locked=0 ;;
               "branch refs/heads/"*) branch=''${line#branch refs/heads/} ;;
+              locked* | prunable*) locked=1 ;;
               "")
-                if [ -n "$path" ] && [ -n "$branch" ]; then
+                if [ -n "$path" ] && [ -n "$branch" ] && [ "$locked" = 0 ]; then
                   case $path in "$wtroot"/*)
                     skip=1
-                    if git -C "$repo" merge-base --is-ancestor "$branch" main 2>/dev/null \
-                      && [ -z "$(git -C "$path" status --porcelain 2>/dev/null || echo dirty)" ] \
-                      && ! printf '%s\n' "$open_links" | grep -qxF "$path"; then
-                      ct=$(git -C "$repo" log -1 --format=%ct "$branch")
-                      [ $((now - ct)) -gt 604800 ] && skip=0
-                    fi
+                    case $branch in main | master | "$mainbranch") ;; *)
+                      if git -C "$repo" merge-base --is-ancestor "$branch" main 2>/dev/null \
+                        && wt_clean "$path" \
+                        && ! printf '%s\n' "$open_links" | grep -qxF "$path"; then
+                        ct=$(git -C "$repo" log -1 --format=%ct "$branch" 2>/dev/null || echo "$now")
+                        [ $((now - ct)) -gt 604800 ] && skip=0
+                      fi ;;
+                    esac
                     if [ "$skip" = 0 ]; then
                       tag="archive/$today/$branch"
                       git -C "$repo" rev-parse -q --verify "refs/tags/$tag" >/dev/null && tag="$tag-$(date +%H%M%S)"
-                      run git -C "$repo" tag "$tag" "$branch"
-                      run git -C "$repo" worktree remove "$path"
-                      run git -C "$repo" branch -D "$branch"
-                      n_wt=$((n_wt + 1))
+                      if ! run git -C "$repo" tag "$tag" "$branch"; then
+                        echo "worktree $path: tag failed, kept"; n_skip=$((n_skip + 1))
+                      elif ! run git -C "$repo" worktree remove "$path"; then
+                        echo "worktree $path: remove failed, kept"
+                        run git -C "$repo" tag -d "$tag" >/dev/null || true
+                        n_skip=$((n_skip + 1))
+                      else
+                        run git -C "$repo" branch -D "$branch" >/dev/null || echo "branch $branch: delete failed"
+                        n_wt=$((n_wt + 1))
+                      fi
                     else
                       n_skip=$((n_skip + 1))
                     fi ;;
                   esac
+                elif [ -n "$path" ]; then
+                  case $path in "$wtroot"/*) n_skip=$((n_skip + 1)) ;; esac
                 fi
-                path="" branch="" ;;
+                path="" branch="" locked=0 ;;
             esac
           done < <(git -C "$repo" worktree list --porcelain; echo)
         else
@@ -81,8 +107,7 @@
           d=''${t#archive/}; d=''${d%%/*}
           ts=$(date -d "$d" +%s 2>/dev/null) || continue
           if [ $((now - ts)) -gt 2592000 ]; then
-            run git -C "$repo" tag -d "$t" >/dev/null
-            n_tag=$((n_tag + 1))
+            if run git -C "$repo" tag -d "$t" >/dev/null; then n_tag=$((n_tag + 1)); fi
           fi
         done < <(git -C "$repo" tag -l 'archive/*')
       fi
@@ -91,9 +116,16 @@
       for dir in ${home}/.claude/projects ${home}/.codex/sessions ${home}/.codex/archived_sessions; do
         [ -d "$dir" ] || continue
         while IFS= read -r f; do
-          run rm -f -- "$f"
+          run rm -f -- "$f" || continue
           n_tr=$((n_tr + 1))
-        done < <(find "$dir" -type f -name '*.jsonl' -mtime +60)
+          case $dir in
+            */.claude/projects)
+              s=''${f%.jsonl}
+              if [ -d "$s" ] && [ -z "$(find "$s" -mtime -61 -print -quit 2>/dev/null)" ]; then
+                run rm -rf -- "$s" || true
+              fi ;;
+          esac
+        done < <(find "$dir" -type f \( -name '*.jsonl' -o -name '*.jsonl.zst' \) -mtime +60 2>/dev/null)
       done
       [ "$dry" = 1 ] || find ${home}/.codex/sessions -mindepth 1 -type d -empty -delete 2>/dev/null || true
 
@@ -110,18 +142,39 @@
       keep=''${SNAP_KEEP:-7}
       name=statev2-$(date +%Y%m%dT%H%M%S).sql.zst
       # shellcheck disable=SC2206
-      ssh_opts=(-o BatchMode=yes -o ConnectTimeout=10 -o ForwardAgent=no ''${SNAP_SSH_OPTS:-})
+      ssh_opts=(-o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=30 -o ServerAliveCountMax=4 -o ForwardAgent=no ''${SNAP_SSH_OPTS:-})
 
-      # One read transaction, streamed: no local copy of the 3+ GB DB is written.
+      qc=$(nice -n 10 sqlite3 -readonly "$db" 'PRAGMA quick_check' | head -n 1)
+      if [ "$qc" != ok ]; then
+        echo "t3-db-snapshot: quick_check says '$qc', aborting" >&2
+        exit 1
+      fi
+
+      ok=0
+      cleanup_remote() {
+        if [ "$ok" != 1 ]; then
+          # shellcheck disable=SC2029
+          ssh "''${ssh_opts[@]}" "$target" "rm -f ~/backups/t3/$name.part" || true
+        fi
+      }
+      trap cleanup_remote EXIT
+
+      # Drop leftovers of earlier failed runs, then stream one read transaction:
+      # no local copy of the 3+ GB DB is written.
+      # shellcheck disable=SC2029
+      ssh "''${ssh_opts[@]}" "$target" "umask 077; mkdir -p ~/backups/t3 && find ~/backups/t3 -name '*.part' -delete"
       # shellcheck disable=SC2029
       nice -n 10 sqlite3 -readonly "$db" .dump | nice -n 10 zstd -T0 -3 -q \
-        | ssh "''${ssh_opts[@]}" "$target" "umask 077; mkdir -p ~/backups/t3 && cat > ~/backups/t3/$name.part"
+        | ssh "''${ssh_opts[@]}" "$target" "umask 077; cat > ~/backups/t3/$name.part"
 
-      # Verify on the far side, publish atomically, keep the newest $keep, drop stale partials.
+      # Verify on the far side (valid zstd, dump ends with COMMIT;), publish atomically,
+      # and only then prune to the newest $keep.
       # shellcheck disable=SC2029
-      ssh "''${ssh_opts[@]}" "$target" "cd ~/backups/t3 && zstd -tq $name.part && mv $name.part $name \
+      ssh "''${ssh_opts[@]}" "$target" "cd ~/backups/t3 && zstd -tq $name.part \
+        && zstd -dcq $name.part | tail -n 1 | grep -qx 'COMMIT;' && mv $name.part $name \
         && ls -1 statev2-*.sql.zst | sort -r | tail -n +$((keep + 1)) | xargs -r rm -- \
-        && find . -name '*.part' -mmin +1440 -delete; ls -l $name"
+        && ls -1 statev2-*.sql.zst | wc -l && ls -l $name"
+      ok=1
       echo "t3-db-snapshot: wrote $target:backups/t3/$name"
     '';
   };
@@ -142,6 +195,7 @@ in {
         Service = {
           Type = "oneshot";
           ExecStart = lib.getExe snapshot;
+          TimeoutStartSec = "2h";
           Nice = 10;
           IOSchedulingClass = "idle";
         };
@@ -168,7 +222,4 @@ in {
       };
     };
   };
-
-  # Transcripts stay local (60 days, pruned by agent-cleanup); not offsite.
-  services.restic.backups.laptop.exclude = ["${home}/.claude/projects"];
 }

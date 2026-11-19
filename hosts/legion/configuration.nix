@@ -488,7 +488,6 @@ in {
       ".config/dms"
       ".local/state/dms"
       ".agents"
-      ".claude/projects"
       ".local/share/dispatcher/snapshots"
     ];
     exclude = buildDirs;
