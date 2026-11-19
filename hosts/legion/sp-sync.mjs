@@ -88,11 +88,17 @@ export function parseRecord(file, text) {
   const head = lines.slice(0, 14);
   const titleLine = lines.find((l) => l.startsWith("# "));
   const threadLine = head.find((l) => l.startsWith("Thread:"));
+  // Header line `SP-title: <text>` (first 10 lines) is the owner-facing SP task title (Russian);
+  // without it (or when empty) the first "# " heading, then the file name, is used as before.
+  const spTitle = lines
+    .slice(0, 10)
+    .map((l) => /^SP-title:[ \t]*(.*?)\s*$/.exec(l.replace(/\r$/, "")))
+    .find((x) => x && x[1])?.[1];
   return {
     file,
     state: m.state,
     note: m.note,
-    title: titleLine ? titleLine.slice(2).trim() : path.basename(file, ".md"),
+    title: spTitle || (titleLine ? titleLine.slice(2).trim() : path.basename(file, ".md")),
     thread: threadLine ? parseThread(threadLine.slice(7)) : null,
     next: nextAction(lines, head, m.note),
     mtime: fs.statSync(file).mtimeMs,
