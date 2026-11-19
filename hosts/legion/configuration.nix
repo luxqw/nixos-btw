@@ -382,7 +382,7 @@ in {
     # YubiKey touch of nixos-agent-switch. Untrusted lux still builds, evaluates, runs nix develop and
     # uses the configured substituters, builders and signature checks; it cannot add unsigned,
     # non-content-addressed paths. homelab keeps lux trusted (deploy-homelab copies unsigned paths there).
-    trusted-users = ["root"];
+    trusted-users = lib.mkForce ["root"];
     builders-use-substitutes = true;
     connect-timeout = 3;
     extra-substituters = ["https://cache.rakhmatullin.dev"];

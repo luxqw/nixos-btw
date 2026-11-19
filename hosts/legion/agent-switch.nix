@@ -648,6 +648,12 @@ in {
         assertion = lib.sort lib.lessThan authRules == ["deny" "u2f"];
         message = "security.pam.services.nixos-agent-switch must authenticate with pam_u2f and pam_deny only, found auth rules: ${lib.concatStringsSep ", " authRules}";
       }
+      {
+        # A trusted user is root-equivalent through the nix daemon: it could pre-register store
+        # paths with forged content, so the touch would not bind to what is switched.
+        assertion = !(lib.elem cfg.user config.nix.settings.trusted-users || lib.elem "*" config.nix.settings.trusted-users);
+        message = "nix.settings.trusted-users must not contain ${cfg.user} (or *) on a host with the agent switch unit: see the trust model in hosts/legion/agent-switch.nix";
+      }
     ];
 
     systemd.services.nixos-agent-switch = {
