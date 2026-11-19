@@ -168,6 +168,8 @@
       # ~/.t3/bin/t3 runs the AppImage's generic-Linux binary, which only starts inside T3's
       # FHS bwrap (a systemd unit gets stub-ld, exit 127); the server package's t3 is patched for NixOS.
       export SP_SYNC_T3="''${SP_SYNC_T3:-${t3Server}/bin/t3}"
+      # TK-5: tags are created once by `work sp` (task/idea/note); sp-sync never creates tags.
+      export SP_SYNC_CREATE_TAGS="''${SP_SYNC_CREATE_TAGS:-0}"
       # Real runs hold an exclusive lock (a second one exits 0 at once); a dry run only reads.
       for arg in "$@"; do
         if [ "$arg" = "--dry-run" ]; then exec node ${./sp-sync.mjs} "$@"; fi
