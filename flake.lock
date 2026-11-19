@@ -136,12 +136,12 @@
         "rev": "6a26a994af254dca26320c06e5c6504c06183cbc",
         "revCount": 146,
         "type": "git",
-        "url": "file:///home/lux/Documents/projects/dispatcher"
+        "url": "ssh://lux@homelab.rakhmatullin.dev/home/lux/repos/dispatcher.git"
       },
       "original": {
         "ref": "main",
         "type": "git",
-        "url": "file:///home/lux/Documents/projects/dispatcher"
+        "url": "ssh://lux@homelab.rakhmatullin.dev/home/lux/repos/dispatcher.git"
       }
     },
     "dux-greeter": {

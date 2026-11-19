@@ -47,7 +47,7 @@
       inputs.home-manager.follows = "home-manager";
     };
     # Own nixpkgs pin on purpose: fastmcp is broken in this flake's revision.
-    dispatcher.url = "git+file:///home/lux/Documents/projects/dispatcher?ref=main";
+    dispatcher.url = "git+ssh://lux@homelab.rakhmatullin.dev/home/lux/repos/dispatcher.git?ref=main";
   };
 
   outputs = inputs @ {
