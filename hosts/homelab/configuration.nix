@@ -267,6 +267,11 @@ in {
     ./dispatcher-telegram.nix # stage 2: the read-only Telegram reader (needs the agenix secret first, see docs/patches/telegram-reader.md in the dispatcher repo)
   ];
 
+  # lux stays a trusted user on homelab only: deploy-homelab (nh os switch --build-host/--target-host
+  # homelab) copies unsigned store paths and derivations from legion to this store as lux. On
+  # legion lux is not trusted (hosts/legion/configuration.nix), see agent-switch.nix.
+  nix.settings.trusted-users = ["root" "lux"];
+
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
   hardware.enableRedistributableFirmware = true;

@@ -10,19 +10,26 @@
 # affect legion are listed in agentSwitch.ignoredDirtyPaths.
 #
 # Trust model (the agent shell is lux, and lux can write /etc/nixos and its .git):
-#  - root never runs git, nor anything else lux can influence, on the repo: the revision and the
-#    dirty check run as lux with a minimal environment (a lux-planted core.fsmonitor or filter
-#    then runs as lux, which is no escalation);
-#  - before the root build, flake.lock of that revision is checked against an allowlist of input
-#    types, and every input flake.nix declares must equal its flake.lock entry (restricted-mode
-#    eval, no fetching); the build then runs with --no-update-lock-file, so nothing outside the
-#    locked, allowlisted inputs is fetched and the owner's tree is never written;
+#  - root never runs git, never evaluates Nix code and never fetches anything on or from the repo:
+#    the revision, the dirty check and the whole flake evaluation run as lux (setpriv, minimal
+#    environment, no capabilities). A lux-planted core.fsmonitor or filter, or a committed .nix
+#    file calling builtins.fetchTree/fetchGit, therefore runs as lux, which is no escalation: lux
+#    cannot read a root-only path, so none can be copied into the world-readable store;
+#  - the evaluation prints the toplevel's .drv path; root validates it (one /nix/store/*.drv path
+#    named nixos-system-<host>) and only realises that .drv (`nix build '<drv>^out'`, which
+#    evaluates nothing);
+#  - what the owner approves is what gets switched: the closure diff summary is computed by root
+#    from the realised result against /run/current-system, shown in the touch notice and written
+#    to last.json, and exactly that store path is the one switched;
+#  - lux is not in nix.settings.trusted-users on legion (hosts/legion/configuration.nix), so lux
+#    cannot pre-register store paths with forged content for the build to reuse: the daemon
+#    takes only signed or content-addressed paths from lux;
 #  - the touch is bound to this unit: its own PAM service, with its own u2f origin/appid and
-#    its own authfile (u2f_keys_agent_switch), so a sudo/polkit/login touch cannot satisfy it;
-#  - the build is NOT done as an unprivileged user: the dispatcher flake input is a git+file path
-#    inside /home/lux (mode 0700), which no other user can read. Root keeps the build, with the
-#    allowlist above. Known gap: a committed .nix file can still call builtins.fetchTree on a path
-#    with a narHash and copy a root-readable path into the world-readable store.
+#    its own authfile (u2f_keys_agent_switch), so a sudo/polkit/login touch cannot satisfy it.
+# The former flake.lock input-type allowlist and the restricted-mode flake.nix/flake.lock
+# comparison are gone: they only guarded root's own fetching and evaluation, which no longer
+# exist, and they refused legitimate new inputs. nix still refuses a flake.nix that disagrees
+# with flake.lock (--no-update-lock-file), now as lux.
 {
   config,
   lib,
@@ -41,92 +48,20 @@
     cfg.probes);
   probeCalls = lib.concatStringsSep "\n" (lib.mapAttrsToList (name: _: "run_probe ${lib.escapeShellArg name} ${fnName name}") cfg.probes);
   ignoredPrefixes = lib.concatMapStringsSep " " lib.escapeShellArg cfg.ignoredDirtyPaths;
-  # libgit2 (inside nix) reads safe.directory from the global gitconfig: allow exactly the repos
-  # the flake fetches with git+file. Nothing runs from these configs.
-  gitSafeDirs = lib.concatMapStrings (d: "  directory = ${d}\n") ([cfg.repo] ++ cfg.localGitInputs);
-  localInputUrlsJson = builtins.toJSON (map (d: "file://" + d) cfg.localGitInputs);
-
-  # Allowlist for the nodes of flake.lock at the built revision (jq filter, prints one line per
-  # violation). `path`, `file`, `mercurial`, `git` with a file:// url other than the listed local
-  # repositories, and nodes without a locked entry or narHash are all refused.
-  lockCheck = pkgs.writeText "agent-switch-lock-check.jq" ''
-    . as $lock
-    | ($lock.root // "root") as $root
-    | [ .nodes | to_entries[] | select(.key != $root) | .key as $k | .value
-        | (.locked // null) as $l
-        | if $l == null then "node \($k): no locked entry"
-          elif ($l.narHash // "") == "" then "node \($k): no narHash"
-          elif ($l.type == "github" or $l.type == "gitlab" or $l.type == "sourcehut") then empty
-          elif ($l.type == "tarball" and (($l.url // "") | test("^https://"))) then empty
-          elif ($l.type == "git" and (($l.url // "") | test("^(https|ssh)://"))) then empty
-          elif ($l.type == "git" and (($l.url // "") as $u | $local | index($u) != null)) then empty
-          else "node \($k): input type \($l.type) \($l.url // $l.path // "") is not allowed"
-          end ]
-      + [ ($lock.nodes[$root].inputs // {}) | to_entries[]
-          | select(.value | type == "string")
-          | select(($lock.nodes[.value] // null) == null)
-          | "root input \(.key): points to a missing lock node \(.value)" ]
-    | .[]
-  '';
-
-  # `nix build --no-update-lock-file` only refuses a flake.nix input that is missing from (or
-  # differs from) flake.lock AFTER it has fetched it, so an agent could make root copy a
-  # root-readable path into the store. This pair checks first: the declared inputs of flake.nix
-  # (evaluated in restricted mode, so the expression can read nothing but the snapshot directory)
-  # must match flake.lock's `original` entries on every field that selects what is fetched.
-  declaredInputs = ''
-    let
-      f = import (/. + (snap + "/flake.nix"));
-      skip = ["flake" "inputs" "follows"];
-      norm = i:
-        (
-          if i ? follows
-          then {follows = i.follows;}
-          else if i ? url
-          then {orig = builtins.parseFlakeRef i.url;}
-          else {orig = removeAttrs i skip;}
-        )
-        // (
-          if i ? inputs
-          then {inputs = builtins.mapAttrs (_: norm) i.inputs;}
-          else {}
-        );
-    in
-      builtins.mapAttrs (_: norm) (f.inputs or {})
-  '';
-  inputsCheck = pkgs.writeText "agent-switch-inputs-check.jq" ''
-    . as $lock
-    | ($lock.root // "root") as $root
-    | ["type", "url", "path", "owner", "repo", "host", "dir", "ref", "rev", "id"] as $keys
-    | def same($a; $b): all($keys[]; . as $k | ($a[$k] // null) == ($b[$k] // null));
-    def walk_inputs($node; $decl; $path):
-      $decl | to_entries[] as $e
-      | ($lock.nodes[$node].inputs[$e.key] // null) as $got
-      | ($path + $e.key) as $p
-      | if $e.value.follows != null then
-          (if ($got | type) == "array" then empty else "\($p): flake.nix declares a follows, flake.lock does not" end)
-        elif ($got | type) != "string" then "\($p): declared in flake.nix but not locked as an input"
-        elif same($e.value.orig; $lock.nodes[$got].original // {}) | not then
-          "\($p): flake.nix says \($e.value.orig | tojson), flake.lock says \($lock.nodes[$got].original | tojson)"
-        elif $e.value.inputs != null then walk_inputs($got; $e.value.inputs; $p + ".")
-        else empty
-        end;
-    [walk_inputs($root; $decl; "")] | .[]
-  '';
-
   # Shared by the unit script and its ExecStopPost helper: write last.json and history.jsonl.
   commonFns = ''
     log() { echo "nixos-agent-switch: $*"; }
 
     # Write last.json (readable by the owner) and append one line to history.jsonl. Needs the
-    # globals state, started, rev, prev_sys, new_sys, probes_json, probes_after_json.
+    # globals state, started, rev, drv, prev_sys, new_sys, summary, probes_json, probes_after_json.
+    # `summary` is the closure diff summary root computed between prev_sys and the realised new_sys.
     finish() {
       outcome=$1 reason=$2
       jq -n --arg rev "$rev" --arg start "$started" --arg end "$(date -Is)" \
         --arg outcome "$outcome" --arg reason "$reason" --arg invocation "''${INVOCATION_ID:-}" \
-        --arg from "$prev_sys" --arg to "$new_sys" \
+        --arg drv "$drv" --arg from "$prev_sys" --arg to "$new_sys" --arg summary "$summary" \
         --argjson probes "$probes_json" --argjson after "$probes_after_json" \
-        '{invocation: $invocation, rev: $rev, started: $start, ended: $end, outcome: $outcome, reason: $reason, from: $from, to: $to, probes: $probes, probes_after_rollback: $after}' \
+        '{invocation: $invocation, rev: $rev, started: $start, ended: $end, outcome: $outcome, reason: $reason, drv: $drv, from: $from, to: $to, closure_diff: $summary, probes: $probes, probes_after_rollback: $after}' \
         > "$state/last.json.new"
       chmod 0644 "$state/last.json.new"
       mv "$state/last.json.new" "$state/last.json"
@@ -145,7 +80,7 @@
     runtimeInputs = with pkgs; [coreutils jq];
     text = ''
       state=${stateDir}
-      started="" rev="" prev_sys="" new_sys="" outcome="" reason="" probes_json="[]" probes_after_json="[]"
+      started="" rev="" drv="" prev_sys="" new_sys="" summary="" outcome="" reason="" probes_json="[]" probes_after_json="[]"
       ${commonFns}
       inv=''${INVOCATION_ID:-none}
       rm -f "$state/pending"
@@ -159,6 +94,8 @@
         started=$(jq -r '.started // ""' "$state/current.json")
         prev_sys=$(jq -r '.from // ""' "$state/current.json")
         new_sys=$(jq -r '.to // ""' "$state/current.json")
+        drv=$(jq -r '.drv // ""' "$state/current.json")
+        summary=$(jq -r '.closure_diff // ""' "$state/current.json")
       fi
       [ -n "$started" ] || started=$(date -Is)
       finish interrupted "the unit ended without a result (service result ''${SERVICE_RESULT:-?}, exit ''${EXIT_STATUS:-?}, last phase $phase); check the journal and /run/current-system"
@@ -178,11 +115,13 @@
         findutils
         gawk
         git
+        getent
         gnugrep
         iproute2
         jq
         nix
         nvd
+        openssh
         pamtester
         systemd
         util-linux
@@ -199,7 +138,6 @@
             nix_home=''${AGENT_SWITCH_NIX_HOME:-$state/home}
             # 1 = stop before the touch, probes = only run the probes.
             dry=''${AGENT_SWITCH_DRY_RUN:-0}
-            local_inputs=''${AGENT_SWITCH_LOCAL_INPUTS:-${lib.escapeShellArg localInputUrlsJson}}
             # Not root: no groups to initialise, no capability bounding set to drop.
             owner_priv=(--no-new-privs --keep-groups)
           ''
@@ -211,18 +149,18 @@
             agent_keys=${cfg.u2fKeysFile}
             nix_home=$state/home
             dry=0
-            local_inputs=${lib.escapeShellArg localInputUrlsJson}
             owner_priv=(--no-new-privs --init-groups --bounding-set=-all --inh-caps=-all)
           ''
         }
         owner=${cfg.user}
         touch_timeout=${toString cfg.touchTimeoutSec}
+        eval_timeout=${toString cfg.evalTimeoutSec}
         build_timeout=${toString cfg.buildTimeoutSec}
         settle=${toString cfg.settleSec}
         notify_send=${lib.getExe' pkgs.libnotify "notify-send"}
 
         started=$(date -Is)
-        rev="" prev_sys="" new_sys="" outcome="" reason="" probes_json="[]" probes_after_json="[]" phase=start
+        rev="" drv="" prev_sys="" new_sys="" summary="" outcome="" reason="" probes_json="[]" probes_after_json="[]" phase=start
         ${commonFns}
 
         mkdir -p "$state"
@@ -240,8 +178,8 @@
         progress() {
           phase=$1
           jq -n --arg i "''${INVOCATION_ID:-}" --arg phase "$phase" --arg rev "$rev" --arg start "$started" \
-            --arg from "$prev_sys" --arg to "$new_sys" \
-            '{invocation: $i, phase: $phase, rev: $rev, started: $start, from: $from, to: $to}' \
+            --arg drv "$drv" --arg from "$prev_sys" --arg to "$new_sys" --arg summary "$summary" \
+            '{invocation: $i, phase: $phase, rev: $rev, started: $start, drv: $drv, from: $from, to: $to, closure_diff: $summary}' \
             > "$state/current.json.new"
           mv "$state/current.json.new" "$state/current.json"
         }
@@ -322,81 +260,71 @@
           exit 1
         fi
 
-        # ---- 2. flake.lock allowlist, then the build ----------------------------------------------
-        # H2: the build below runs as root before the touch. It must not fetch anything the owner
-        # (or an agent) can point at a root-readable path. flake.lock and flake.nix of the revision are
-        # read as the owner (data); root only parses them with jq and a restricted-mode nix eval.
-        # Private HOME for everything root runs from here on: libgit2 (nix) reads safe.directory
-        # from its .gitconfig, and the nix cache lives here. Only root can read or write it.
+        # ---- 2. evaluate as the owner, realise as root -------------------------------------------
+        # H2 and the fetchTree hole: root never evaluates Nix code from the repo. The owner runs the
+        # evaluation (same setpriv as the git calls), so a committed .nix file (builtins.fetchTree or
+        # fetchGit on a root-readable path, import of a planted file, import-from-derivation) can only
+        # do what the owner can do. The result is one .drv path; root validates it and only realises
+        # that derivation, which evaluates nothing.
+        # The owner's nix gets its own HOME, in the state dir: the eval and fetcher caches survive
+        # between runs, and the owner's ~/.config/nix/nix.conf (plugin-files, ...) stays out of it.
+        # ssh finds the owner's keys and known_hosts through the passwd home directory, not $HOME, so
+        # a git+ssh flake input works from here; BatchMode makes a key that needs a passphrase or a
+        # touch fail the evaluation (a refusal) instead of hanging the unit.
+        owner_home=$(getent passwd "$owner" | cut -d: -f6)
+        eval_home=$state/eval-home
+        mkdir -p "$eval_home"
+        chown "$owner_uid:$owner_gid" "$eval_home"
+        chmod 0700 "$eval_home"
+        ssh_cmd=${lib.escapeShellArg cfg.evalSshCommand}
+        if [ -r "$owner_home/.ssh/config" ]; then ssh_cmd="$ssh_cmd -F $owner_home/.ssh/config"; fi
+        owner_nix() {
+          timeout "$eval_timeout" setpriv --reuid "$owner_uid" --regid "$owner_gid" "''${owner_priv[@]}" \
+            env -i "PATH=$PATH" "HOME=$eval_home" NIX_REMOTE=daemon GIT_TERMINAL_PROMPT=0 \
+              "GIT_SSH_COMMAND=$ssh_cmd" \
+            nix --extra-experimental-features 'nix-command flakes' "$@"
+        }
+
+        progress eval
+        ref="git+file://$repo?rev=$rev#$attr"
+        log "evaluating $ref as $owner"
+        # --no-update-lock-file: nix refuses when flake.nix and flake.lock disagree, and then writes
+        # nothing into the owner's tree. (Do NOT add --no-write-lock-file: together they make nix go
+        # on with an in-memory lock instead of refusing; verified.)
+        drv=$(owner_nix eval --raw --no-update-lock-file --no-use-registries "$ref.drvPath" 2> "$snap/eval.err" | head -c 1024) || drv=""
+        drv_re='^/nix/store/[0-9a-z]{32}-[A-Za-z0-9+._?=-]+\.drv$'
+        if ! [[ $drv =~ $drv_re ]] || [[ $drv != *-nixos-system-${cfg.hostName}-*.drv ]]; then
+          log "REFUSED: the evaluation as $owner did not give one nixos-system-${cfg.hostName} .drv path: $(head -c 600 "$snap/eval.err" | tr '\n' ' ')"
+          drv=""
+          finish refused "evaluating $rev as $owner failed or gave no nixos-system-${cfg.hostName} .drv path (see the journal)"
+          exit 1
+        fi
+        if [ ! -f "$drv" ] || [ -L "$drv" ]; then
+          log "REFUSED: $drv is not a regular file in the store"
+          finish refused "$drv is not a regular file in the store"
+          exit 1
+        fi
+        log "derivation $drv"
+
         mkdir -p "$nix_home"
         chmod 0700 "$nix_home"
         export HOME="$nix_home"
-        printf '[safe]\n%s' ${lib.escapeShellArg gitSafeDirs} > "$HOME/.gitconfig"
-        owner_git -C "$repo" show "$rev:flake.lock" 2> /dev/null | head -c 4194304 > "$snap/flake.lock" || true
-        if [ ! -s "$snap/flake.lock" ]; then
-          log "REFUSED: no flake.lock at $rev"
-          finish refused "no flake.lock at $rev"
-          exit 1
-        fi
-        if ! violations=$(jq -r --argjson local "$local_inputs" -f ${lockCheck} "$snap/flake.lock" 2>&1); then
-          log "REFUSED: flake.lock at $rev is not parseable"
-          finish refused "flake.lock at $rev is not parseable"
-          exit 1
-        fi
-        if [ -n "$violations" ]; then
-          log "REFUSED: flake.lock at $rev has inputs outside the allowlist (github/gitlab/sourcehut, tarball https, git https/ssh, the listed local repos):"
-          while IFS= read -r v; do log "  $v"; done <<< "$violations"
-          finish refused "flake.lock inputs outside the allowlist: $(echo "$violations" | tr '\n' ';')"
-          exit 1
-        fi
-
-        # Every input flake.nix declares must be the one flake.lock locks (url, owner, repo, ref, ...):
-        # nix itself would fetch a differing or unlocked input before it refuses. The expression is
-        # evaluated in restricted mode: it can read only the snapshot directory.
-        decl_expr=${lib.escapeShellArg declaredInputs}
-        owner_git -C "$repo" show "$rev:flake.nix" 2> /dev/null | head -c 1048576 > "$snap/flake.nix" || true
-        if [ ! -s "$snap/flake.nix" ]; then
-          log "REFUSED: no flake.nix at $rev"
-          finish refused "no flake.nix at $rev"
-          exit 1
-        fi
-        if ! timeout 60 env NIX_PATH= nix-instantiate --eval --strict --json --extra-experimental-features flakes \
-              --option restrict-eval true -I "$snap" \
-              -E "let snap = \"$snap\"; in $decl_expr" > "$snap/declared.json" 2> "$snap/declared.err"; then
-          log "REFUSED: cannot evaluate the inputs of flake.nix at $rev in restricted mode: $(head -c 300 "$snap/declared.err" | tr '\n' ' ')"
-          finish refused "cannot evaluate the inputs of flake.nix at $rev in restricted mode"
-          exit 1
-        fi
-        if ! mismatches=$(jq -r --argjson decl "$(cat "$snap/declared.json")" -f ${inputsCheck} "$snap/flake.lock" 2>&1); then
-          log "REFUSED: flake.nix inputs could not be compared with flake.lock at $rev"
-          finish refused "flake.nix inputs could not be compared with flake.lock at $rev"
-          exit 1
-        fi
-        if [ -n "$mismatches" ]; then
-          log "REFUSED: flake.nix and flake.lock disagree at $rev (run nix flake lock, commit it):"
-          while IFS= read -r v; do log "  $v"; done <<< "$mismatches"
-          finish refused "flake.nix inputs not matched by flake.lock: $(echo "$mismatches" | tr '\n' ';')"
-          exit 1
-        fi
-
         prev_sys=$(readlink -f /run/current-system)
         progress build
-        # Defense in depth: should nix ever run the git CLI on a repo, repo config cannot make it exec.
-        export GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_COUNT=2
-        export GIT_CONFIG_KEY_0=core.fsmonitor GIT_CONFIG_VALUE_0=false
-        export GIT_CONFIG_KEY_1=core.hooksPath GIT_CONFIG_VALUE_1=/dev/null
-
-        ref="git+file://$repo?rev=$rev#$attr"
-        log "building $ref"
+        log "realising $drv"
         # --out-link roots the result in the state dir while we wait for the touch (removed on exit).
-        # --no-update-lock-file: nix refuses when flake.lock would change, and then writes nothing into
-        # the owner's tree or index. (Do NOT add --no-write-lock-file: together they make nix go on with
-        # an in-memory lock instead of refusing; verified.)
+        # `<drv>^out` is a derivation, not a flake reference: nothing is evaluated here.
         if ! new_sys=$(timeout "$build_timeout" nix build --out-link "$state/pending" --print-out-paths \
-              --no-update-lock-file --no-use-registries \
-              --extra-experimental-features 'nix-command flakes' ${lib.escapeShellArgs cfg.extraNixArgs} "$ref"); then
+              --no-use-registries --extra-experimental-features nix-command ${lib.escapeShellArgs cfg.extraNixArgs} "$drv^out"); then
           new_sys=""
-          finish build-failed "nix build failed or timed out (limit $build_timeout s); see the journal"
+          finish build-failed "nix build of the derivation failed or timed out (limit $build_timeout s); see the journal"
+          exit 1
+        fi
+        out_re='^/nix/store/[0-9a-z]{32}-[A-Za-z0-9+._?=-]+$'
+        if ! [[ $new_sys =~ $out_re ]] || [ "$(nix-store --query --outputs "$drv")" != "$new_sys" ]; then
+          log "REFUSED: the realised path '$new_sys' is not the output of $drv"
+          new_sys=""
+          finish refused "the realised path is not the output of $drv"
           exit 1
         fi
         log "built $new_sys"
@@ -415,9 +343,13 @@
           exit 1
         fi
 
+        # The summary is computed by root from the realised result: it is what the touch notice and
+        # last.json show, and $new_sys is the very path that is switched below.
+        diff_out=$(nvd --color never diff "$prev_sys" "$new_sys" || true)
         log "closure diff against $prev_sys:"
-        nvd --color never diff "$prev_sys" "$new_sys" || true
-        summary=$(nvd --color never diff "$prev_sys" "$new_sys" | tail -n 1 || true)
+        printf '%s\n' "$diff_out"
+        summary="$(printf '%s\n' "$diff_out" | tail -n 1); $(printf '%s\n' "$diff_out" | grep -c '^\[' || true) entries changed"
+        progress diffed
 
         # ---- 3. snapshot of the live state, used by the probes ---------------------------------
         graphical_sessions() {
@@ -469,13 +401,13 @@
 
         # ---- 4. the touch ---------------------------------------------------------------------
         progress touch
-        log "TOUCH REQUIRED: touch the YubiKey within $touch_timeout s to switch legion to ''${rev:0:12} ($summary)"
+        log "TOUCH REQUIRED: touch the YubiKey within $touch_timeout s to switch legion to ''${rev:0:12} (result ''${new_sys:11:12}): $summary"
         if [ "$dry" = 1 ]; then
           log "dry run: stopping before the touch"
           finish dry-run "stopped before the touch"
           exit 0
         fi
-        msg="Touch the YubiKey within $touch_timeout s to switch legion to ''${rev:0:12}. $summary"
+        msg="Touch the YubiKey within $touch_timeout s to switch legion to ''${rev:0:12} (result ''${new_sys:11:12}). $summary"
         timeout 10 systemd-run --machine="$owner@.host" --user --collect --quiet \
             "$notify_send" -u critical -t $((touch_timeout * 1000)) -a nixos-agent-switch "legion switch waiting for you" "$msg" \
           || timeout 10 setpriv --reuid "$owner_uid" --regid "$owner_gid" --init-groups \
@@ -488,6 +420,11 @@
           exit 1
         fi
         log "touch accepted"
+        # What was shown (and approved) is the realised path: it must still be the one rooted here.
+        if [ "$(readlink -f "$state/pending")" != "$new_sys" ] || [ ! -x "$new_sys/bin/switch-to-configuration" ]; then
+          finish refused "the rooted result no longer is $new_sys; nothing switched"
+          exit 1
+        fi
 
         # ---- 5. switch, probes, rollback --------------------------------------------------------
         prev_gen=$(readlink "$profile" || true)
@@ -565,15 +502,6 @@ in {
       default = "/etc/nixos";
       description = "Git repository whose committed `main` is built and switched.";
     };
-    localGitInputs = lib.mkOption {
-      type = lib.types.listOf lib.types.str;
-      default = ["/home/lux/Documents/projects/dispatcher"];
-      description = ''
-        Local repositories the flake fetches with `git+file` (paths, listed explicitly). Root may
-        read them (libgit2 safe.directory) and flake.lock may contain exactly these as `git`
-        inputs; every other `file://` or `path` input in flake.lock refuses the run.
-      '';
-    };
     u2fKeysFile = lib.mkOption {
       type = lib.types.path;
       default = ./u2f_keys_agent_switch;
@@ -604,6 +532,21 @@ in {
     touchTimeoutSec = lib.mkOption {
       type = lib.types.ints.positive;
       default = 60;
+    };
+    evalTimeoutSec = lib.mkOption {
+      type = lib.types.ints.positive;
+      default = 1800;
+      description = "Limit for the evaluation the owner runs (the first run fetches the flake inputs).";
+    };
+    evalSshCommand = lib.mkOption {
+      type = lib.types.str;
+      default = "ssh -o BatchMode=yes";
+      description = ''
+        GIT_SSH_COMMAND of the owner's evaluation, for a git+ssh flake input. The owner's ~/.ssh/config
+        is added with -F when it exists. BatchMode: a key that needs a passphrase or a touch fails the
+        evaluation (the run is refused) instead of waiting. The key and known_hosts of the owner must
+        therefore work without a prompt.
+      '';
     };
     buildTimeoutSec = lib.mkOption {
       type = lib.types.ints.positive;

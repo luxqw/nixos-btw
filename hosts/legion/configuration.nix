@@ -377,6 +377,12 @@ in {
   ];
 
   nix.settings = {
+    # lux is NOT a trusted user here: a trusted user is root-equivalent through the nix daemon (it can
+    # pre-register store paths with arbitrary content and set daemon options), which would void the
+    # YubiKey touch of nixos-agent-switch. Untrusted lux still builds, evaluates, runs nix develop and
+    # uses the configured substituters, builders and signature checks; it cannot add unsigned,
+    # non-content-addressed paths. homelab keeps lux trusted (deploy-homelab copies unsigned paths there).
+    trusted-users = ["root"];
     builders-use-substitutes = true;
     connect-timeout = 3;
     extra-substituters = ["https://cache.rakhmatullin.dev"];

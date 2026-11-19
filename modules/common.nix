@@ -21,7 +21,7 @@
     auto-optimise-store = true;
     experimental-features = ["nix-command" "flakes"];
     download-buffer-size = 268435456;
-    trusted-users = ["root" "lux"];
+    # trusted-users is set per host (legion: root only; homelab: root and lux).
   };
 
   nixpkgs.config.allowUnfree = true;
