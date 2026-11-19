@@ -166,6 +166,7 @@ in {
     inputs.dux-shell.nixosModules.default
     inputs.dux-greeter.nixosModules.default
     ./hardware-configuration.nix
+    ./agent-maintenance.nix
   ];
 
   # work-bridge and the SSH tunnel to the dispatcher gateway on homelab. Kept here, not in home.nix.
